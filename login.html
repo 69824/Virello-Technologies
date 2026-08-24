@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Organization Login | Virello Technologies
+    </title>
+
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #172033;
+
+            min-height: 100vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+        /* =========================================
+           HEADER
+        ========================================= */
+
+        header {
+
+            background: #ffffff;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            padding: 17px 6%;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+        }
+
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 44px;
+
+            height: 44px;
+
+            background: #2563eb;
+
+            color: #ffffff;
+
+            border-radius: 11px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 22px;
+
+            font-weight: 800;
+
+        }
+
+
+        .logo-text h2 {
+
+            font-size: 20px;
+
+            color: #111827;
+
+        }
+
+
+        .logo-text p {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            margin-top: 3px;
+
+        }
+
+
+        .home-link {
+
+            color: #2563eb;
+
+            text-decoration: none;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+        }
+
+
+        .home-link:hover {
+
+            text-decoration: underline;
+
+        }
+
+
+        /* =========================================
+           MAIN
+        ========================================= */
+
+        main {
+
+            flex: 1;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 45px 20px;
+
+        }
+
+
+        .login-container {
+
+            width: 100%;
+
+            max-width: 460px;
+
+        }
+
+
+        /* =========================================
+           TITLE
+        ========================================= */
+
+        .page-title {
+
+            text-align: center;
+
+            margin-bottom: 28px;
+
+        }
+
+
+        .badge {
+
+            display: inline-block;
+
+            background: #dbeafe;
+
+            color: #1d4ed8;
+
+            padding: 8px 15px;
+
+            border-radius: 30px;
+
+            font-size: 11px;
+
+            font-weight: bold;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .page-title h1 {
+
+            font-size: 34px;
+
+            color: #111827;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .page-title p {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+        }
+
+
+        /* =========================================
+           LOGIN CARD
+        ========================================= */
+
+        .login-card {
+
+            background: #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 18px;
+
+            padding: 35px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(15, 23, 42, 0.06);
+
+        }
+
+
+        .form-group {
+
+            margin-bottom: 20px;
+
+        }
+
+
+        label {
+
+            display: block;
+
+            color: #334155;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            margin-bottom: 7px;
+
+        }
+
+
+        input {
+
+            width: 100%;
+
+            padding: 14px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 9px;
+
+            font-size: 14px;
+
+            outline: none;
+
+            color: #172033;
+
+        }
+
+
+        input:focus {
+
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37, 99, 235, 0.10);
+
+        }
+
+
+        input::placeholder {
+
+            color: #94a3b8;
+
+        }
+
+
+        /* =========================================
+           MESSAGE
+        ========================================= */
+
+        #loginMessage {
+
+            display: none;
+
+            padding: 13px 15px;
+
+            border-radius: 9px;
+
+            margin-bottom: 20px;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+        }
+
+
+        #loginMessage.error {
+
+            display: block;
+
+            background: #fef2f2;
+
+            color: #b91c1c;
+
+            border:
+                1px solid #fecaca;
+
+        }
+
+
+        #loginMessage.success {
+
+            display: block;
+
+            background: #f0fdf4;
+
+            color: #15803d;
+
+            border:
+                1px solid #bbf7d0;
+
+        }
+
+
+        /* =========================================
+           LOGIN BUTTON
+        ========================================= */
+
+        .login-button {
+
+            width: 100%;
+
+            border: none;
+
+            background: #2563eb;
+
+            color: #ffffff;
+
+            padding: 15px;
+
+            border-radius: 9px;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .login-button:hover {
+
+            background: #1d4ed8;
+
+        }
+
+
+        .login-button:disabled {
+
+            background: #93c5fd;
+
+            cursor: not-allowed;
+
+        }
+
+
+        /* =========================================
+           REGISTER
+        ========================================= */
+
+        .register-link {
+
+            text-align: center;
+
+            margin-top: 22px;
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        .register-link a {
+
+            color: #2563eb;
+
+            text-decoration: none;
+
+            font-weight: bold;
+
+        }
+
+
+        .register-link a:hover {
+
+            text-decoration: underline;
+
+        }
+
+
+        /* =========================================
+           SECURITY
+        ========================================= */
+
+        .security-note {
+
+            margin-top: 20px;
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 10px;
+
+            padding: 14px;
+
+            text-align: center;
+
+            color: #64748b;
+
+            font-size: 11px;
+
+            line-height: 1.5;
+
+        }
+
+
+        /* =========================================
+           FOOTER
+        ========================================= */
+
+        footer {
+
+            background: #0b1120;
+
+            color: white;
+
+            text-align: center;
+
+            padding: 25px 20px;
+
+        }
+
+
+        footer p {
+
+            color: #94a3b8;
+
+            font-size: 12px;
+
+        }
+
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 600px) {
+
+            header {
+
+                padding:
+                    15px 18px;
+
+            }
+
+
+            .logo-text p {
+
+                display: none;
+
+            }
+
+
+            .logo-text h2 {
+
+                font-size: 17px;
+
+            }
+
+
+            .home-link {
+
+                font-size: 12px;
+
+            }
+
+
+            main {
+
+                padding:
+                    35px 15px;
+
+            }
+
+
+            .login-card {
+
+                padding:
+                    27px 20px;
+
+            }
+
+
+            .page-title h1 {
+
+                font-size: 29px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================================
+         HEADER
+    ========================================= -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Digital Organization Solutions
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="index.html"
+            class="home-link"
+        >
+            ← Home
+        </a>
+
+    </header>
+
+
+    <!-- =========================================
+         MAIN
+    ========================================= -->
+
+    <main>
+
+        <div class="login-container">
+
+
+            <div class="page-title">
+
+                <div class="badge">
+                    VIRELLO DIGITAL ATTENDANCE
+                </div>
+
+                <h1>
+                    Organization Login
+                </h1>
+
+                <p>
+                    Sign in to manage your organization's
+                    digital attendance workspace.
+                </p>
+
+            </div>
+
+
+            <!-- =====================================
+                 LOGIN CARD
+            ===================================== -->
+
+            <div class="login-card">
+
+
+                <div
+                    id="loginMessage"
+                ></div>
+
+
+                <form
+                    id="loginForm"
+                >
+
+
+                    <!-- EMAIL -->
+
+                    <div class="form-group">
+
+                        <label for="email">
+                            Email Address
+                        </label>
+
+                        <input
+                            type="email"
+                            id="email"
+                            placeholder="Enter your email address"
+                            autocomplete="email"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- PASSWORD -->
+
+                    <div class="form-group">
+
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- BUTTON -->
+
+                    <button
+                        type="submit"
+                        id="loginButton"
+                        class="login-button"
+                    >
+                        Sign In
+                    </button>
+
+                </form>
+
+
+                <div class="register-link">
+
+                    Don't have an organization account?
+
+                    <a href="register.html">
+                        Register Organization
+                    </a>
+
+                </div>
+
+
+                <div class="security-note">
+
+                    🔒 Your login is securely handled
+                    through Firebase Authentication.
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- =========================================
+         FOOTER
+    ========================================= -->
+
+    <footer>
+
+        <p>
+            © 2026 Virello Technologies.
+            All rights reserved.
+        </p>
+
+    </footer>
+
+
+    <!-- =========================================
+         LOGIN JAVASCRIPT
+    ========================================= -->
+
+    <script
+        type="module"
+        src="js/login.js"
+    ></script>
+
+
+</body>
+
+</html>

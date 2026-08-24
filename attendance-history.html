@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Attendance History | Virello Technologies
+    </title>
+
+
+    <style>
+
+        /* =====================================================
+           RESET
+        ===================================================== */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        /* =====================================================
+           BODY
+        ===================================================== */
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #172033;
+
+            min-height: 100vh;
+
+        }
+
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        header {
+
+            height: 72px;
+
+            background: #ffffff;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 0 5%;
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+        }
+
+
+        /* =====================================================
+           LOGO
+        ===================================================== */
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 42px;
+
+            height: 42px;
+
+            background: #2563eb;
+
+            color: white;
+
+            border-radius: 10px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 21px;
+
+            font-weight: 800;
+
+        }
+
+
+        .logo-text h2 {
+
+            font-size: 18px;
+
+            color: #111827;
+
+        }
+
+
+        .logo-text p {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            margin-top: 2px;
+
+        }
+
+
+        /* =====================================================
+           HEADER RIGHT
+        ===================================================== */
+
+        .header-right {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 18px;
+
+        }
+
+
+        .admin-name {
+
+            font-size: 13px;
+
+            color: #475569;
+
+        }
+
+
+        .logout-button {
+
+            border:
+                1px solid #fecaca;
+
+            background:
+                #fef2f2;
+
+            color:
+                #dc2626;
+
+            padding:
+                9px 15px;
+
+            border-radius:
+                8px;
+
+            font-size:
+                12px;
+
+            font-weight:
+                bold;
+
+            cursor:
+                pointer;
+
+        }
+
+
+        .logout-button:hover {
+
+            background:
+                #fee2e2;
+
+        }
+
+
+        /* =====================================================
+           PAGE
+        ===================================================== */
+
+        .page {
+
+            max-width: 1200px;
+
+            margin: auto;
+
+            padding: 35px 25px 60px;
+
+        }
+
+
+        /* =====================================================
+           PAGE HEADER
+        ===================================================== */
+
+        .page-header {
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .page-header h1 {
+
+            font-size:
+                clamp(26px, 4vw, 36px);
+
+            color: #111827;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .page-header p {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+        }
+
+
+        /* =====================================================
+           ORGANIZATION CARD
+        ===================================================== */
+
+        .organization-card {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            color: white;
+
+            border-radius: 18px;
+
+            padding: 25px;
+
+            margin-bottom: 25px;
+
+            box-shadow:
+                0 10px 30px
+                rgba(37, 99, 235, 0.18);
+
+        }
+
+
+        .organization-label {
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 1px;
+
+            opacity: .8;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .organization-name {
+
+            font-size: 27px;
+
+            font-weight: bold;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .organization-details {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+        }
+
+
+        .organization-badge {
+
+            background:
+                rgba(255,255,255,.15);
+
+            padding: 7px 12px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+        }
+
+
+        /* =====================================================
+           FILTER CARD
+        ===================================================== */
+
+        .filter-card {
+
+            background: #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .filter-card h2 {
+
+            font-size: 18px;
+
+            color: #111827;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .filter-card p {
+
+            color: #64748b;
+
+            font-size: 13px;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .filters {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 15px;
+
+            align-items: end;
+
+        }
+
+
+        .filter-group label {
+
+            display: block;
+
+            color: #475569;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            margin-bottom: 7px;
+
+        }
+
+
+        .filter-group input,
+        .filter-group select {
+
+            width: 100%;
+
+            height: 43px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 8px;
+
+            padding: 0 12px;
+
+            font-size: 13px;
+
+            background: #ffffff;
+
+            color: #172033;
+
+            outline: none;
+
+        }
+
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,.10);
+
+        }
+
+
+        .filter-actions {
+
+            display: flex;
+
+            gap: 10px;
+
+        }
+
+
+        .filter-button {
+
+            height: 43px;
+
+            border: none;
+
+            background: #2563eb;
+
+            color: white;
+
+            padding: 0 20px;
+
+            border-radius: 8px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .filter-button:hover {
+
+            background: #1d4ed8;
+
+        }
+
+
+        .clear-button {
+
+            height: 43px;
+
+            border:
+                1px solid #cbd5e1;
+
+            background: white;
+
+            color: #475569;
+
+            padding: 0 20px;
+
+            border-radius: 8px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .clear-button:hover {
+
+            background: #f8fafc;
+
+        }
+
+
+        /* =====================================================
+           STATISTICS
+        ===================================================== */
+
+        .stats-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 18px;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .stat-card {
+
+            background: #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+        }
+
+
+        .stat-icon {
+
+            font-size: 25px;
+
+            margin-bottom: 13px;
+
+        }
+
+
+        .stat-label {
+
+            color: #64748b;
+
+            font-size: 12px;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .stat-number {
+
+            color: #111827;
+
+            font-size: 28px;
+
+            font-weight: bold;
+
+        }
+
+
+        /* =====================================================
+           HISTORY CARD
+        ===================================================== */
+
+        .history-card {
+
+            background: #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 16px;
+
+            overflow: hidden;
+
+        }
+
+
+        .history-header {
+
+            padding: 22px;
+
+            border-bottom:
+                1px solid #e2e8f0;
+
+        }
+
+
+        .history-header h2 {
+
+            font-size: 20px;
+
+            color: #111827;
+
+            margin-bottom: 5px;
+
+        }
+
+
+        .history-header p {
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================================
+           TABLE
+        ===================================================== */
+
+        #historyTableContainer {
+
+            width: 100%;
+
+            overflow-x: auto;
+
+        }
+
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 850px;
+
+        }
+
+
+        thead {
+
+            background: #f8fafc;
+
+        }
+
+
+        th {
+
+            text-align: left;
+
+            padding: 15px 18px;
+
+            color: #64748b;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: .5px;
+
+            font-weight: 700;
+
+            border-bottom:
+                1px solid #e2e8f0;
+
+            white-space: nowrap;
+
+        }
+
+
+        td {
+
+            padding: 16px 18px;
+
+            border-bottom:
+                1px solid #eef2f7;
+
+            color: #334155;
+
+            font-size: 13px;
+
+        }
+
+
+        tbody tr:hover {
+
+            background: #f8fafc;
+
+        }
+
+
+        tbody tr:last-child td {
+
+            border-bottom: none;
+
+        }
+
+
+        /* =====================================================
+           PERSON
+        ===================================================== */
+
+        .person {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            min-width: 200px;
+
+        }
+
+
+        .avatar {
+
+            width: 40px;
+
+            height: 40px;
+
+            flex-shrink: 0;
+
+            border-radius: 50%;
+
+            background: #eff6ff;
+
+            color: #2563eb;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 12px;
+
+            font-weight: 800;
+
+        }
+
+
+        .person-name {
+
+            color: #111827;
+
+            font-weight: 700;
+
+            margin-bottom: 3px;
+
+        }
+
+
+        .person-position {
+
+            color: #64748b;
+
+            font-size: 11px;
+
+        }
+
+
+        /* =====================================================
+           STATUS
+        ===================================================== */
+
+        .status {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            padding: 6px 10px;
+
+            border-radius: 20px;
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+        }
+
+
+        .status-present {
+
+            background: #dcfce7;
+
+            color: #15803d;
+
+        }
+
+
+        .status-late {
+
+            background: #fef3c7;
+
+            color: #b45309;
+
+        }
+
+
+        .status-absent {
+
+            background: #fee2e2;
+
+            color: #b91c1c;
+
+        }
+
+
+        /* =====================================================
+           EMPTY
+        ===================================================== */
+
+        #emptyState {
+
+            display: none;
+
+            padding: 55px 25px;
+
+            text-align: center;
+
+            color: #64748b;
+
+            font-size: 14px;
+
+        }
+
+
+        /* =====================================================
+           LOADING
+        ===================================================== */
+
+        #loadingScreen {
+
+            position: fixed;
+
+            inset: 0;
+
+            background: #f5f7fb;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            justify-content: center;
+
+            z-index: 5000;
+
+        }
+
+
+        .loader {
+
+            width: 40px;
+
+            height: 40px;
+
+            border:
+                4px solid #dbeafe;
+
+            border-top-color:
+                #2563eb;
+
+            border-radius: 50%;
+
+            animation:
+                spin .8s linear infinite;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        @keyframes spin {
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+
+        #loadingScreen p {
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================================
+           ERROR
+        ===================================================== */
+
+        #errorScreen {
+
+            display: none;
+
+            max-width: 500px;
+
+            margin: 100px auto;
+
+            padding: 30px;
+
+            background: white;
+
+            border:
+                1px solid #fecaca;
+
+            border-radius: 15px;
+
+            text-align: center;
+
+        }
+
+
+        #errorScreen h2 {
+
+            color: #dc2626;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        #errorScreen p {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
+
+        @media (max-width: 900px) {
+
+            .filters {
+
+                grid-template-columns: 1fr;
+
+            }
+
+            .stats-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            header {
+
+                padding: 0 18px;
+
+            }
+
+            .logo-text p {
+
+                display: none;
+
+            }
+
+            .logo-text h2 {
+
+                font-size: 16px;
+
+            }
+
+            .admin-name {
+
+                display: none;
+
+            }
+
+            .page {
+
+                padding:
+                    25px 15px 50px;
+
+            }
+
+            .organization-card {
+
+                padding: 22px;
+
+            }
+
+            .organization-name {
+
+                font-size: 23px;
+
+            }
+
+            .stats-grid {
+
+                grid-template-columns:
+                    1fr 1fr;
+
+                gap: 12px;
+
+            }
+
+            .stat-card {
+
+                padding: 17px;
+
+            }
+
+            .stat-number {
+
+                font-size: 24px;
+
+            }
+
+            .filter-actions {
+
+                width: 100%;
+
+            }
+
+            .filter-button,
+            .clear-button {
+
+                flex: 1;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         LOADING
+    ====================================================== -->
+
+    <div id="loadingScreen">
+
+        <div class="loader"></div>
+
+        <p>
+            Loading attendance history...
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Digital Organization Solutions
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="header-right">
+
+            <div
+                id="adminName"
+                class="admin-name"
+            >
+                Loading...
+            </div>
+
+
+            <button
+                id="logoutButton"
+                class="logout-button"
+                type="button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="page">
+
+
+        <!-- =================================================
+             PAGE HEADER
+        ================================================== -->
+
+        <section class="page-header">
+
+            <h1>
+                Attendance History
+            </h1>
+
+            <p>
+                View and search your organization's
+                attendance records.
+            </p>
+
+        </section>
+
+
+        <!-- =================================================
+             ORGANIZATION
+        ================================================== -->
+
+        <section class="organization-card">
+
+            <div class="organization-label">
+                Your Organization
+            </div>
+
+
+            <div
+                id="organizationName"
+                class="organization-name"
+            >
+                Loading...
+            </div>
+
+
+            <div class="organization-details">
+
+                <div
+                    id="organizationType"
+                    class="organization-badge"
+                >
+                    Loading...
+                </div>
+
+
+                <div
+                    id="organizationCountry"
+                    class="organization-badge"
+                >
+                    Loading...
+                </div>
+
+
+                <div
+                    id="subscriptionStatus"
+                    class="organization-badge"
+                >
+                    Subscription: Active
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             FILTERS
+        ================================================== -->
+
+        <section class="filter-card">
+
+            <h2>
+                Search Attendance
+            </h2>
+
+            <p>
+                Select a date range and staff member.
+            </p>
+
+
+            <div class="filters">
+
+
+                <!-- FROM -->
+
+                <div class="filter-group">
+
+                    <label for="fromDate">
+                        From Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="fromDate"
+                    >
+
+                </div>
+
+
+                <!-- TO -->
+
+                <div class="filter-group">
+
+                    <label for="toDate">
+                        To Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="toDate"
+                    >
+
+                </div>
+
+
+                <!-- STAFF -->
+
+                <div class="filter-group">
+
+                    <label for="staffFilter">
+                        Staff Member
+                    </label>
+
+                    <select
+                        id="staffFilter"
+                    >
+
+                        <option value="all">
+                            All Staff
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- BUTTONS -->
+
+                <div class="filter-actions">
+
+                    <button
+                        type="button"
+                        id="searchButton"
+                        class="filter-button"
+                    >
+                        Search
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="clearButton"
+                        class="clear-button"
+                    >
+                        Clear
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             STATISTICS
+        ================================================== -->
+
+        <section class="stats-grid">
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    📋
+                </div>
+
+                <div class="stat-label">
+                    Total Records
+                </div>
+
+                <div
+                    id="totalRecords"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🟢
+                </div>
+
+                <div class="stat-label">
+                    Present
+                </div>
+
+                <div
+                    id="totalPresent"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🕒
+                </div>
+
+                <div class="stat-label">
+                    Late
+                </div>
+
+                <div
+                    id="totalLate"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🔴
+                </div>
+
+                <div class="stat-label">
+                    Absent
+                </div>
+
+                <div
+                    id="totalAbsent"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             HISTORY TABLE
+        ================================================== -->
+
+        <section class="history-card">
+
+
+            <div class="history-header">
+
+                <h2>
+                    Attendance Records
+                </h2>
+
+                <p>
+                    Historical attendance records
+                    for your organization.
+                </p>
+
+            </div>
+
+
+            <div
+                id="historyTableContainer"
+            >
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Staff Member
+                            </th>
+
+                            <th>
+                                Staff ID
+                            </th>
+
+                            <th>
+                                Check In
+                            </th>
+
+                            <th>
+                                Check Out
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody
+                        id="historyTableBody"
+                    >
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <div id="emptyState">
+
+                No attendance records found.
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+    <!-- =====================================================
+         ERROR
+    ====================================================== -->
+
+    <div id="errorScreen">
+
+        <h2>
+            Unable to Load Attendance History
+        </h2>
+
+        <p id="errorMessage">
+            Something went wrong while loading
+            attendance history.
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
+    <script
+        type="module"
+        src="js/attendance-history.js"
+    ></script>
+
+
+</body>
+
+</html>

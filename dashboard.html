@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Dashboard | Virello Technologies
+    </title>
+
+
+    <style>
+
+        /* =========================================
+           RESET
+        ========================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        /* =========================================
+           BODY
+        ========================================= */
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #172033;
+
+            min-height: 100vh;
+
+        }
+
+
+        /* =========================================
+           HEADER
+        ========================================= */
+
+        header {
+
+            height: 72px;
+
+            background: #ffffff;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 0 5%;
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+        }
+
+
+        /* =========================================
+           LOGO
+        ========================================= */
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 42px;
+
+            height: 42px;
+
+            background: #2563eb;
+
+            color: white;
+
+            border-radius: 10px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-size: 21px;
+
+            font-weight: 800;
+
+        }
+
+
+        .logo-text h2 {
+
+            font-size: 18px;
+
+            color: #111827;
+
+        }
+
+
+        .logo-text p {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            margin-top: 2px;
+
+        }
+
+
+        /* =========================================
+           HEADER RIGHT
+        ========================================= */
+
+        .header-right {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 18px;
+
+        }
+
+
+        .admin-name {
+
+            font-size: 13px;
+
+            color: #475569;
+
+        }
+
+
+        .logout-button {
+
+            border: 1px solid #fecaca;
+
+            background: #fef2f2;
+
+            color: #dc2626;
+
+            padding: 9px 15px;
+
+            border-radius: 8px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .logout-button:hover {
+
+            background: #fee2e2;
+
+        }
+
+
+        /* =========================================
+           PAGE
+        ========================================= */
+
+        .page {
+
+            max-width: 1200px;
+
+            margin: auto;
+
+            padding: 35px 25px 60px;
+
+        }
+
+
+        /* =========================================
+           WELCOME
+        ========================================= */
+
+        .welcome {
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .welcome h1 {
+
+            font-size:
+                clamp(26px, 4vw, 36px);
+
+            color: #111827;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .welcome p {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+        }
+
+
+        /* =========================================
+           ORGANIZATION CARD
+        ========================================= */
+
+        .organization-card {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            color: white;
+
+            border-radius: 18px;
+
+            padding: 28px;
+
+            margin-bottom: 25px;
+
+            box-shadow:
+                0 10px 30px
+                rgba(37, 99, 235, 0.18);
+
+        }
+
+
+        .organization-label {
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 1px;
+
+            opacity: 0.8;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .organization-name {
+
+            font-size: 28px;
+
+            font-weight: bold;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .organization-details {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+        }
+
+
+        .organization-badge {
+
+            background:
+                rgba(255,255,255,0.15);
+
+            padding: 7px 12px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+        }
+
+
+        /* =========================================
+           STATISTICS
+        ========================================= */
+
+        .stats-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 18px;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .stat-card {
+
+            background: white;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+        }
+
+
+        .stat-icon {
+
+            font-size: 25px;
+
+            margin-bottom: 13px;
+
+        }
+
+
+        .stat-label {
+
+            color: #64748b;
+
+            font-size: 12px;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .stat-number {
+
+            color: #111827;
+
+            font-size: 28px;
+
+            font-weight: bold;
+
+        }
+
+
+        /* =========================================
+           QUICK ACTIONS
+        ========================================= */
+
+        .section-title {
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .section-title h2 {
+
+            font-size: 20px;
+
+            color: #111827;
+
+        }
+
+
+        .section-title p {
+
+            color: #64748b;
+
+            font-size: 13px;
+
+            margin-top: 4px;
+
+        }
+
+
+        .actions-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 18px;
+
+        }
+
+
+        .action-card {
+
+            background: white;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 14px;
+
+            padding: 24px 18px;
+
+            text-decoration: none;
+
+            color: #172033;
+
+            transition:
+                transform 0.2s,
+                box-shadow 0.2s,
+                border-color 0.2s;
+
+        }
+
+
+        .action-card:hover {
+
+            transform:
+                translateY(-3px);
+
+            border-color:
+                #bfdbfe;
+
+            box-shadow:
+                0 8px 20px
+                rgba(15, 23, 42, 0.07);
+
+        }
+
+
+        .action-icon {
+
+            width: 45px;
+
+            height: 45px;
+
+            background: #eff6ff;
+
+            border-radius: 10px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 22px;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .action-card h3 {
+
+            font-size: 15px;
+
+            margin-bottom: 7px;
+
+        }
+
+
+        .action-card p {
+
+            color: #64748b;
+
+            font-size: 12px;
+
+            line-height: 1.5;
+
+        }
+
+
+        /* =========================================
+           LOADING
+        ========================================= */
+
+        #loadingScreen {
+
+            position: fixed;
+
+            inset: 0;
+
+            background: #f5f7fb;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            justify-content: center;
+
+            z-index: 5000;
+
+        }
+
+
+        .loader {
+
+            width: 40px;
+
+            height: 40px;
+
+            border:
+                4px solid #dbeafe;
+
+            border-top-color:
+                #2563eb;
+
+            border-radius: 50%;
+
+            animation:
+                spin 0.8s linear infinite;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        @keyframes spin {
+
+            to {
+
+                transform:
+                    rotate(360deg);
+
+            }
+
+        }
+
+
+        #loadingScreen p {
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =========================================
+           ERROR
+        ========================================= */
+
+        #errorScreen {
+
+            display: none;
+
+            max-width: 500px;
+
+            margin: 100px auto;
+
+            padding: 30px;
+
+            background: white;
+
+            border:
+                1px solid #fecaca;
+
+            border-radius: 15px;
+
+            text-align: center;
+
+        }
+
+
+        #errorScreen h2 {
+
+            color: #dc2626;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        #errorScreen p {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+        }
+
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 900px) {
+
+            .stats-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+            .actions-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            header {
+
+                padding: 0 18px;
+
+            }
+
+
+            .logo-text p {
+
+                display: none;
+
+            }
+
+
+            .logo-text h2 {
+
+                font-size: 16px;
+
+            }
+
+
+            .admin-name {
+
+                display: none;
+
+            }
+
+
+            .page {
+
+                padding:
+                    25px 15px 50px;
+
+            }
+
+
+            .organization-card {
+
+                padding: 22px;
+
+            }
+
+
+            .organization-name {
+
+                font-size: 23px;
+
+            }
+
+
+            .stats-grid {
+
+                grid-template-columns: 1fr 1fr;
+
+                gap: 12px;
+
+            }
+
+
+            .stat-card {
+
+                padding: 17px;
+
+            }
+
+
+            .stat-number {
+
+                font-size: 24px;
+
+            }
+
+
+            .actions-grid {
+
+                grid-template-columns: 1fr;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================================
+         LOADING SCREEN
+    ========================================= -->
+
+    <div id="loadingScreen">
+
+        <div class="loader"></div>
+
+        <p>
+            Loading your organization...
+        </p>
+
+    </div>
+
+
+    <!-- =========================================
+         HEADER
+    ========================================= -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Digital Organization Solutions
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="header-right">
+
+            <div
+                id="adminName"
+                class="admin-name"
+            >
+                Loading...
+            </div>
+
+
+            <button
+                id="logoutButton"
+                class="logout-button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================================
+         MAIN PAGE
+    ========================================= -->
+
+    <main class="page">
+
+
+        <!-- =====================================
+             WELCOME
+        ===================================== -->
+
+        <section class="welcome">
+
+            <h1>
+                Welcome to Virello
+            </h1>
+
+            <p>
+                Manage your organization's digital
+                attendance from one place.
+            </p>
+
+        </section>
+
+
+        <!-- =====================================
+             ORGANIZATION
+        ===================================== -->
+
+        <section class="organization-card">
+
+            <div class="organization-label">
+                Your Organization
+            </div>
+
+
+            <div
+                id="organizationName"
+                class="organization-name"
+            >
+                Loading...
+            </div>
+
+
+            <div class="organization-details">
+
+                <div
+                    id="organizationType"
+                    class="organization-badge"
+                >
+                    Loading...
+                </div>
+
+
+                <div
+                    id="organizationCountry"
+                    class="organization-badge"
+                >
+                    Loading...
+                </div>
+
+
+                <div
+                    id="subscriptionStatus"
+                    class="organization-badge"
+                >
+                    Subscription: Active
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             STATISTICS
+        ===================================== -->
+
+        <section class="stats-grid">
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    👥
+                </div>
+
+                <div class="stat-label">
+                    Total Staff
+                </div>
+
+                <div
+                    id="totalStaff"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🟢
+                </div>
+
+                <div class="stat-label">
+                    Present Today
+                </div>
+
+                <div
+                    id="presentToday"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🕒
+                </div>
+
+                <div class="stat-label">
+                    Late Today
+                </div>
+
+                <div
+                    id="lateToday"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🔴
+                </div>
+
+                <div class="stat-label">
+                    Absent Today
+                </div>
+
+                <div
+                    id="absentToday"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             QUICK ACTIONS
+        ===================================== -->
+
+        <section>
+
+            <div class="section-title">
+
+                <h2>
+                    Quick Actions
+                </h2>
+
+                <p>
+                    Attendance management tools will be
+                    added to these sections.
+                </p>
+
+            </div>
+
+
+            <div class="actions-grid">
+
+
+                <!-- =================================
+                     STAFF MANAGEMENT
+                ================================== -->
+
+                <a
+                    href="staff.html"
+                    class="action-card"
+                >
+
+                    <div class="action-icon">
+                        👥
+                    </div>
+
+                    <h3>
+                        Staff Management
+                    </h3>
+
+                    <p>
+                        Add and manage employees
+                        in your organization.
+                    </p>
+
+                </a>
+
+
+                <!-- =================================
+                     ATTENDANCE
+                ================================== -->
+
+                <a
+                    href="attendance.html"
+                    class="action-card"
+                >
+
+                    <div class="action-icon">
+                        🕒
+                    </div>
+
+                    <h3>
+                        Attendance
+                    </h3>
+
+                    <p>
+                        Record staff check-in
+                        and check-out times.
+                    </p>
+
+                </a>
+
+
+                <!-- =================================
+                     REPORTS
+                ================================== -->
+
+                <a
+                    href="#"
+                    class="action-card"
+                >
+
+                    <div class="action-icon">
+                        📊
+                    </div>
+
+                    <h3>
+                        Reports
+                    </h3>
+
+                    <p>
+                        View attendance records
+                        and organization reports.
+                    </p>
+
+                </a>
+
+
+                <!-- =================================
+                     ORGANIZATION SETTINGS
+                ================================== -->
+
+                <a
+                    href="#"
+                    class="action-card"
+                >
+
+                    <div class="action-icon">
+                        ⚙️
+                    </div>
+
+                    <h3>
+                        Organization Settings
+                    </h3>
+
+                    <p>
+                        Manage your organization
+                        information and settings.
+                    </p>
+
+                </a>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =========================================
+         ERROR SCREEN
+    ========================================= -->
+
+    <div id="errorScreen">
+
+        <h2>
+            Unable to Load Organization
+        </h2>
+
+        <p id="errorMessage">
+            Something went wrong while loading
+            your organization.
+        </p>
+
+    </div>
+
+
+    <!-- =========================================
+         FIREBASE DASHBOARD SCRIPT
+    ========================================= -->
+
+    <script
+        type="module"
+        src="js/dashboard.js"
+    ></script>
+
+
+</body>
+
+</html>

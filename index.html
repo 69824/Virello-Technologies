@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Virello Technologies | Digital Attendance</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #172033;
+            min-height: 100vh;
+        }
+
+        /* =========================================
+           HEADER
+        ========================================= */
+
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 17px 6%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: #2563eb;
+            color: #ffffff;
+            border-radius: 11px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .logo-text h2 {
+            font-size: 20px;
+            color: #111827;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        .header-login {
+            text-decoration: none;
+            color: #2563eb;
+            font-size: 14px;
+            font-weight: bold;
+            border: 1px solid #2563eb;
+            padding: 10px 18px;
+            border-radius: 8px;
+        }
+
+        .header-login:hover {
+            background: #2563eb;
+            color: white;
+        }
+
+        /* =========================================
+           HERO
+        ========================================= */
+
+        .hero {
+            text-align: center;
+            max-width: 900px;
+            margin: auto;
+            padding: 75px 25px 55px;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 9px 17px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 22px;
+        }
+
+        .hero h1 {
+            font-size: clamp(38px, 6vw, 64px);
+            line-height: 1.08;
+            color: #111827;
+            margin-bottom: 22px;
+        }
+
+        .hero h1 span {
+            color: #2563eb;
+        }
+
+        .hero-description {
+            max-width: 720px;
+            margin: auto;
+            color: #64748b;
+            font-size: 18px;
+            line-height: 1.7;
+        }
+
+        /* =========================================
+           COUNTRY SELECTOR
+        ========================================= */
+
+        .country-section {
+            max-width: 800px;
+            margin: 0 auto 60px;
+            padding: 0 25px;
+        }
+
+        .country-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        }
+
+        .country-card h2 {
+            font-size: 25px;
+            margin-bottom: 8px;
+        }
+
+        .country-card p {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 22px;
+        }
+
+        .country-select {
+            width: 100%;
+            max-width: 450px;
+            padding: 14px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 15px;
+            background: white;
+            color: #172033;
+            outline: none;
+        }
+
+        .country-select:focus {
+            border-color: #2563eb;
+        }
+
+        .selected-country {
+            margin-top: 15px;
+            color: #2563eb;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* =========================================
+           HOW IT WORKS
+        ========================================= */
+
+        .how-section {
+            max-width: 1100px;
+            margin: 0 auto 70px;
+            padding: 0 25px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .section-title h2 {
+            font-size: 30px;
+            margin-bottom: 9px;
+            color: #111827;
+        }
+
+        .section-title p {
+            color: #64748b;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .step {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 25px 18px;
+            text-align: center;
+        }
+
+        .step-number {
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 15px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .step h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        /* =========================================
+           PRICING
+        ========================================= */
+
+        .pricing-section {
+            max-width: 1150px;
+            margin: 0 auto 80px;
+            padding: 0 25px;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .plan {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 35px 28px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        }
+
+        .plan.popular {
+            border: 2px solid #2563eb;
+            transform: translateY(-8px);
+        }
+
+        .popular-label {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2563eb;
+            color: white;
+            padding: 7px 18px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .plan-name {
+            font-size: 23px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .plan-description {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 43px;
+        }
+
+        .price {
+            margin: 25px 0;
+        }
+
+        .price-amount {
+            font-size: 38px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .price-period {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 28px;
+            flex: 1;
+        }
+
+        .plan-features li {
+            padding: 9px 0;
+            font-size: 14px;
+            color: #475569;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .plan-features li::before {
+            content: "✓";
+            color: #16a34a;
+            font-weight: bold;
+            margin-right: 9px;
+        }
+
+        .plan-button {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.2s;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+
+        .starter-button {
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+        }
+
+        .starter-button:hover {
+            background: #dbeafe;
+        }
+
+        .professional-button {
+            background: #2563eb;
+            color: white;
+        }
+
+        .professional-button:hover {
+            background: #1d4ed8;
+        }
+
+        .enterprise-button {
+            background: #111827;
+            color: white;
+        }
+
+        .enterprise-button:hover {
+            background: #1f2937;
+        }
+
+        /* =========================================
+           PAYMENT INFORMATION
+        ========================================= */
+
+        .payment-section {
+            max-width: 1050px;
+            margin: 0 auto 80px;
+            padding: 0 25px;
+        }
+
+        .payment-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 35px;
+            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        }
+
+        .payment-box h2 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .payment-box > p {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        .payment-country {
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 13px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .payment-method {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 22px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: white;
+        }
+
+        .payment-method-icon {
+            width: 50px;
+            height: 50px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .payment-method h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .payment-method p {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .payment-note {
+            margin-top: 25px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            padding: 15px;
+            color: #92400e;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* =========================================
+           FEATURES
+        ========================================= */
+
+        .features-section {
+            max-width: 1100px;
+            margin: 0 auto 80px;
+            padding: 0 25px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .feature {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 25px 18px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .feature h4 {
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .feature p {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* =========================================
+           SECURITY
+        ========================================= */
+
+        .security-section {
+            background: #111827;
+            color: white;
+            padding: 65px 25px;
+            text-align: center;
+        }
+
+        .security-section h2 {
+            font-size: 30px;
+            margin-bottom: 14px;
+        }
+
+        .security-section > p {
+            max-width: 700px;
+            margin: auto;
+            color: #cbd5e1;
+            line-height: 1.7;
+        }
+
+        .security-items {
+            max-width: 900px;
+            margin: 35px auto 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .security-item {
+            background: rgba(255,255,255,0.06);
+            padding: 22px;
+            border-radius: 12px;
+        }
+
+        .security-item h4 {
+            margin-bottom: 7px;
+        }
+
+        .security-item p {
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+
+        /* =========================================
+           FOOTER
+        ========================================= */
+
+        footer {
+            background: #0b1120;
+            color: white;
+            text-align: center;
+            padding: 35px 20px;
+        }
+
+        footer h3 {
+            margin-bottom: 8px;
+        }
+
+        footer p {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .copyright {
+            margin-top: 15px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 850px) {
+
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+                margin: auto;
+            }
+
+            .plan.popular {
+                transform: none;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .payment-methods {
+                grid-template-columns: 1fr;
+            }
+
+            .security-items {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+        }
+
+        @media (max-width: 600px) {
+
+            header {
+                padding: 15px 18px;
+            }
+
+            .header-login {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .logo-text h2 {
+                font-size: 17px;
+            }
+
+            .logo-text p {
+                display: none;
+            }
+
+            .hero {
+                padding-top: 55px;
+            }
+
+            .hero h1 {
+                font-size: 40px;
+            }
+
+            .hero-description {
+                font-size: 16px;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .payment-box {
+                padding: 25px 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================================
+         HEADER
+    ========================================= -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Digital Organization Solutions
+                </p>
+
+            </div>
+
+        </div>
+
+        <a href="login.html" class="header-login">
+            Organization Login
+        </a>
+
+    </header>
+
+
+    <!-- =========================================
+         HERO
+    ========================================= -->
+
+    <section class="hero">
+
+        <div class="hero-badge">
+            VIRELLO DIGITAL ATTENDANCE
+        </div>
+
+        <h1>
+            Replace Your
+            <span>Attendance Book</span>
+        </h1>
+
+        <p class="hero-description">
+
+            Virello Digital Attendance helps schools, offices,
+            businesses, NGOs and organizations manage staff attendance
+            digitally, securely and efficiently.
+
+        </p>
+
+    </section>
+
+
+    <!-- =========================================
+         COUNTRY
+    ========================================= -->
+
+    <section class="country-section">
+
+        <div class="country-card">
+
+            <h2>
+                Select Your Country
+            </h2>
+
+            <p>
+                Payment options and currency will depend on your country.
+            </p>
+
+            <select
+                id="countrySelect"
+                class="country-select"
+                onchange="updatePaymentMethods()"
+            >
+
+                <option value="">
+                    -- Select Country --
+                </option>
+
+                <option value="gambia">
+                    🇬🇲 Gambia
+                </option>
+
+                <option value="sierra-leone">
+                    🇸🇱 Sierra Leone
+                </option>
+
+            </select>
+
+            <div
+                id="selectedCountry"
+                class="selected-country"
+            ></div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         HOW IT WORKS
+    ========================================= -->
+
+    <section class="how-section">
+
+        <div class="section-title">
+
+            <h2>
+                How Virello Works
+            </h2>
+
+            <p>
+                Your organization gets access after subscription payment is verified.
+            </p>
+
+        </div>
+
+
+        <div class="steps">
+
+            <div class="step">
+
+                <div class="step-number">
+                    1
+                </div>
+
+                <h3>
+                    Choose a Plan
+                </h3>
+
+                <p>
+                    Select the subscription plan that fits your organization.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    2
+                </div>
+
+                <h3>
+                    Register
+                </h3>
+
+                <p>
+                    Create your organization account and provide your details.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    3
+                </div>
+
+                <h3>
+                    Make Payment
+                </h3>
+
+                <p>
+                    Pay using an available mobile money, bank or card method.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    4
+                </div>
+
+                <h3>
+                    Get Activated
+                </h3>
+
+                <p>
+                    Virello verifies your payment before activating your organization.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         PRICING
+    ========================================= -->
+
+    <section class="pricing-section">
+
+        <div class="section-title">
+
+            <h2>
+                Choose Your Plan
+            </h2>
+
+            <p>
+                Every organization must have an active subscription to use Virello.
+            </p>
+
+        </div>
+
+
+        <div class="pricing-grid">
+
+
+            <!-- =================================
+                 STARTER
+            ================================= -->
+
+            <div class="plan">
+
+                <div class="plan-name">
+                    Starter
+                </div>
+
+                <div class="plan-description">
+
+                    Perfect for small organizations that need
+                    simple digital attendance.
+
+                </div>
+
+                <div class="price">
+
+                    <span class="price-amount">
+                        GMD 299
+                    </span>
+
+                    <span class="price-period">
+                        / month
+                    </span>
+
+                </div>
+
+                <ul class="plan-features">
+
+                    <li>
+                        Up to 10 staff
+                    </li>
+
+                    <li>
+                        Digital check-in
+                    </li>
+
+                    <li>
+                        Digital check-out
+                    </li>
+
+                    <li>
+                        Staff management
+                    </li>
+
+                    <li>
+                        Attendance history
+                    </li>
+
+                    <li>
+                        Basic attendance reports
+                    </li>
+
+                    <li>
+                        One organization
+                    </li>
+
+                </ul>
+
+                <button
+                    class="plan-button starter-button"
+                    onclick="startSubscription('Starter')"
+                >
+                    Subscribe to Starter
+                </button>
+
+            </div>
+
+
+            <!-- =================================
+                 PROFESSIONAL
+            ================================= -->
+
+            <div class="plan popular">
+
+                <div class="popular-label">
+                    MOST POPULAR
+                </div>
+
+                <div class="plan-name">
+                    Professional
+                </div>
+
+                <div class="plan-description">
+
+                    For growing organizations that need
+                    advanced attendance management.
+
+                </div>
+
+                <div class="price">
+
+                    <span class="price-amount">
+                        GMD 599
+                    </span>
+
+                    <span class="price-period">
+                        / month
+                    </span>
+
+                </div>
+
+                <ul class="plan-features">
+
+                    <li>
+                        Up to 50 staff
+                    </li>
+
+                    <li>
+                        Everything in Starter
+                    </li>
+
+                    <li>
+                        Late attendance tracking
+                    </li>
+
+                    <li>
+                        Absence tracking
+                    </li>
+
+                    <li>
+                        Advanced reports
+                    </li>
+
+                    <li>
+                        Monthly reports
+                    </li>
+
+                    <li>
+                        Staff attendance profiles
+                    </li>
+
+                    <li>
+                        Report export
+                    </li>
+
+                </ul>
+
+                <button
+                    class="plan-button professional-button"
+                    onclick="startSubscription('Professional')"
+                >
+                    Subscribe to Professional
+                </button>
+
+            </div>
+
+
+            <!-- =================================
+                 ENTERPRISE
+            ================================= -->
+
+            <div class="plan">
+
+                <div class="plan-name">
+                    Enterprise
+                </div>
+
+                <div class="plan-description">
+
+                    Designed for larger organizations
+                    with advanced management needs.
+
+                </div>
+
+                <div class="price">
+
+                    <span class="price-amount">
+                        Custom
+                    </span>
+
+                    <span class="price-period">
+                        pricing
+                    </span>
+
+                </div>
+
+                <ul class="plan-features">
+
+                    <li>
+                        Large staff capacity
+                    </li>
+
+                    <li>
+                        Everything in Professional
+                    </li>
+
+                    <li>
+                        Multiple departments
+                    </li>
+
+                    <li>
+                        Multiple branches
+                    </li>
+
+                    <li>
+                        Advanced organization reports
+                    </li>
+
+                    <li>
+                        Payroll-ready attendance data
+                    </li>
+
+                    <li>
+                        Priority support
+                    </li>
+
+                    <li>
+                        Custom requirements
+                    </li>
+
+                </ul>
+
+                <button
+                    class="plan-button enterprise-button"
+                    onclick="startSubscription('Enterprise')"
+                >
+                    Contact Virello
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         PAYMENT METHODS
+    ========================================= -->
+
+    <section class="payment-section">
+
+        <div class="payment-box">
+
+            <h2>
+                Payment Methods
+            </h2>
+
+            <p>
+                Virello is designed to support the payment methods commonly used in our markets.
+            </p>
+
+
+            <div
+                id="paymentCountry"
+                class="payment-country"
+            >
+                Select your country above to view available payment methods.
+            </div>
+
+
+            <div
+                id="paymentMethods"
+                class="payment-methods"
+            >
+
+                <!-- METHODS ARE INSERTED BY JAVASCRIPT -->
+
+            </div>
+
+
+            <div class="payment-note">
+
+                <strong>Important:</strong>
+
+                Selecting a payment method does not automatically activate
+                your organization. Your payment will need to be verified
+                before your Virello subscription becomes active.
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         FEATURES
+    ========================================= -->
+
+    <section class="features-section">
+
+        <div class="section-title">
+
+            <h2>
+                Powerful Attendance Management
+            </h2>
+
+            <p>
+                Everything your organization needs to move away from paper attendance books.
+            </p>
+
+        </div>
+
+
+        <div class="features-grid">
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    🕒
+                </div>
+
+                <h4>
+                    Check In & Out
+                </h4>
+
+                <p>
+                    Record employee arrival and departure times automatically.
+                </p>
+
+            </div>
+
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    👥
+                </div>
+
+                <h4>
+                    Staff Management
+                </h4>
+
+                <p>
+                    Add, manage and organize employees within your organization.
+                </p>
+
+            </div>
+
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    📊
+                </div>
+
+                <h4>
+                    Reports
+                </h4>
+
+                <p>
+                    Monitor attendance, lateness, absences and working hours.
+                </p>
+
+            </div>
+
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    🔒
+                </div>
+
+                <h4>
+                    Organization Privacy
+                </h4>
+
+                <p>
+                    Your organization's information remains separate from every other organization.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         SECURITY
+    ========================================= -->
+
+    <section class="security-section">
+
+        <h2>
+            Your Organization. Your Data.
+        </h2>
+
+        <p>
+
+            Virello is designed so that every organization has its
+            own protected workspace. Staff, attendance records and
+            reports belong only to the organization that created them.
+
+        </p>
+
+
+        <div class="security-items">
+
+            <div class="security-item">
+
+                <h4>
+                    🔐 Secure Access
+                </h4>
+
+                <p>
+                    Only authorized users can access organization information.
+                </p>
+
+            </div>
+
+
+            <div class="security-item">
+
+                <h4>
+                    🏢 Organization Workspace
+                </h4>
+
+                <p>
+                    Each organization has its own separate digital environment.
+                </p>
+
+            </div>
+
+
+            <div class="security-item">
+
+                <h4>
+                    💳 Subscription Control
+                </h4>
+
+                <p>
+                    Platform access is available only to active subscriptions.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         FOOTER
+    ========================================= -->
+
+    <footer>
+
+        <h3>
+            Virello Technologies
+        </h3>
+
+        <p>
+            Building digital solutions for modern organizations.
+        </p>
+
+        <div class="copyright">
+            © 2026 Virello Technologies. All rights reserved.
+        </div>
+
+    </footer>
+
+
+    <!-- =========================================
+         JAVASCRIPT
+    ========================================= -->
+
+    <script>
+
+        /*
+        =====================================================
+        VIRELLO DIGITAL ATTENDANCE
+        STEP 2
+        COUNTRY + PAYMENT METHOD DISPLAY
+        =====================================================
+        */
+
+        function updatePaymentMethods() {
+
+            const country =
+                document.getElementById("countrySelect").value;
+
+            const paymentCountry =
+                document.getElementById("paymentCountry");
+
+            const paymentMethods =
+                document.getElementById("paymentMethods");
+
+            const selectedCountry =
+                document.getElementById("selectedCountry");
+
+
+            paymentMethods.innerHTML = "";
+
+
+            /* =========================================
+               NO COUNTRY SELECTED
+            ========================================= */
+
+            if (!country) {
+
+                paymentCountry.innerHTML =
+                    "Select your country above to view available payment methods.";
+
+                selectedCountry.innerHTML = "";
+
+                return;
+            }
+
+
+            /* =========================================
+               GAMBIA
+            ========================================= */
+
+            if (country === "gambia") {
+
+                selectedCountry.innerHTML =
+                    "🇬🇲 Gambia selected";
+
+                paymentCountry.innerHTML =
+                    "🇬🇲 Available payment methods in Gambia";
+
+
+                paymentMethods.innerHTML = `
+
+                    <div class="payment-method">
+
+                        <div class="payment-method-icon">
+                            📱
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Wave
+                            </h3>
+
+                            <p>
+                                Pay your Virello subscription using Wave Mobile Money.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="payment-method">
+
+                        <div class="payment-method-icon">
+                            🏦
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Bank Transfer
+                            </h3>
+
+                            <p>
+                                Pay through an approved Virello bank account.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+                return;
+            }
+
+
+            /* =========================================
+               SIERRA LEONE
+            ========================================= */
+
+            if (country === "sierra-leone") {
+
+                selectedCountry.innerHTML =
+                    "🇸🇱 Sierra Leone selected";
+
+                paymentCountry.innerHTML =
+                    "🇸🇱 Available payment methods in Sierra Leone";
+
+
+                paymentMethods.innerHTML = `
+
+                    <div class="payment-method">
+
+                        <div class="payment-method-icon">
+                            📱
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Orange Money
+                            </h3>
+
+                            <p>
+                                Pay your Virello subscription using Orange Money.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="payment-method">
+
+                        <div class="payment-method-icon">
+                            📱
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Afrimoney
+                            </h3>
+
+                            <p>
+                                Pay your Virello subscription using Afrimoney.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="payment-method">
+
+                        <div class="payment-method-icon">
+                            💳
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Mastercard / Visa
+                            </h3>
+
+                            <p>
+                                Pay securely using an accepted bank card.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="payment-method">
+
+                        <div class="payment-method-icon">
+                            🏦
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Bank Transfer
+                            </h3>
+
+                            <p>
+                                Pay through an approved Virello bank account.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+                return;
+            }
+
+        }
+
+
+        /* =========================================
+           SUBSCRIPTION BUTTON
+        ========================================= */
+
+        function startSubscription(plan) {
+
+            const country =
+                document.getElementById("countrySelect").value;
+
+
+            if (!country) {
+
+                alert(
+                    "Please select your country before choosing a subscription plan."
+                );
+
+                document
+                    .getElementById("countrySelect")
+                    .scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+
+                return;
+            }
+
+
+            if (plan === "Enterprise") {
+
+                alert(
+                    "Enterprise subscription will connect you with Virello Technologies for custom pricing and requirements."
+                );
+
+                return;
+            }
+
+
+            /*
+            ================================================
+            TEMPORARY STEP 2 BEHAVIOUR
+
+            Later this button will take the organization to:
+
+            register.html
+
+            and pass:
+
+            plan
+            country
+
+            Example:
+
+            register.html?plan=Professional&country=gambia
+
+            ================================================
+            */
+
+            window.location.href =
+                "register.html?plan=" +
+                encodeURIComponent(plan) +
+                "&country=" +
+                encodeURIComponent(country);
+
+        }
+
+    </script>
+
+</body>
+</html>

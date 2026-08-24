@@ -1,0 +1,2337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Attendance | Virello Technologies
+    </title>
+
+
+    <!-- =====================================================
+         QR CODE LIBRARY
+    ====================================================== -->
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+    ></script>
+
+
+    <style>
+
+        /* =====================================================
+           RESET
+        ===================================================== */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        /* =====================================================
+           BODY
+        ===================================================== */
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #172033;
+
+            min-height: 100vh;
+
+        }
+
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        header {
+
+            height: 72px;
+
+            background: #ffffff;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 0 5%;
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+        }
+
+
+        /* =====================================================
+           LOGO
+        ===================================================== */
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 42px;
+
+            height: 42px;
+
+            background: #2563eb;
+
+            color: white;
+
+            border-radius: 10px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 21px;
+
+            font-weight: 800;
+
+        }
+
+
+        .logo-text h2 {
+
+            font-size: 18px;
+
+            color: #111827;
+
+        }
+
+
+        .logo-text p {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            margin-top: 2px;
+
+        }
+
+
+        /* =====================================================
+           HEADER RIGHT
+        ===================================================== */
+
+        .header-right {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 18px;
+
+        }
+
+
+        .admin-name {
+
+            font-size: 13px;
+
+            color: #475569;
+
+        }
+
+
+        .logout-button {
+
+            border:
+                1px solid #fecaca;
+
+            background:
+                #fef2f2;
+
+            color:
+                #dc2626;
+
+            padding:
+                9px 15px;
+
+            border-radius:
+                8px;
+
+            font-size:
+                12px;
+
+            font-weight:
+                bold;
+
+            cursor:
+                pointer;
+
+        }
+
+
+        .logout-button:hover {
+
+            background:
+                #fee2e2;
+
+        }
+
+
+        /* =====================================================
+           PAGE
+        ===================================================== */
+
+        .page {
+
+            max-width:
+                1200px;
+
+            margin:
+                auto;
+
+            padding:
+                35px 25px 60px;
+
+        }
+
+
+        /* =====================================================
+           PAGE HEADER
+        ===================================================== */
+
+        .page-header {
+
+            margin-bottom:
+                25px;
+
+        }
+
+
+        .page-header h1 {
+
+            font-size:
+                clamp(26px, 4vw, 36px);
+
+            color:
+                #111827;
+
+            margin-bottom:
+                8px;
+
+        }
+
+
+        .page-header p {
+
+            color:
+                #64748b;
+
+            font-size:
+                14px;
+
+        }
+
+
+        /* =====================================================
+           ORGANIZATION CARD
+        ===================================================== */
+
+        .organization-card {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            color:
+                white;
+
+            border-radius:
+                18px;
+
+            padding:
+                25px;
+
+            margin-bottom:
+                25px;
+
+            box-shadow:
+                0 10px 30px
+                rgba(37, 99, 235, 0.18);
+
+        }
+
+
+        .organization-label {
+
+            font-size:
+                11px;
+
+            text-transform:
+                uppercase;
+
+            letter-spacing:
+                1px;
+
+            opacity:
+                0.8;
+
+            margin-bottom:
+                8px;
+
+        }
+
+
+        .organization-name {
+
+            font-size:
+                27px;
+
+            font-weight:
+                bold;
+
+            margin-bottom:
+                8px;
+
+        }
+
+
+        .organization-details {
+
+            display:
+                flex;
+
+            flex-wrap:
+                wrap;
+
+            gap:
+                10px;
+
+        }
+
+
+        .organization-badge {
+
+            background:
+                rgba(255,255,255,0.15);
+
+            padding:
+                7px 12px;
+
+            border-radius:
+                20px;
+
+            font-size:
+                12px;
+
+        }
+
+
+        /* =====================================================
+           DATE CARD
+        ===================================================== */
+
+        .date-card {
+
+            background:
+                #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius:
+                14px;
+
+            padding:
+                22px;
+
+            margin-bottom:
+                25px;
+
+        }
+
+
+        .date-card h2 {
+
+            font-size:
+                18px;
+
+            color:
+                #111827;
+
+            margin-bottom:
+                6px;
+
+        }
+
+
+        .date-card p {
+
+            color:
+                #64748b;
+
+            font-size:
+                13px;
+
+            margin-bottom:
+                16px;
+
+        }
+
+
+        .date-label {
+
+            display:
+                block;
+
+            color:
+                #475569;
+
+            font-size:
+                12px;
+
+            font-weight:
+                bold;
+
+            margin-bottom:
+                7px;
+
+        }
+
+
+        #attendanceDate {
+
+            width:
+                100%;
+
+            max-width:
+                300px;
+
+            height:
+                43px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius:
+                8px;
+
+            padding:
+                0 12px;
+
+            font-size:
+                13px;
+
+            color:
+                #172033;
+
+            background:
+                #ffffff;
+
+            outline:
+                none;
+
+        }
+
+
+        #attendanceDate:focus {
+
+            border-color:
+                #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,.10);
+
+        }
+
+
+        /* =====================================================
+           STATISTICS
+        ===================================================== */
+
+        .stats-grid {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap:
+                18px;
+
+            margin-bottom:
+                30px;
+
+        }
+
+
+        .stat-card {
+
+            background:
+                #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius:
+                14px;
+
+            padding:
+                22px;
+
+        }
+
+
+        .stat-icon {
+
+            font-size:
+                25px;
+
+            margin-bottom:
+                13px;
+
+        }
+
+
+        .stat-label {
+
+            color:
+                #64748b;
+
+            font-size:
+                12px;
+
+            margin-bottom:
+                6px;
+
+        }
+
+
+        .stat-number {
+
+            color:
+                #111827;
+
+            font-size:
+                28px;
+
+            font-weight:
+                bold;
+
+        }
+
+
+        /* =====================================================
+           OFFICE QR CARD
+        ===================================================== */
+
+        .qr-card {
+
+            background:
+                #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius:
+                16px;
+
+            padding:
+                25px;
+
+            margin-bottom:
+                30px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(15,23,42,.04);
+
+        }
+
+
+        .qr-header {
+
+            margin-bottom:
+                22px;
+
+        }
+
+
+        .qr-header h2 {
+
+            font-size:
+                20px;
+
+            color:
+                #111827;
+
+            margin-bottom:
+                7px;
+
+        }
+
+
+        .qr-header p {
+
+            color:
+                #64748b;
+
+            font-size:
+                13px;
+
+            line-height:
+                1.6;
+
+        }
+
+
+        .qr-layout {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                30px;
+
+            flex-wrap:
+                wrap;
+
+        }
+
+
+        .qr-display {
+
+            width:
+                230px;
+
+            min-height:
+                230px;
+
+            background:
+                #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius:
+                14px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            padding:
+                15px;
+
+        }
+
+
+        #officeQRCode {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+        }
+
+
+        #officeQRCode img {
+
+            max-width:
+                200px;
+
+            max-height:
+                200px;
+
+        }
+
+
+        .qr-information {
+
+            flex:
+                1;
+
+            min-width:
+                260px;
+
+        }
+
+
+        .qr-status {
+
+            display:
+                inline-flex;
+
+            align-items:
+                center;
+
+            gap:
+                7px;
+
+            background:
+                #dcfce7;
+
+            color:
+                #15803d;
+
+            padding:
+                7px 11px;
+
+            border-radius:
+                20px;
+
+            font-size:
+                11px;
+
+            font-weight:
+                800;
+
+            margin-bottom:
+                15px;
+
+        }
+
+
+        .qr-status-dot {
+
+            width:
+                7px;
+
+            height:
+                7px;
+
+            border-radius:
+                50%;
+
+            background:
+                #16a34a;
+
+        }
+
+
+        .qr-information h3 {
+
+            color:
+                #111827;
+
+            font-size:
+                17px;
+
+            margin-bottom:
+                8px;
+
+        }
+
+
+        .qr-information-text {
+
+            color:
+                #64748b;
+
+            font-size:
+                13px;
+
+            line-height:
+                1.7;
+
+            margin-bottom:
+                18px;
+
+        }
+
+
+        .qr-security-box {
+
+            background:
+                #eff6ff;
+
+            border:
+                1px solid #dbeafe;
+
+            border-radius:
+                10px;
+
+            padding:
+                13px;
+
+            color:
+                #1e40af;
+
+            font-size:
+                11px;
+
+            line-height:
+                1.6;
+
+        }
+
+
+        .qr-security-box strong {
+
+            display:
+                block;
+
+            margin-bottom:
+                4px;
+
+        }
+
+
+        .qr-refresh {
+
+            margin-top:
+                16px;
+
+            color:
+                #64748b;
+
+            font-size:
+                11px;
+
+        }
+
+
+        #qrCountdown {
+
+            color:
+                #2563eb;
+
+            font-weight:
+                800;
+
+        }
+
+
+        /* =====================================================
+           REGISTER CARD
+        ===================================================== */
+
+        .register-card {
+
+            background:
+                #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius:
+                16px;
+
+            overflow:
+                hidden;
+
+        }
+
+
+        .register-header {
+
+            padding:
+                22px;
+
+            border-bottom:
+                1px solid #e2e8f0;
+
+        }
+
+
+        .register-header h2 {
+
+            font-size:
+                20px;
+
+            color:
+                #111827;
+
+            margin-bottom:
+                5px;
+
+        }
+
+
+        .register-header p {
+
+            color:
+                #64748b;
+
+            font-size:
+                13px;
+
+        }
+
+
+        /* =====================================================
+           TABLE CONTAINER
+        ===================================================== */
+
+        #attendanceTableContainer {
+
+            width:
+                100%;
+
+            overflow-x:
+                auto;
+
+        }
+
+
+        table {
+
+            width:
+                100%;
+
+            border-collapse:
+                collapse;
+
+            min-width:
+                850px;
+
+        }
+
+
+        thead {
+
+            background:
+                #f8fafc;
+
+        }
+
+
+        th {
+
+            text-align:
+                left;
+
+            padding:
+                15px 18px;
+
+            color:
+                #64748b;
+
+            font-size:
+                11px;
+
+            text-transform:
+                uppercase;
+
+            letter-spacing:
+                .5px;
+
+            font-weight:
+                700;
+
+            border-bottom:
+                1px solid #e2e8f0;
+
+            white-space:
+                nowrap;
+
+        }
+
+
+        td {
+
+            padding:
+                16px 18px;
+
+            border-bottom:
+                1px solid #eef2f7;
+
+            color:
+                #334155;
+
+            font-size:
+                13px;
+
+        }
+
+
+        tbody tr:hover {
+
+            background:
+                #f8fafc;
+
+        }
+
+
+        tbody tr:last-child td {
+
+            border-bottom:
+                none;
+
+        }
+
+
+        /* =====================================================
+           STAFF PERSON
+        ===================================================== */
+
+        .attendance-person {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                12px;
+
+            min-width:
+                200px;
+
+        }
+
+
+        .attendance-avatar {
+
+            width:
+                40px;
+
+            height:
+                40px;
+
+            flex-shrink:
+                0;
+
+            border-radius:
+                50%;
+
+            background:
+                #eff6ff;
+
+            color:
+                #2563eb;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            font-size:
+                12px;
+
+            font-weight:
+                800;
+
+        }
+
+
+        .attendance-name {
+
+            color:
+                #111827;
+
+            font-weight:
+                700;
+
+            margin-bottom:
+                3px;
+
+        }
+
+
+        .attendance-position {
+
+            color:
+                #64748b;
+
+            font-size:
+                11px;
+
+        }
+
+
+        /* =====================================================
+           STATUS
+        ===================================================== */
+
+        .attendance-status {
+
+            display:
+                inline-flex;
+
+            align-items:
+                center;
+
+            padding:
+                6px 10px;
+
+            border-radius:
+                20px;
+
+            font-size:
+                11px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .status-present {
+
+            background:
+                #dcfce7;
+
+            color:
+                #15803d;
+
+        }
+
+
+        .status-late {
+
+            background:
+                #fef3c7;
+
+            color:
+                #b45309;
+
+        }
+
+
+        .status-absent {
+
+            background:
+                #fee2e2;
+
+            color:
+                #b91c1c;
+
+        }
+
+
+        /* =====================================================
+           ACTIONS
+        ===================================================== */
+
+        .attendance-actions {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+        }
+
+
+        .attendance-checkin-button {
+
+            border:
+                none;
+
+            background:
+                #2563eb;
+
+            color:
+                white;
+
+            padding:
+                9px 14px;
+
+            border-radius:
+                8px;
+
+            font-size:
+                11px;
+
+            font-weight:
+                700;
+
+            cursor:
+                pointer;
+
+        }
+
+
+        .attendance-checkin-button:hover {
+
+            background:
+                #1d4ed8;
+
+        }
+
+
+        .attendance-checkin-button:disabled {
+
+            opacity:
+                .6;
+
+            cursor:
+                not-allowed;
+
+        }
+
+
+        .attendance-checkout-button {
+
+            border:
+                none;
+
+            background:
+                #0f766e;
+
+            color:
+                white;
+
+            padding:
+                9px 14px;
+
+            border-radius:
+                8px;
+
+            font-size:
+                11px;
+
+            font-weight:
+                700;
+
+            cursor:
+                pointer;
+
+        }
+
+
+        .attendance-checkout-button:hover {
+
+            background:
+                #115e59;
+
+        }
+
+
+        .attendance-checkout-button:disabled {
+
+            opacity:
+                .6;
+
+            cursor:
+                not-allowed;
+
+        }
+
+
+        .attendance-complete {
+
+            color:
+                #15803d;
+
+            font-size:
+                11px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        /* =====================================================
+           EMPTY STATE
+        ===================================================== */
+
+        #emptyState {
+
+            display:
+                none;
+
+            padding:
+                50px 25px;
+
+            text-align:
+                center;
+
+            color:
+                #64748b;
+
+            font-size:
+                14px;
+
+        }
+
+
+        /* =====================================================
+           LOADING
+        ===================================================== */
+
+        #loadingScreen {
+
+            position:
+                fixed;
+
+            inset:
+                0;
+
+            background:
+                #f5f7fb;
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            z-index:
+                5000;
+
+        }
+
+
+        .loader {
+
+            width:
+                40px;
+
+            height:
+                40px;
+
+            border:
+                4px solid #dbeafe;
+
+            border-top-color:
+                #2563eb;
+
+            border-radius:
+                50%;
+
+            animation:
+                spin .8s linear infinite;
+
+            margin-bottom:
+                15px;
+
+        }
+
+
+        @keyframes spin {
+
+            to {
+
+                transform:
+                    rotate(360deg);
+
+            }
+
+        }
+
+
+        #loadingScreen p {
+
+            color:
+                #64748b;
+
+            font-size:
+                13px;
+
+        }
+
+
+        /* =====================================================
+           ERROR
+        ===================================================== */
+
+        #errorScreen {
+
+            display:
+                none;
+
+            max-width:
+                500px;
+
+            margin:
+                100px auto;
+
+            padding:
+                30px;
+
+            background:
+                #ffffff;
+
+            border:
+                1px solid #fecaca;
+
+            border-radius:
+                15px;
+
+            text-align:
+                center;
+
+        }
+
+
+        #errorScreen h2 {
+
+            color:
+                #dc2626;
+
+            margin-bottom:
+                10px;
+
+        }
+
+
+        #errorScreen p {
+
+            color:
+                #64748b;
+
+            font-size:
+                14px;
+
+            line-height:
+                1.6;
+
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
+
+        @media (max-width: 900px) {
+
+            .stats-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            header {
+
+                padding:
+                    0 18px;
+
+            }
+
+
+            .logo-text p {
+
+                display:
+                    none;
+
+            }
+
+
+            .logo-text h2 {
+
+                font-size:
+                    16px;
+
+            }
+
+
+            .admin-name {
+
+                display:
+                    none;
+
+            }
+
+
+            .page {
+
+                padding:
+                    25px 15px 50px;
+
+            }
+
+
+            .organization-card {
+
+                padding:
+                    22px;
+
+            }
+
+
+            .organization-name {
+
+                font-size:
+                    23px;
+
+            }
+
+
+            .stats-grid {
+
+                grid-template-columns:
+                    1fr 1fr;
+
+                gap:
+                    12px;
+
+            }
+
+
+            .stat-card {
+
+                padding:
+                    17px;
+
+            }
+
+
+            .stat-number {
+
+                font-size:
+                    24px;
+
+            }
+
+
+            .register-header {
+
+                padding:
+                    18px;
+
+            }
+
+
+            .qr-card {
+
+                padding:
+                    20px;
+
+            }
+
+
+            .qr-layout {
+
+                flex-direction:
+                    column;
+
+                align-items:
+                    stretch;
+
+            }
+
+
+            .qr-display {
+
+                width:
+                    100%;
+
+                min-height:
+                    260px;
+
+            }
+
+
+            .qr-information {
+
+                min-width:
+                    0;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         LOADING SCREEN
+    ====================================================== -->
+
+    <div id="loadingScreen">
+
+        <div class="loader"></div>
+
+        <p>
+            Loading attendance...
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Digital Organization Solutions
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="header-right">
+
+            <div
+                id="adminName"
+                class="admin-name"
+            >
+                Loading...
+            </div>
+
+
+            <button
+                id="logoutButton"
+                class="logout-button"
+                type="button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="page">
+
+
+        <!-- =================================================
+             PAGE HEADER
+        ================================================== -->
+
+        <section class="page-header">
+
+            <h1>
+                Staff Attendance
+            </h1>
+
+            <p>
+                Manage staff attendance and office check-in access.
+            </p>
+
+        </section>
+
+
+        <!-- =================================================
+             ORGANIZATION
+        ================================================== -->
+
+        <section class="organization-card">
+
+            <div class="organization-label">
+                Your Organization
+            </div>
+
+
+            <div
+                id="organizationName"
+                class="organization-name"
+            >
+                Loading...
+            </div>
+
+
+            <div class="organization-details">
+
+                <div
+                    id="organizationType"
+                    class="organization-badge"
+                >
+                    Loading...
+                </div>
+
+
+                <div
+                    id="organizationCountry"
+                    class="organization-badge"
+                >
+                    Loading...
+                </div>
+
+
+                <div
+                    id="subscriptionStatus"
+                    class="organization-badge"
+                >
+                    Subscription: Active
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             DATE
+        ================================================== -->
+
+        <section class="date-card">
+
+            <h2>
+                Attendance Date
+            </h2>
+
+            <p>
+                Select the date you want to manage.
+            </p>
+
+
+            <label
+                class="date-label"
+                for="attendanceDate"
+            >
+                Date
+            </label>
+
+
+            <input
+                type="date"
+                id="attendanceDate"
+            >
+
+        </section>
+
+
+        <!-- =================================================
+             STATISTICS
+        ================================================== -->
+
+        <section class="stats-grid">
+
+
+            <!-- TOTAL -->
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    👥
+                </div>
+
+                <div class="stat-label">
+                    Total Staff
+                </div>
+
+                <div
+                    id="totalStaff"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- PRESENT -->
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🟢
+                </div>
+
+                <div class="stat-label">
+                    Present Today
+                </div>
+
+                <div
+                    id="presentToday"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- LATE -->
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🕒
+                </div>
+
+                <div class="stat-label">
+                    Late Today
+                </div>
+
+                <div
+                    id="lateToday"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- ABSENT -->
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🔴
+                </div>
+
+                <div class="stat-label">
+                    Absent Today
+                </div>
+
+                <div
+                    id="absentToday"
+                    class="stat-number"
+                >
+                    0
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             OFFICE QR ATTENDANCE
+        ================================================== -->
+
+        <section class="qr-card">
+
+            <div class="qr-header">
+
+                <h2>
+                    📱 Office Attendance QR
+                </h2>
+
+                <p>
+                    Workers must scan this QR code from the
+                    office before they can access the worker
+                    attendance page.
+                </p>
+
+            </div>
+
+
+            <div class="qr-layout">
+
+
+                <!-- QR CODE -->
+
+                <div class="qr-display">
+
+                    <div id="officeQRCode"></div>
+
+                </div>
+
+
+                <!-- INFORMATION -->
+
+                <div class="qr-information">
+
+                    <div class="qr-status">
+
+                        <span class="qr-status-dot"></span>
+
+                        OFFICE QR ACTIVE
+
+                    </div>
+
+
+                    <h3>
+                        Scan to Access Attendance
+                    </h3>
+
+
+                    <p class="qr-information-text">
+
+                        Workers should scan this code when
+                        they arrive at the office to check in.
+                        They should scan again at the office
+                        when checking out.
+
+                    </p>
+
+
+                    <div class="qr-security-box">
+
+                        <strong>
+                            🔐 Security Protection
+                        </strong>
+
+                        This QR code is designed to rotate
+                        automatically. Old QR codes will expire
+                        and cannot be used indefinitely.
+
+                    </div>
+
+
+                    <div class="qr-refresh">
+
+                        QR refreshes in:
+
+                        <span id="qrCountdown">
+                            30
+                        </span>
+
+                        seconds
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ATTENDANCE REGISTER
+        ================================================== -->
+
+        <section class="register-card">
+
+
+            <!-- REGISTER HEADER -->
+
+            <div class="register-header">
+
+                <h2>
+                    Attendance Register
+                </h2>
+
+                <p>
+                    Select a staff member to record
+                    check-in or check-out.
+                </p>
+
+            </div>
+
+
+            <!-- =================================================
+                 TABLE
+            ================================================== -->
+
+            <div
+                id="attendanceTableContainer"
+            >
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Staff Member
+                            </th>
+
+                            <th>
+                                Staff ID
+                            </th>
+
+                            <th>
+                                Check In
+                            </th>
+
+                            <th>
+                                Check Out
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody
+                        id="attendanceTableBody"
+                    >
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- =================================================
+                 EMPTY STATE
+            ================================================== -->
+
+            <div
+                id="emptyState"
+            >
+                No active staff members found.
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+    <!-- =====================================================
+         ERROR SCREEN
+    ====================================================== -->
+
+    <div id="errorScreen">
+
+        <h2>
+            Unable to Load Attendance
+        </h2>
+
+        <p id="errorMessage">
+            Something went wrong while loading
+            attendance.
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         ATTENDANCE JAVASCRIPT
+    ====================================================== -->
+
+    <script
+        type="module"
+        src="js/attendance.js"
+    ></script>
+
+
+    <!-- =====================================================
+         OFFICE QR JAVASCRIPT
+    ====================================================== -->
+
+    <script>
+
+        /* =====================================================
+           VIRELLO OFFICE QR
+           STEP 5A
+        ===================================================== */
+
+
+        const officeQRCode =
+            document.getElementById(
+                "officeQRCode"
+            );
+
+
+        const qrCountdown =
+            document.getElementById(
+                "qrCountdown"
+            );
+
+
+        /*
+           The worker page will be the destination.
+
+           IMPORTANT:
+           Change this to your actual hosted worker page
+           when Virello is deployed.
+        */
+
+        const WORKER_PAGE_URL =
+            window.location.origin +
+            "/worker.html";
+
+
+        /*
+           QR lifetime.
+
+           The QR changes every 30 seconds.
+
+           This is only the first security layer.
+           In the next step, the token will be validated
+           against Firebase so an old screenshot cannot
+           simply be reused.
+        */
+
+        const QR_LIFETIME_SECONDS = 30;
+
+
+        let qrSecondsRemaining =
+            QR_LIFETIME_SECONDS;
+
+
+        /* =====================================================
+           CREATE QR
+        ===================================================== */
+
+        function createOfficeQRCode() {
+
+            if (!officeQRCode) {
+
+                return;
+
+            }
+
+
+            /*
+               Clear previous QR.
+            */
+
+            officeQRCode.innerHTML = "";
+
+
+            /*
+               Create a temporary rotating token.
+
+               The worker page will receive:
+
+               organization
+               timestamp
+               token
+            */
+
+            const timestamp =
+                Date.now();
+
+
+            const token =
+                generateQRToken(
+                    timestamp
+                );
+
+
+            const qrURL =
+                WORKER_PAGE_URL +
+                "?officeQR=1" +
+                "&timestamp=" +
+                encodeURIComponent(
+                    timestamp
+                ) +
+                "&token=" +
+                encodeURIComponent(
+                    token
+                );
+
+
+            new QRCode(
+                officeQRCode,
+                {
+
+                    text:
+                        qrURL,
+
+                    width:
+                        200,
+
+                    height:
+                        200,
+
+                    colorDark:
+                        "#111827",
+
+                    colorLight:
+                        "#ffffff",
+
+                    correctLevel:
+                        QRCode.CorrectLevel.H
+
+                }
+            );
+
+
+            qrSecondsRemaining =
+                QR_LIFETIME_SECONDS;
+
+
+            if (qrCountdown) {
+
+                qrCountdown.textContent =
+                    qrSecondsRemaining;
+
+            }
+
+
+            console.log(
+                "📱 Virello office QR created:",
+                timestamp
+            );
+
+        }
+
+
+        /* =====================================================
+           TEMPORARY QR TOKEN
+        ===================================================== */
+
+        function generateQRToken(
+            timestamp
+        ) {
+
+            /*
+               This is the first-stage browser token.
+
+               IMPORTANT:
+
+               This is NOT the final security mechanism.
+
+               The next security phase will move
+               validation to Firebase/server-side logic.
+
+            */
+
+            const slot =
+                Math.floor(
+                    timestamp /
+                    (
+                        QR_LIFETIME_SECONDS *
+                        1000
+                    )
+                );
+
+
+            const raw =
+                "VIRELLO-OFFICE-" +
+                slot;
+
+
+            /*
+               Simple browser encoding.
+
+               Server-side validation will replace
+               this in the security phase.
+            */
+
+            return btoa(
+                raw
+            );
+
+        }
+
+
+        /* =====================================================
+           COUNTDOWN
+        ===================================================== */
+
+        setInterval(
+            () => {
+
+                qrSecondsRemaining--;
+
+
+                if (
+                    qrCountdown
+                ) {
+
+                    qrCountdown.textContent =
+                        qrSecondsRemaining;
+
+                }
+
+
+                if (
+                    qrSecondsRemaining <= 0
+                ) {
+
+                    createOfficeQRCode();
+
+                }
+
+            },
+            1000
+        );
+
+
+        /* =====================================================
+           INITIAL QR
+        ===================================================== */
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            () => {
+
+                createOfficeQRCode();
+
+            }
+        );
+
+
+    </script>
+
+
+</body>
+
+</html>

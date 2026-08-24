@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Register Organization | Virello Technologies
+    </title>
+
+
+    <style>
+
+        /* =========================================
+           RESET
+        ========================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        /* =========================================
+           BODY
+        ========================================= */
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #172033;
+
+            min-height: 100vh;
+
+        }
+
+
+        /* =========================================
+           HEADER
+        ========================================= */
+
+        header {
+
+            background: #ffffff;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            padding: 17px 6%;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+        }
+
+
+        /* =========================================
+           LOGO
+        ========================================= */
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 44px;
+
+            height: 44px;
+
+            background: #2563eb;
+
+            color: #ffffff;
+
+            border-radius: 11px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-size: 22px;
+
+            font-weight: 800;
+
+        }
+
+
+        .logo-text h2 {
+
+            font-size: 20px;
+
+            color: #111827;
+
+        }
+
+
+        .logo-text p {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            margin-top: 3px;
+
+        }
+
+
+        .back-home {
+
+            text-decoration: none;
+
+            color: #2563eb;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+        }
+
+
+        .back-home:hover {
+
+            text-decoration: underline;
+
+        }
+
+
+        /* =========================================
+           MAIN
+        ========================================= */
+
+        main {
+
+            width: 100%;
+
+            padding: 55px 20px 70px;
+
+        }
+
+
+        /* =========================================
+           REGISTRATION CONTAINER
+        ========================================= */
+
+        .register-container {
+
+            max-width: 850px;
+
+            margin: auto;
+
+        }
+
+
+        /* =========================================
+           PAGE HEADER
+        ========================================= */
+
+        .page-header {
+
+            text-align: center;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .page-badge {
+
+            display: inline-block;
+
+            background: #dbeafe;
+
+            color: #1d4ed8;
+
+            padding: 8px 16px;
+
+            border-radius: 30px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .page-header h1 {
+
+            font-size:
+                clamp(30px, 5vw, 42px);
+
+            color: #111827;
+
+            margin-bottom: 12px;
+
+        }
+
+
+        .page-header p {
+
+            max-width: 620px;
+
+            margin: auto;
+
+            color: #64748b;
+
+            font-size: 15px;
+
+            line-height: 1.7;
+
+        }
+
+
+        /* =========================================
+           FORM CARD
+        ========================================= */
+
+        .form-card {
+
+            background: #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 18px;
+
+            padding: 38px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(15, 23, 42, 0.06);
+
+        }
+
+
+        /* =========================================
+           SECTION
+        ========================================= */
+
+        .form-section {
+
+            margin-bottom: 35px;
+
+        }
+
+
+        .form-section:last-of-type {
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .section-heading {
+
+            font-size: 19px;
+
+            color: #111827;
+
+            margin-bottom: 5px;
+
+        }
+
+
+        .section-description {
+
+            color: #64748b;
+
+            font-size: 13px;
+
+            margin-bottom: 22px;
+
+        }
+
+
+        /* =========================================
+           FORM GRID
+        ========================================= */
+
+        .form-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 20px;
+
+        }
+
+
+        .form-group {
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+        .form-group.full {
+
+            grid-column:
+                1 / -1;
+
+        }
+
+
+        /* =========================================
+           LABEL
+        ========================================= */
+
+        label {
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            color: #334155;
+
+            margin-bottom: 7px;
+
+        }
+
+
+        .required {
+
+            color: #dc2626;
+
+        }
+
+
+        /* =========================================
+           INPUTS
+        ========================================= */
+
+        input,
+        select {
+
+            width: 100%;
+
+            padding: 13px 14px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 9px;
+
+            background: #ffffff;
+
+            color: #172033;
+
+            font-size: 14px;
+
+            outline: none;
+
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s;
+
+        }
+
+
+        input:focus,
+        select:focus {
+
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37, 99, 235, 0.10);
+
+        }
+
+
+        input::placeholder {
+
+            color: #94a3b8;
+
+        }
+
+
+        /* =========================================
+           PASSWORD NOTE
+        ========================================= */
+
+        .input-note {
+
+            color: #64748b;
+
+            font-size: 11px;
+
+            margin-top: 6px;
+
+        }
+
+
+        /* =========================================
+           MESSAGE
+        ========================================= */
+
+        .message {
+
+            display: none;
+
+            padding: 13px 15px;
+
+            border-radius: 9px;
+
+            margin-bottom: 20px;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+        }
+
+
+        .message.error {
+
+            display: block;
+
+            background: #fef2f2;
+
+            color: #b91c1c;
+
+            border:
+                1px solid #fecaca;
+
+        }
+
+
+        .message.success {
+
+            display: block;
+
+            background: #f0fdf4;
+
+            color: #15803d;
+
+            border:
+                1px solid #bbf7d0;
+
+        }
+
+
+        /* =========================================
+           TERMS
+        ========================================= */
+
+        .terms {
+
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 10px;
+
+            margin-bottom: 22px;
+
+        }
+
+
+        .terms input {
+
+            width: 16px;
+
+            height: 16px;
+
+            margin-top: 2px;
+
+            flex-shrink: 0;
+
+        }
+
+
+        .terms label {
+
+            font-size: 12px;
+
+            font-weight: normal;
+
+            color: #64748b;
+
+            line-height: 1.5;
+
+            margin: 0;
+
+        }
+
+
+        /* =========================================
+           REGISTER BUTTON
+        ========================================= */
+
+        .register-button {
+
+            width: 100%;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 9px;
+
+            background: #2563eb;
+
+            color: #ffffff;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition:
+                background 0.2s,
+                transform 0.1s;
+
+        }
+
+
+        .register-button:hover {
+
+            background: #1d4ed8;
+
+        }
+
+
+        .register-button:active {
+
+            transform: scale(0.99);
+
+        }
+
+
+        .register-button:disabled {
+
+            background: #93c5fd;
+
+            cursor: not-allowed;
+
+        }
+
+
+        /* =========================================
+           LOGIN LINK
+        ========================================= */
+
+        .login-link {
+
+            text-align: center;
+
+            margin-top: 22px;
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        .login-link a {
+
+            color: #2563eb;
+
+            font-weight: bold;
+
+            text-decoration: none;
+
+        }
+
+
+        .login-link a:hover {
+
+            text-decoration: underline;
+
+        }
+
+
+        /* =========================================
+           SECURITY NOTE
+        ========================================= */
+
+        .security-note {
+
+            margin-top: 20px;
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 10px;
+
+            padding: 15px;
+
+            color: #64748b;
+
+            font-size: 12px;
+
+            line-height: 1.6;
+
+            text-align: center;
+
+        }
+
+
+        /* =========================================
+           FOOTER
+        ========================================= */
+
+        footer {
+
+            background: #0b1120;
+
+            color: #ffffff;
+
+            text-align: center;
+
+            padding: 30px 20px;
+
+        }
+
+
+        footer h3 {
+
+            margin-bottom: 7px;
+
+            font-size: 17px;
+
+        }
+
+
+        footer p {
+
+            color: #94a3b8;
+
+            font-size: 12px;
+
+        }
+
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 650px) {
+
+            header {
+
+                padding:
+                    15px 18px;
+
+            }
+
+
+            .logo-text h2 {
+
+                font-size: 17px;
+
+            }
+
+
+            .logo-text p {
+
+                display: none;
+
+            }
+
+
+            .back-home {
+
+                font-size: 12px;
+
+            }
+
+
+            main {
+
+                padding:
+                    35px 15px 50px;
+
+            }
+
+
+            .form-card {
+
+                padding:
+                    25px 18px;
+
+            }
+
+
+            .form-grid {
+
+                grid-template-columns: 1fr;
+
+                gap: 17px;
+
+            }
+
+
+            .form-group.full {
+
+                grid-column: auto;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================================
+         HEADER
+    ========================================= -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Digital Organization Solutions
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="index.html"
+            class="back-home"
+        >
+            ← Back to Home
+        </a>
+
+    </header>
+
+
+    <!-- =========================================
+         MAIN
+    ========================================= -->
+
+    <main>
+
+        <div class="register-container">
+
+
+            <!-- =====================================
+                 PAGE HEADER
+            ===================================== -->
+
+            <div class="page-header">
+
+                <div class="page-badge">
+                    VIRELLO DIGITAL ATTENDANCE
+                </div>
+
+                <h1>
+                    Register Your Organization
+                </h1>
+
+                <p>
+                    Create your organization's Virello
+                    workspace and start managing staff
+                    attendance digitally.
+                </p>
+
+            </div>
+
+
+            <!-- =====================================
+                 FORM CARD
+            ===================================== -->
+
+            <div class="form-card">
+
+
+                <!-- =================================
+                     REGISTRATION FORM
+                ================================= -->
+
+                <form
+                    id="registerForm"
+                >
+
+
+                    <!-- =================================
+                         MESSAGE
+                    ================================= -->
+
+                    <div
+                        id="message"
+                        class="message"
+                    ></div>
+
+
+                    <!-- =================================
+                         ORGANIZATION INFORMATION
+                    ================================= -->
+
+                    <div class="form-section">
+
+                        <h2 class="section-heading">
+                            Organization Information
+                        </h2>
+
+                        <p class="section-description">
+                            Tell us about the organization
+                            that will use Virello.
+                        </p>
+
+
+                        <div class="form-grid">
+
+
+                            <!-- ORGANIZATION NAME -->
+
+                            <div class="form-group full">
+
+                                <label for="organizationName">
+
+                                    Organization Name
+
+                                    <span class="required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="organizationName"
+                                    name="organizationName"
+                                    placeholder="e.g. Star Preparatory School"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <!-- ORGANIZATION TYPE -->
+
+                            <div class="form-group">
+
+                                <label for="organizationType">
+
+                                    Organization Type
+
+                                    <span class="required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <select
+                                    id="organizationType"
+                                    name="organizationType"
+                                    required
+                                >
+
+                                    <option value="">
+                                        -- Select Type --
+                                    </option>
+
+                                    <option value="School">
+                                        School
+                                    </option>
+
+                                    <option value="Business">
+                                        Business
+                                    </option>
+
+                                    <option value="NGO">
+                                        NGO
+                                    </option>
+
+                                    <option value="Government Organization">
+                                        Government Organization
+                                    </option>
+
+                                    <option value="Healthcare">
+                                        Healthcare
+                                    </option>
+
+                                    <option value="Church / Religious Organization">
+                                        Church / Religious Organization
+                                    </option>
+
+                                    <option value="Other">
+                                        Other
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- COUNTRY -->
+
+                            <div class="form-group">
+
+                                <label for="country">
+
+                                    Country
+
+                                    <span class="required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <select
+                                    id="country"
+                                    name="country"
+                                    required
+                                >
+
+                                    <option value="">
+                                        -- Select Country --
+                                    </option>
+
+                                    <option value="Gambia">
+                                        🇬🇲 Gambia
+                                    </option>
+
+                                    <option value="Sierra Leone">
+                                        🇸🇱 Sierra Leone
+                                    </option>
+
+                                    <option value="Other">
+                                        Other
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================
+                         ADMINISTRATOR INFORMATION
+                    ================================= -->
+
+                    <div class="form-section">
+
+                        <h2 class="section-heading">
+                            Administrator Information
+                        </h2>
+
+                        <p class="section-description">
+                            This person will be the primary
+                            administrator of the organization.
+                        </p>
+
+
+                        <div class="form-grid">
+
+
+                            <!-- ADMIN NAME -->
+
+                            <div class="form-group full">
+
+                                <label for="adminName">
+
+                                    Administrator Full Name
+
+                                    <span class="required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="adminName"
+                                    name="adminName"
+                                    placeholder="Enter administrator full name"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <!-- EMAIL -->
+
+                            <div class="form-group full">
+
+                                <label for="email">
+
+                                    Email Address
+
+                                    <span class="required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    placeholder="administrator@example.com"
+                                    autocomplete="email"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <!-- PASSWORD -->
+
+                            <div class="form-group">
+
+                                <label for="password">
+
+                                    Password
+
+                                    <span class="required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    placeholder="Create a password"
+                                    autocomplete="new-password"
+                                    minlength="6"
+                                    required
+                                >
+
+                                <div class="input-note">
+                                    Minimum 6 characters.
+                                </div>
+
+                            </div>
+
+
+                            <!-- CONFIRM PASSWORD -->
+
+                            <div class="form-group">
+
+                                <label for="confirmPassword">
+
+                                    Confirm Password
+
+                                    <span class="required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="password"
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    placeholder="Enter password again"
+                                    autocomplete="new-password"
+                                    minlength="6"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================
+                         TERMS
+                    ================================= -->
+
+                    <div class="terms">
+
+                        <input
+                            type="checkbox"
+                            id="terms"
+                            required
+                        >
+
+                        <label for="terms">
+
+                            I confirm that the information
+                            provided is accurate and that I am
+                            authorized to create this organization's
+                            Virello account.
+
+                        </label>
+
+                    </div>
+
+
+                    <!-- =================================
+                         REGISTER BUTTON
+                    ================================= -->
+
+                    <button
+                        type="submit"
+                        id="registerButton"
+                        class="register-button"
+                    >
+                        Create Organization
+                    </button>
+
+
+                </form>
+
+
+                <!-- =====================================
+                     LOGIN LINK
+                ===================================== -->
+
+                <div class="login-link">
+
+                    Already have an organization account?
+
+                    <a href="login.html">
+                        Organization Login
+                    </a>
+
+                </div>
+
+
+                <!-- =====================================
+                     SECURITY NOTE
+                ===================================== -->
+
+                <div class="security-note">
+
+                    🔒 Your organization information is
+                    protected and will be stored in your
+                    organization's secure Virello workspace.
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- =========================================
+         FOOTER
+    ========================================= -->
+
+    <footer>
+
+        <h3>
+            Virello Technologies
+        </h3>
+
+        <p>
+            Building digital solutions for modern organizations.
+        </p>
+
+    </footer>
+
+
+    <!-- =========================================
+         REGISTER JAVASCRIPT
+    ========================================= -->
+
+    <script
+        type="module"
+        src="js/register.js"
+    ></script>
+
+
+</body>
+
+</html>
