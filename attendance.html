@@ -26,12 +26,20 @@
 
     <style>
 
+        /* =====================================================
+           RESET
+        ===================================================== */
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+
+        /* =====================================================
+           BODY
+        ===================================================== */
 
         body {
 
@@ -48,6 +56,10 @@
 
         }
 
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
 
         header {
 
@@ -74,6 +86,10 @@
 
         }
 
+
+        /* =====================================================
+           LOGO
+        ===================================================== */
 
         .logo {
 
@@ -130,6 +146,10 @@
 
         }
 
+
+        /* =====================================================
+           HEADER RIGHT
+        ===================================================== */
 
         .header-right {
 
@@ -188,6 +208,10 @@
         }
 
 
+        /* =====================================================
+           PAGE
+        ===================================================== */
+
         .page {
 
             max-width:
@@ -201,6 +225,10 @@
 
         }
 
+
+        /* =====================================================
+           PAGE HEADER
+        ===================================================== */
 
         .page-header {
 
@@ -234,6 +262,10 @@
 
         }
 
+
+        /* =====================================================
+           ORGANIZATION CARD
+        ===================================================== */
 
         .organization-card {
 
@@ -327,6 +359,10 @@
 
         }
 
+
+        /* =====================================================
+           DATE CARD
+        ===================================================== */
 
         .date-card {
 
@@ -442,6 +478,10 @@
 
         }
 
+
+        /* =====================================================
+           STATISTICS
+        ===================================================== */
 
         .stats-grid {
 
@@ -810,6 +850,10 @@
         }
 
 
+        /* =====================================================
+           REGISTER CARD
+        ===================================================== */
+
         .register-card {
 
             background:
@@ -862,6 +906,10 @@
 
         }
 
+
+        /* =====================================================
+           TABLE CONTAINER
+        ===================================================== */
 
         #attendanceTableContainer {
 
@@ -961,6 +1009,10 @@
         }
 
 
+        /* =====================================================
+           STAFF PERSON
+        ===================================================== */
+
         .attendance-person {
 
             display:
@@ -1041,6 +1093,10 @@
         }
 
 
+        /* =====================================================
+           STATUS
+        ===================================================== */
+
         .attendance-status {
 
             display:
@@ -1096,6 +1152,10 @@
 
         }
 
+
+        /* =====================================================
+           ACTIONS
+        ===================================================== */
 
         .attendance-actions {
 
@@ -1218,6 +1278,10 @@
         }
 
 
+        /* =====================================================
+           EMPTY STATE
+        ===================================================== */
+
         #emptyState {
 
             display:
@@ -1237,6 +1301,10 @@
 
         }
 
+
+        /* =====================================================
+           LOADING
+        ===================================================== */
 
         #loadingScreen {
 
@@ -1316,6 +1384,10 @@
         }
 
 
+        /* =====================================================
+           ERROR
+        ===================================================== */
+
         #errorScreen {
 
             display:
@@ -1369,6 +1441,10 @@
 
         }
 
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
 
         @media (max-width: 900px) {
 
@@ -1587,8 +1663,16 @@
     </header>
 
 
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
     <main class="page">
 
+
+        <!-- =================================================
+             PAGE HEADER
+        ================================================== -->
 
         <section class="page-header">
 
@@ -1602,6 +1686,10 @@
 
         </section>
 
+
+        <!-- =================================================
+             ORGANIZATION
+        ================================================== -->
 
         <section class="organization-card">
 
@@ -1648,6 +1736,10 @@
         </section>
 
 
+        <!-- =================================================
+             DATE
+        ================================================== -->
+
         <section class="date-card">
 
             <h2>
@@ -1675,8 +1767,14 @@
         </section>
 
 
+        <!-- =================================================
+             STATISTICS
+        ================================================== -->
+
         <section class="stats-grid">
 
+
+            <!-- TOTAL -->
 
             <div class="stat-card">
 
@@ -1698,6 +1796,8 @@
             </div>
 
 
+            <!-- PRESENT -->
+
             <div class="stat-card">
 
                 <div class="stat-icon">
@@ -1718,6 +1818,8 @@
             </div>
 
 
+            <!-- LATE -->
+
             <div class="stat-card">
 
                 <div class="stat-icon">
@@ -1737,6 +1839,8 @@
 
             </div>
 
+
+            <!-- ABSENT -->
 
             <div class="stat-card">
 
@@ -1761,7 +1865,7 @@
 
 
         <!-- =================================================
-             OFFICE QR
+             OFFICE QR ATTENDANCE
         ================================================== -->
 
         <section class="qr-card">
@@ -1784,12 +1888,16 @@
             <div class="qr-layout">
 
 
+                <!-- QR CODE -->
+
                 <div class="qr-display">
 
                     <div id="officeQRCode"></div>
 
                 </div>
 
+
+                <!-- INFORMATION -->
 
                 <div class="qr-information">
 
@@ -1823,8 +1931,9 @@
                             🔐 Security Protection
                         </strong>
 
-                        This QR code rotates automatically.
-                        Old QR codes expire after 30 seconds.
+                        This QR code is designed to rotate
+                        automatically. Old QR codes will expire
+                        and cannot be used indefinitely.
 
                     </div>
 
@@ -1855,6 +1964,8 @@
         <section class="register-card">
 
 
+            <!-- REGISTER HEADER -->
+
             <div class="register-header">
 
                 <h2>
@@ -1868,6 +1979,10 @@
 
             </div>
 
+
+            <!-- =================================================
+                 TABLE
+            ================================================== -->
 
             <div
                 id="attendanceTableContainer"
@@ -1919,6 +2034,10 @@
             </div>
 
 
+            <!-- =================================================
+                 EMPTY STATE
+            ================================================== -->
+
             <div
                 id="emptyState"
             >
@@ -1931,6 +2050,10 @@
 
     </main>
 
+
+    <!-- =====================================================
+         ERROR SCREEN
+    ====================================================== -->
 
     <div id="errorScreen">
 
@@ -1957,34 +2080,15 @@
 
 
     <!-- =====================================================
-         VIRELLO OFFICE QR
-         HOSTING-SAFE VERSION
+         OFFICE QR JAVASCRIPT
     ====================================================== -->
 
     <script>
 
-        /*
-        ========================================================
-        VIRELLO TECHNOLOGIES
-        OFFICE ATTENDANCE QR
-
-        IMPORTANT:
-
-        GitHub Pages repository:
-
-        69824/Virello-Technologies
-
-        Therefore the worker page is:
-
-        https://69824.github.io/Virello-Technologies/worker.html
-
-        DO NOT use:
-
-        https://69824.github.io/worker.html
-
-        because that produces a 404.
-        ========================================================
-        */
+        /* =====================================================
+           VIRELLO OFFICE QR
+           STEP 5A
+        ===================================================== */
 
 
         const officeQRCode =
@@ -2000,19 +2104,27 @@
 
 
         /*
-        ========================================================
-        OFFICIAL HOSTED WORKER PAGE
-        ========================================================
+           The worker page will be the destination.
+
+           IMPORTANT:
+           Change this to your actual hosted worker page
+           when Virello is deployed.
         */
 
         const WORKER_PAGE_URL =
-            "/Virello-Technologies/worker.html";
+            window.location.origin +
+            "/worker.html";
 
 
         /*
-        ========================================================
-        QR LIFETIME
-        ========================================================
+           QR lifetime.
+
+           The QR changes every 30 seconds.
+
+           This is only the first security layer.
+           In the next step, the token will be validated
+           against Firebase so an old screenshot cannot
+           simply be reused.
         */
 
         const QR_LIFETIME_SECONDS = 30;
@@ -2022,73 +2134,13 @@
             QR_LIFETIME_SECONDS;
 
 
-        /*
-        ========================================================
-        GENERATE RANDOM TOKEN
-        ========================================================
-        */
-
-        function generateSecureToken() {
-
-            try {
-
-                const array =
-                    new Uint8Array(24);
-
-
-                crypto.getRandomValues(
-                    array
-                );
-
-
-                return Array
-                    .from(array)
-                    .map(
-                        byte =>
-                            byte
-                                .toString(16)
-                                .padStart(
-                                    2,
-                                    "0"
-                                )
-                    )
-                    .join("");
-
-
-            } catch (error) {
-
-                console.error(
-                    "❌ Secure token generation failed:",
-                    error
-                );
-
-
-                return (
-                    Date.now()
-                        .toString(36) +
-                    Math.random()
-                        .toString(36)
-                        .substring(2)
-                );
-
-            }
-
-        }
-
-
-        /*
-        ========================================================
-        CREATE OFFICE QR
-        ========================================================
-        */
+        /* =====================================================
+           CREATE QR
+        ===================================================== */
 
         function createOfficeQRCode() {
 
             if (!officeQRCode) {
-
-                console.error(
-                    "❌ officeQRCode element not found."
-                );
 
                 return;
 
@@ -2096,143 +2148,70 @@
 
 
             /*
-            Clear old QR.
+               Clear previous QR.
             */
 
             officeQRCode.innerHTML = "";
 
 
             /*
-            Create timestamp.
+               Create a temporary rotating token.
+
+               The worker page will receive:
+
+               organization
+               timestamp
+               token
             */
 
             const timestamp =
                 Date.now();
 
 
-            /*
-            Create secure token.
-            */
-
             const token =
-                generateSecureToken();
+                generateQRToken(
+                    timestamp
+                );
 
-
-            /*
-            Build the CORRECT hosted worker URL.
-            */
 
             const qrURL =
-                new URL(
-                    WORKER_PAGE_URL
+                WORKER_PAGE_URL +
+                "?officeQR=1" +
+                "&timestamp=" +
+                encodeURIComponent(
+                    timestamp
+                ) +
+                "&token=" +
+                encodeURIComponent(
+                    token
                 );
 
 
-            qrURL.searchParams.set(
-                "officeQR",
-                "1"
+            new QRCode(
+                officeQRCode,
+                {
+
+                    text:
+                        qrURL,
+
+                    width:
+                        200,
+
+                    height:
+                        200,
+
+                    colorDark:
+                        "#111827",
+
+                    colorLight:
+                        "#ffffff",
+
+                    correctLevel:
+                        QRCode.CorrectLevel.H
+
+                }
             );
 
-
-            qrURL.searchParams.set(
-                "timestamp",
-                timestamp
-            );
-
-
-            qrURL.searchParams.set(
-                "token",
-                token
-            );
-
-
-            const finalQRURL =
-                qrURL.toString();
-
-
-            /*
-            Create QR.
-            */
-
-            try {
-
-                new QRCode(
-                    officeQRCode,
-                    {
-
-                        text:
-                            finalQRURL,
-
-                        width:
-                            200,
-
-                        height:
-                            200,
-
-                        colorDark:
-                            "#111827",
-
-                        colorLight:
-                            "#ffffff",
-
-                        correctLevel:
-                            QRCode.CorrectLevel.H
-
-                    }
-                );
-
-
-                console.log(
-                    "===================================="
-                );
-
-
-                console.log(
-                    "📱 VIRELLO OFFICE QR CREATED"
-                );
-
-
-                console.log(
-                    "🔗 QR destination:",
-                    finalQRURL
-                );
-
-
-                console.log(
-                    "===================================="
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "❌ QR creation failed:",
-                    error
-                );
-
-
-                officeQRCode.innerHTML = `
-                    <div
-                        style="
-                            color:#dc2626;
-                            text-align:center;
-                            font-size:12px;
-                            font-weight:700;
-                            padding:20px;
-                        "
-                    >
-                        Unable to generate QR code.
-                    </div>
-                `;
-
-                return;
-
-            }
-
-
-            /*
-            Reset countdown.
-            */
 
             qrSecondsRemaining =
                 QR_LIFETIME_SECONDS;
@@ -2245,14 +2224,67 @@
 
             }
 
+
+            console.log(
+                "📱 Virello office QR created:",
+                timestamp
+            );
+
         }
 
 
-        /*
-        ========================================================
-        COUNTDOWN
-        ========================================================
-        */
+        /* =====================================================
+           TEMPORARY QR TOKEN
+        ===================================================== */
+
+        function generateQRToken(
+            timestamp
+        ) {
+
+            /*
+               This is the first-stage browser token.
+
+               IMPORTANT:
+
+               This is NOT the final security mechanism.
+
+               The next security phase will move
+               validation to Firebase/server-side logic.
+
+            */
+
+            const slot =
+                Math.floor(
+                    timestamp /
+                    (
+                        QR_LIFETIME_SECONDS *
+                        1000
+                    )
+                );
+
+
+            const raw =
+                "VIRELLO-OFFICE-" +
+                slot;
+
+
+            /*
+               Simple browser encoding.
+
+               Server-side validation will replace
+               this in the security phase.
+            */
+
+            return btoa(
+                raw
+            );
+
+        }
+
+
+        /* =====================================================
+           COUNTDOWN
+        ===================================================== */
 
         setInterval(
             () => {
@@ -2260,30 +2292,19 @@
                 qrSecondsRemaining--;
 
 
-                if (qrCountdown) {
+                if (
+                    qrCountdown
+                ) {
 
                     qrCountdown.textContent =
-                        Math.max(
-                            0,
-                            qrSecondsRemaining
-                        );
+                        qrSecondsRemaining;
 
                 }
 
 
-                /*
-                When QR expires,
-                create a completely new QR.
-                */
-
                 if (
                     qrSecondsRemaining <= 0
                 ) {
-
-                    console.log(
-                        "⏱ Office QR expired."
-                    );
-
 
                     createOfficeQRCode();
 
@@ -2294,44 +2315,19 @@
         );
 
 
-        /*
-        ========================================================
-        INITIAL QR
-        ========================================================
-        */
+        /* =====================================================
+           INITIAL QR
+        ===================================================== */
 
-        if (
-            document.readyState ===
-            "loading"
-        ) {
+        document.addEventListener(
+            "DOMContentLoaded",
+            () => {
 
-            document.addEventListener(
-                "DOMContentLoaded",
-                createOfficeQRCode
-            );
+                createOfficeQRCode();
 
-        } else {
-
-            createOfficeQRCode();
-
-        }
-
-
-        /*
-        ========================================================
-        FINAL LOG
-        ========================================================
-        */
-
-        console.log(
-            "✅ Virello Attendance QR system loaded."
+            }
         );
 
-
-        console.log(
-            "🌐 Worker page:",
-            WORKER_PAGE_URL
-        );
 
     </script>
 
