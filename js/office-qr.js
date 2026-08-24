@@ -179,47 +179,19 @@ function generateToken() {
 
 function getWorkerPageURL() {
 
-    /*
-       HOSTING-SAFE VERSION
-
-       We no longer use:
-
-       10.51.15.105
-       localhost
-       127.0.0.1
-       port 5500
-
-       Instead, the browser automatically
-       uses the same website where Virello
-       is currently hosted.
-
-       Example:
-
-       Office page:
-       https://virello.com/office-qr.html
-
-       Worker page:
-       https://virello.com/worker.html
-    */
-
-
     const workerURL =
         new URL(
-            WORKER_PAGE,
-            window.location.origin + "/"
+            "worker.html",
+            "https://69824.github.io/Virello-Technologies/"
         );
-
 
     console.log(
         "🌐 Worker URL created:",
         workerURL.toString()
     );
 
-
     return workerURL;
-
 }
-
 
 /* =========================================================
    BUILD ATTENDANCE URL
