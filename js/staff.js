@@ -18,6 +18,25 @@
    - Activate / deactivate staff
    - Delete staff profile
    - Keep administrator logged in
+
+   SCHOOL CLASS STRUCTURE:
+   Nursery 1
+   Nursery 2
+   Nursery 3
+   Grade 1
+   Grade 2
+   Grade 3
+   Grade 4
+   Grade 5
+   Grade 6
+   Grade 7
+   Grade 8
+   Grade 9
+========================================================= */
+
+
+/* =========================================================
+   FIREBASE IMPORTS
 ========================================================= */
 
 import {
@@ -27,10 +46,7 @@ import {
 
 import {
     getAuth,
-    createUserWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-
-import {
+    createUserWithEmailAndPassword,
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
@@ -72,7 +88,7 @@ let selectedFormMasterClass = null;
 
 
 /* =========================================================
-   DOM
+   DOM ELEMENTS
 ========================================================= */
 
 const loadingScreen =
@@ -181,7 +197,7 @@ const staffStatus =
 
 
 /* =========================================================
-   CREATE EXTRA FORM CONTROLS
+   EXTRA FORM CONTROLS
 ========================================================= */
 
 let roleSelect = null;
@@ -195,14 +211,21 @@ let passwordGroup = null;
 let passwordInput = null;
 
 
+/* =========================================================
+   CREATE EXTRA FORM FIELDS
+========================================================= */
+
 function createExtraFormFields() {
 
     /*
+     * -------------------------------------------------------
      * ROLE
+     * -------------------------------------------------------
      */
 
     const positionGroup =
         staffPosition?.closest(".form-group");
+
 
     if (
         positionGroup &&
@@ -249,7 +272,8 @@ function createExtraFormFields() {
             </select>
 
             <small>
-                Form Master accounts can manage attendance for their assigned class.
+                Form Master accounts can manage attendance
+                for their assigned class.
             </small>
 
         `;
@@ -263,11 +287,14 @@ function createExtraFormFields() {
 
 
     /*
+     * -------------------------------------------------------
      * PASSWORD
+     * -------------------------------------------------------
      */
 
     const emailGroup =
         staffEmail?.closest(".form-group");
+
 
     if (
         emailGroup &&
@@ -295,7 +322,8 @@ function createExtraFormFields() {
             >
 
             <small>
-                Required when creating a new login account. Minimum 6 characters.
+                Required when creating a new login account.
+                Minimum 6 characters.
             </small>
 
         `;
@@ -309,7 +337,9 @@ function createExtraFormFields() {
 
 
     /*
+     * -------------------------------------------------------
      * FORM MASTER CLASS
+     * -------------------------------------------------------
      */
 
     if (
@@ -348,7 +378,8 @@ function createExtraFormFields() {
             </select>
 
             <small>
-                This Form Master will manage attendance for this class.
+                This Form Master will manage attendance
+                for this class.
             </small>
 
         `;
@@ -366,7 +397,9 @@ function createExtraFormFields() {
 
 
     /*
+     * -------------------------------------------------------
      * ROLE CHANGE
+     * -------------------------------------------------------
      */
 
     if (roleSelect) {
@@ -381,14 +414,17 @@ function createExtraFormFields() {
 }
 
 
+/* =========================================================
+   ROLE CHANGE HANDLER
+========================================================= */
+
 function handleRoleChange() {
 
     const role =
         roleSelect?.value || "";
 
-    if (
-        formMasterClassGroup
-    ) {
+
+    if (formMasterClassGroup) {
 
         formMasterClassGroup.style.display =
             role === "form_master"
@@ -397,9 +433,8 @@ function handleRoleChange() {
 
     }
 
-    if (
-        formMasterClassSelect
-    ) {
+
+    if (formMasterClassSelect) {
 
         formMasterClassSelect.required =
             role === "form_master";
@@ -428,8 +463,10 @@ onAuthStateChanged(
 
             }
 
+
             currentUser =
                 user;
+
 
             console.log(
                 "🔐 Administrator authenticated:",
@@ -438,23 +475,41 @@ onAuthStateChanged(
             );
 
 
+            /*
+             * Create dynamic fields first.
+             */
+
             createExtraFormFields();
 
+
+            /*
+             * Load organization.
+             */
 
             await loadOrganization();
 
 
+            /*
+             * Load complete class structure.
+             */
+
             await loadClasses();
 
+
+            /*
+             * Load staff.
+             */
 
             await loadStaff();
 
 
+            /*
+             * Update interface.
+             */
+
             updateOrganizationUI();
 
-
             updateStatistics();
-
 
             renderStaff();
 
@@ -474,6 +529,7 @@ onAuthStateChanged(
                 "❌ Staff Management startup error:",
                 error
             );
+
 
             showError(
                 getFriendlyError(error)
@@ -509,6 +565,7 @@ async function loadOrganization() {
                 currentUser.uid
             );
 
+
         const userSnapshot =
             await getDoc(
                 userRef
@@ -528,6 +585,7 @@ async function loadOrganization() {
                 data.orgId ||
                 data.organizationID ||
                 "";
+
 
             if (
                 data.fullName ||
@@ -560,7 +618,7 @@ async function loadOrganization() {
 
     /*
      * -------------------------------------------------------
-     * 2. CHECK STAFF/ADMIN PROFILE
+     * 2. CHECK STAFF / ADMIN PROFILE
      * -------------------------------------------------------
      */
 
@@ -574,6 +632,7 @@ async function loadOrganization() {
                     "staff"
                 );
 
+
             const q =
                 query(
                     staffRef,
@@ -583,6 +642,7 @@ async function loadOrganization() {
                         currentUser.uid
                     )
                 );
+
 
             const snapshot =
                 await getDocs(q);
@@ -812,6 +872,12 @@ async function loadOrganization() {
     }
 
 
+    /*
+     * -------------------------------------------------------
+     * ORGANIZATION NOT FOUND
+     * -------------------------------------------------------
+     */
+
     if (!organizationId) {
 
         throw new Error(
@@ -962,6 +1028,12 @@ async function loadClasses() {
 
     try {
 
+        /*
+         * ---------------------------------------------------
+         * LOAD EXISTING FIREBASE CLASSES
+         * ---------------------------------------------------
+         */
+
         const q =
             query(
                 classesRef,
@@ -993,27 +1065,231 @@ async function loadClasses() {
         );
 
 
+        /*
+         * ---------------------------------------------------
+         * VIRELLO STANDARD CLASS STRUCTURE
+         * ---------------------------------------------------
+         */
+
+        const standardClasses = [
+
+            {
+                id: "nursery-1",
+                name: "Nursery 1",
+                className: "Nursery 1",
+                level: 1
+            },
+
+            {
+                id: "nursery-2",
+                name: "Nursery 2",
+                className: "Nursery 2",
+                level: 2
+            },
+
+            {
+                id: "nursery-3",
+                name: "Nursery 3",
+                className: "Nursery 3",
+                level: 3
+            },
+
+            {
+                id: "grade-1",
+                name: "Grade 1",
+                className: "Grade 1",
+                level: 4
+            },
+
+            {
+                id: "grade-2",
+                name: "Grade 2",
+                className: "Grade 2",
+                level: 5
+            },
+
+            {
+                id: "grade-3",
+                name: "Grade 3",
+                className: "Grade 3",
+                level: 6
+            },
+
+            {
+                id: "grade-4",
+                name: "Grade 4",
+                className: "Grade 4",
+                level: 7
+            },
+
+            {
+                id: "grade-5",
+                name: "Grade 5",
+                className: "Grade 5",
+                level: 8
+            },
+
+            {
+                id: "grade-6",
+                name: "Grade 6",
+                className: "Grade 6",
+                level: 9
+            },
+
+            {
+                id: "grade-7",
+                name: "Grade 7",
+                className: "Grade 7",
+                level: 10
+            },
+
+            {
+                id: "grade-8",
+                name: "Grade 8",
+                className: "Grade 8",
+                level: 11
+            },
+
+            {
+                id: "grade-9",
+                name: "Grade 9",
+                className: "Grade 9",
+                level: 12
+            }
+
+        ];
+
+
+        /*
+         * ---------------------------------------------------
+         * MERGE FIREBASE CLASSES WITH STANDARD CLASSES
+         * ---------------------------------------------------
+         */
+
+        standardClasses.forEach(
+            standardClass => {
+
+                const existing =
+                    classes.find(
+                        item => {
+
+                            const existingName =
+                                String(
+                                    item.className ||
+                                    item.name ||
+                                    ""
+                                )
+                                    .trim()
+                                    .toLowerCase();
+
+
+                            return (
+                                existingName ===
+                                standardClass.name
+                                    .toLowerCase()
+                            );
+
+                        }
+                    );
+
+
+                /*
+                 * Firebase already has this class.
+                 */
+
+                if (existing) {
+
+                    /*
+                     * Make sure the level is available
+                     * for correct sorting.
+                     */
+
+                    if (
+                        !existing.level
+                    ) {
+
+                        existing.level =
+                            standardClass.level;
+
+                    }
+
+                    return;
+
+                }
+
+
+                /*
+                 * Firebase does not have this class.
+                 *
+                 * Add it to the in-memory list so it
+                 * appears in the Form Master dropdown.
+                 */
+
+                classes.push({
+
+                    id:
+                        standardClass.id,
+
+                    name:
+                        standardClass.name,
+
+                    className:
+                        standardClass.className,
+
+                    level:
+                        standardClass.level,
+
+                    organizationId:
+                        organization.id,
+
+                    virtualClass:
+                        true
+
+                });
+
+            }
+        );
+
+
+        /*
+         * ---------------------------------------------------
+         * SORT IN SCHOOL ORDER
+         * ---------------------------------------------------
+         */
+
         classes.sort(
-            (a, b) =>
-                String(
-                    a.className ||
-                    a.name ||
-                    ""
-                ).localeCompare(
-                    String(
-                        b.className ||
-                        b.name ||
-                        ""
-                    )
-                )
+            (a, b) => {
+
+                const aLevel =
+                    Number(
+                        a.level || 999
+                    );
+
+
+                const bLevel =
+                    Number(
+                        b.level || 999
+                    );
+
+
+                return (
+                    aLevel -
+                    bLevel
+                );
+
+            }
         );
 
 
         console.log(
-            "🏫 Classes loaded:",
+            "🏫 Complete Virello class list:",
             classes
         );
 
+
+        /*
+         * Populate Form Master dropdown.
+         */
 
         populateClassSelect();
 
@@ -1026,6 +1302,7 @@ async function loadClasses() {
             error
         );
 
+
         throw error;
 
     }
@@ -1034,7 +1311,7 @@ async function loadClasses() {
 
 
 /* =========================================================
-   POPULATE CLASS SELECT
+   POPULATE FORM MASTER CLASS SELECT
 ========================================================= */
 
 function populateClassSelect() {
@@ -1044,29 +1321,76 @@ function populateClassSelect() {
     }
 
 
-    formMasterClassSelect.innerHTML = `
+    /*
+     * Clear dropdown.
+     */
 
-        <option value="">
-            Select class
-        </option>
+    formMasterClassSelect.innerHTML =
+        "";
 
-    `;
 
+    /*
+     * Default option.
+     */
+
+    const defaultOption =
+        document.createElement(
+            "option"
+        );
+
+
+    defaultOption.value =
+        "";
+
+
+    defaultOption.textContent =
+        "Select class";
+
+
+    formMasterClassSelect.appendChild(
+        defaultOption
+    );
+
+
+    /*
+     * No classes.
+     */
 
     if (!classes.length) {
 
-        formMasterClassSelect.innerHTML = `
+        const emptyOption =
+            document.createElement(
+                "option"
+            );
 
-            <option value="">
-                No classes available
-            </option>
 
-        `;
+        emptyOption.value =
+            "";
+
+
+        emptyOption.textContent =
+            "No classes available";
+
+
+        emptyOption.disabled =
+            true;
+
+
+        formMasterClassSelect.appendChild(
+            emptyOption
+        );
+
 
         return;
 
     }
 
+
+    /*
+     * ---------------------------------------------------
+     * ADD EVERY CLASS
+     * ---------------------------------------------------
+     */
 
     classes.forEach(
         classItem => {
@@ -1092,6 +1416,16 @@ function populateClassSelect() {
             );
 
         }
+    );
+
+
+    console.log(
+        "✅ Form Master dropdown populated:",
+        classes.map(
+            item =>
+                item.className ||
+                item.name
+        )
     );
 
 }
@@ -1181,6 +1515,7 @@ async function loadStaff() {
             error
         );
 
+
         throw error;
 
     }
@@ -1240,7 +1575,8 @@ function renderStaff() {
     }
 
 
-    staffTableBody.innerHTML = "";
+    staffTableBody.innerHTML =
+        "";
 
 
     staffMembers.forEach(
@@ -1387,11 +1723,13 @@ function renderStaff() {
                             }
                         "
                     >
+
                         ${
                             status === "active"
                                 ? "Active"
                                 : "Inactive"
                         }
+
                     </span>
 
                 </td>
@@ -1533,7 +1871,7 @@ if (staffTableBody) {
 
 
 /* =========================================================
-   OPEN ADD MODAL
+   OPEN ADD STAFF
 ========================================================= */
 
 function openAddStaff() {
@@ -1603,7 +1941,7 @@ function openAddStaff() {
 
 
 /* =========================================================
-   OPEN EDIT MODAL
+   OPEN EDIT STAFF
 ========================================================= */
 
 function openEditStaff(
@@ -1696,23 +2034,24 @@ function openEditStaff(
 
 
     if (
-        formMasterClassSelect &&
-        staff.formMasterClassId
+        formMasterClassSelect
     ) {
 
         formMasterClassSelect.value =
-            staff.formMasterClassId;
+            staff.formMasterClassId ||
+            "";
 
     }
 
 
     /*
-     * Password is never editable here.
+     * Password cannot be changed here.
      */
 
     if (passwordInput) {
 
-        passwordInput.value = "";
+        passwordInput.value =
+            "";
 
         passwordInput.placeholder =
             "Password cannot be changed here";
@@ -1944,13 +2283,12 @@ if (addStaffForm) {
 
 
             /*
-             * Form Master requirements.
+             * Form Master requires a class.
              */
 
             if (
                 role === "form_master" &&
-                !classId &&
-                !editingStaff
+                !classId
             ) {
 
                 showFormMessage(
@@ -2002,18 +2340,23 @@ if (addStaffForm) {
 
 
             /*
-             * Prevent duplicate staff ID.
+             * Duplicate Staff ID.
              */
 
             const duplicateId =
                 staffMembers.find(
                     staff =>
+
                         String(
                             staff.staffId ||
                             ""
-                        ).toLowerCase() ===
-                        enteredStaffId.toLowerCase()
+                        )
+                            .toLowerCase() ===
+                        enteredStaffId
+                            .toLowerCase()
+
                         &&
+
                         staff.id !==
                         editingStaff?.id
                 );
@@ -2102,32 +2445,17 @@ if (addStaffForm) {
 
                 /*
                  * -------------------------------------------------
-                 * CREATE FIREBASE AUTH ACCOUNT
+                 * CREATE SECONDARY FIREBASE APP
                  * -------------------------------------------------
                  */
 
+                const firebaseConfig =
+                    getFirebaseConfig();
+
+
                 const secondaryApp =
                     initializeApp(
-                        {
-                            apiKey:
-                                getFirebaseConfig().apiKey,
-
-                            authDomain:
-                                getFirebaseConfig().authDomain,
-
-                            projectId:
-                                getFirebaseConfig().projectId,
-
-                            storageBucket:
-                                getFirebaseConfig().storageBucket,
-
-                            messagingSenderId:
-                                getFirebaseConfig().messagingSenderId,
-
-                            appId:
-                                getFirebaseConfig().appId
-
-                        },
+                        firebaseConfig,
                         "virelloStaffCreator_" +
                         Date.now()
                     );
@@ -2199,13 +2527,9 @@ if (addStaffForm) {
 
                 /*
                  * -------------------------------------------------
-                 * CREATE STAFF PROFILE
+                 * FIND SELECTED CLASS
                  * -------------------------------------------------
                  */
-
-                const staffDocumentId =
-                    newUid;
-
 
                 const selectedClass =
                     classes.find(
@@ -2213,6 +2537,16 @@ if (addStaffForm) {
                             item.id ===
                             classId
                     );
+
+
+                /*
+                 * -------------------------------------------------
+                 * CREATE STAFF PROFILE
+                 * -------------------------------------------------
+                 */
+
+                const staffDocumentId =
+                    newUid;
 
 
                 const staffData = {
@@ -2307,7 +2641,7 @@ if (addStaffForm) {
 
                 /*
                  * -------------------------------------------------
-                 * CREATE/UPDATE TEACHER PROFILE
+                 * CREATE TEACHER PROFILE
                  * -------------------------------------------------
                  */
 
@@ -2402,6 +2736,17 @@ if (addStaffForm) {
                  * -------------------------------------------------
                  * ASSIGN FORM MASTER TO CLASS
                  * -------------------------------------------------
+                 *
+                 * IMPORTANT:
+                 *
+                 * If the class is a virtual class that does not
+                 * yet exist in Firestore, create the class
+                 * document here automatically.
+                 *
+                 * This means Nursery 1 through Grade 9 can be
+                 * assigned even if the administrator has never
+                 * created the class manually.
+                 * -------------------------------------------------
                  */
 
                 if (
@@ -2413,6 +2758,7 @@ if (addStaffForm) {
                     await assignFormMasterToClass(
                         selectedClass,
                         {
+
                             uid:
                                 newUid,
 
@@ -2427,6 +2773,7 @@ if (addStaffForm) {
 
                             role:
                                 "form_master"
+
                         }
                     );
 
@@ -2495,6 +2842,7 @@ if (addStaffForm) {
                     saveStaffButton.disabled =
                         false;
 
+
                     saveStaffButton.textContent =
                         editingStaff
                             ? "Save Changes"
@@ -2519,6 +2867,12 @@ async function assignFormMasterToClass(
     formMasterData
 ) {
 
+    /*
+     * -------------------------------------------------------
+     * CLASS DOCUMENT
+     * -------------------------------------------------------
+     */
+
     const classRef =
         doc(
             db,
@@ -2533,27 +2887,103 @@ async function assignFormMasterToClass(
         );
 
 
+    /*
+     * -------------------------------------------------------
+     * VIRTUAL CLASS
+     *
+     * If the class does not exist yet, create it.
+     * -------------------------------------------------------
+     */
+
     if (!existing.exists()) {
 
-        throw new Error(
-            "The selected class could not be found."
+        if (!classItem.virtualClass) {
+
+            throw new Error(
+                "The selected class could not be found."
+            );
+
+        }
+
+
+        await setDoc(
+            classRef,
+            {
+
+                organizationId:
+                    organization.id,
+
+                name:
+                    classItem.name,
+
+                className:
+                    classItem.className,
+
+                level:
+                    classItem.level,
+
+                formMasterId:
+                    formMasterData.uid,
+
+                formMasterUid:
+                    formMasterData.uid,
+
+                formMasterName:
+                    formMasterData.fullName,
+
+                formMasterEmail:
+                    formMasterData.email,
+
+                formMasterRole:
+                    "form_master",
+
+                createdAt:
+                    serverTimestamp(),
+
+                updatedAt:
+                    serverTimestamp()
+
+            }
         );
+
+
+        /*
+         * Update local object.
+         */
+
+        classItem.virtualClass =
+            false;
+
+
+        console.log(
+            "✅ New class created and Form Master assigned:",
+            classItem.className
+        );
+
+
+        return;
 
     }
 
+
+    /*
+     * -------------------------------------------------------
+     * EXISTING CLASS
+     * -------------------------------------------------------
+     */
 
     const existingData =
         existing.data();
 
 
-    /*
-     * Prevent silently replacing another Form Master.
-     */
-
     const existingFormMasterUid =
         existingData.formMasterUid ||
         "";
 
+
+    /*
+     * Prevent replacing another Form Master.
+     */
 
     if (
         existingFormMasterUid &&
@@ -2572,6 +3002,10 @@ async function assignFormMasterToClass(
 
     }
 
+
+    /*
+     * Assign Form Master.
+     */
 
     await updateDoc(
         classRef,
@@ -2701,7 +3135,9 @@ async function updateExistingStaff(
 
 
     /*
-     * Update teacher record if applicable.
+     * -------------------------------------------------------
+     * UPDATE TEACHER RECORD
+     * -------------------------------------------------------
      */
 
     if (
@@ -2709,10 +3145,13 @@ async function updateExistingStaff(
         (
             editingStaff.role ===
             "teacher" ||
+
             editingStaff.role ===
             "form_master" ||
+
             data.role ===
             "teacher" ||
+
             data.role ===
             "form_master"
         )
@@ -2798,7 +3237,9 @@ async function updateExistingStaff(
 
 
     /*
-     * Assign class.
+     * -------------------------------------------------------
+     * ASSIGN FORM MASTER
+     * -------------------------------------------------------
      */
 
     if (
@@ -2857,7 +3298,9 @@ async function toggleStaff(
 
     const confirmMessage =
         newStatus === "inactive"
+
             ? `Deactivate ${staff.fullName || staff.name}?`
+
             : `Activate ${staff.fullName || staff.name}?`;
 
 
@@ -2952,10 +3395,8 @@ async function deleteStaff(
 
 
         /*
-         * We intentionally do NOT delete the
-         * Firebase Authentication account here.
-         *
-         * Deleting another user's Auth account
+         * Firebase Authentication account is intentionally
+         * not deleted because another user's Auth account
          * requires Admin SDK/server privileges.
          */
 
@@ -3098,6 +3539,10 @@ if (cancelStaffButton) {
 }
 
 
+/* =========================================================
+   CLOSE MODAL WHEN CLICKING OUTSIDE
+========================================================= */
+
 if (addStaffModal) {
 
     addStaffModal.addEventListener(
@@ -3202,15 +3647,6 @@ function hideFormMessage() {
 ========================================================= */
 
 function getFirebaseConfig() {
-
-    /*
-     * firebase-config.js initializes Firebase,
-     * but normally does not export the configuration.
-     *
-     * We read the active Firebase app so we can
-     * create a secondary Auth instance without
-     * logging out the administrator.
-     */
 
     const firebaseApp =
         auth.app;
@@ -3553,6 +3989,28 @@ window.virelloStaffDebug = {
 };
 
 
+/* =========================================================
+   FINAL LOG
+========================================================= */
+
 console.log(
     "✅ Virello Staff Management JavaScript loaded."
+);
+
+console.log(
+    "🏫 Standard classes:",
+    [
+        "Nursery 1",
+        "Nursery 2",
+        "Nursery 3",
+        "Grade 1",
+        "Grade 2",
+        "Grade 3",
+        "Grade 4",
+        "Grade 5",
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9"
+    ]
 );
