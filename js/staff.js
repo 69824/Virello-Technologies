@@ -1,76 +1,74 @@
 /* =========================================================
    VIRELLO TECHNOLOGIES
-   DIGITAL ATTENDANCE PLATFORM
+   STAFF MANAGEMENT
 
    FILE:
    js/staff.js
 
-   STEP:
-   1I-9
-
    PURPOSE:
-   COMPLETE STAFF MANAGEMENT SYSTEM
-
-   IMPORTANT:
-   This version keeps your existing Firebase structure.
-   It does NOT require changes to staff.html.
-========================================================= */
-
-
-/* =========================================================
-   FIREBASE AUTH
+   - Administrator authentication
+   - Load organization
+   - Load staff
+   - Create staff
+   - Create Firebase Authentication account
+   - Create Form Master
+   - Assign Form Master to class
+   - Update class assignment
+   - Edit staff
+   - Activate / deactivate staff
+   - Delete staff profile
+   - Keep administrator logged in
 ========================================================= */
 
 import {
+    initializeApp,
+    deleteApp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+import {
     getAuth,
+    createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+import {
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-
-/* =========================================================
-   FIRESTORE
-========================================================= */
-
 import {
-    getFirestore,
     collection,
     query,
     where,
     getDocs,
-    addDoc,
+    getDoc,
+    doc,
+    setDoc,
     updateDoc,
     deleteDoc,
-    doc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-
-/* =========================================================
-   FIREBASE CONFIG
-========================================================= */
-
 import {
-    app
+    auth,
+    db
 } from "./firebase-config.js";
 
 
 /* =========================================================
-   FIREBASE SERVICES
-========================================================= */
-
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-
-/* =========================================================
-   GLOBAL STATE
+   STATE
 ========================================================= */
 
 let currentUser = null;
-let currentOrganization = null;
+
+let organization = null;
+
 let staffMembers = [];
-let currentManagingStaff = null;
+
+let classes = [];
+
+let editingStaff = null;
+
+let selectedFormMasterClass = null;
 
 
 /* =========================================================
@@ -86,14 +84,32 @@ const errorScreen =
 const errorMessage =
     document.getElementById("errorMessage");
 
-const addStaffModal =
-    document.getElementById("addStaffModal");
+const organizationName =
+    document.getElementById("organizationName");
+
+const organizationType =
+    document.getElementById("organizationType");
+
+const organizationNameCard =
+    document.getElementById("organizationNameCard");
+
+const organizationTypeCard =
+    document.getElementById("organizationTypeCard");
+
+const adminName =
+    document.getElementById("adminName");
+
+const logoutButton =
+    document.getElementById("logoutButton");
 
 const addStaffButton =
     document.getElementById("addStaffButton");
 
 const emptyAddButton =
     document.getElementById("emptyAddButton");
+
+const addStaffModal =
+    document.getElementById("addStaffModal");
 
 const closeModalButton =
     document.getElementById("closeModalButton");
@@ -104,100 +120,369 @@ const cancelStaffButton =
 const addStaffForm =
     document.getElementById("addStaffForm");
 
-const staffFormMessage =
-    document.getElementById("staffFormMessage");
+const modalTitle =
+    document.getElementById("modalTitle");
+
+const modalDescription =
+    document.getElementById("modalDescription");
 
 const saveStaffButton =
     document.getElementById("saveStaffButton");
 
-const logoutButton =
-    document.getElementById("logoutButton");
+const staffFormMessage =
+    document.getElementById("staffFormMessage");
+
+const staffTableContainer =
+    document.getElementById("staffTableContainer");
+
+const staffTableBody =
+    document.getElementById("staffTableBody");
+
+const emptyState =
+    document.getElementById("emptyState");
+
+const totalStaff =
+    document.getElementById("totalStaff");
+
+const activeStaff =
+    document.getElementById("activeStaff");
+
+const inactiveStaff =
+    document.getElementById("inactiveStaff");
 
 
 /* =========================================================
-   START
+   FORM ELEMENTS
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded", () => {
+const staffFullName =
+    document.getElementById("staffFullName");
 
-    console.log(
-        "🔥 Virello Staff Management starting..."
-    );
+const staffId =
+    document.getElementById("staffId");
 
-    createManageStaffModal();
+const staffPosition =
+    document.getElementById("staffPosition");
 
-    initializeStaffPage();
+const staffDepartment =
+    document.getElementById("staffDepartment");
 
-});
+const staffEmail =
+    document.getElementById("staffEmail");
+
+const staffPhone =
+    document.getElementById("staffPhone");
+
+const employmentType =
+    document.getElementById("employmentType");
+
+const staffStatus =
+    document.getElementById("staffStatus");
 
 
 /* =========================================================
-   AUTHENTICATION
+   CREATE EXTRA FORM CONTROLS
 ========================================================= */
 
-function initializeStaffPage() {
+let roleSelect = null;
 
-    console.log(
-        "🔐 Checking authentication..."
-    );
+let formMasterClassGroup = null;
 
-    onAuthStateChanged(auth, async (user) => {
+let formMasterClassSelect = null;
+
+let passwordGroup = null;
+
+let passwordInput = null;
+
+
+function createExtraFormFields() {
+
+    /*
+     * ROLE
+     */
+
+    const positionGroup =
+        staffPosition?.closest(".form-group");
+
+    if (
+        positionGroup &&
+        !document.getElementById("staffRole")
+    ) {
+
+        const group =
+            document.createElement("div");
+
+        group.className =
+            "form-group";
+
+        group.innerHTML = `
+
+            <label for="staffRole">
+                Virello Role
+            </label>
+
+            <select
+                id="staffRole"
+                required
+            >
+
+                <option value="">
+                    Select role
+                </option>
+
+                <option value="staff">
+                    Staff Member
+                </option>
+
+                <option value="teacher">
+                    Teacher
+                </option>
+
+                <option value="form_master">
+                    Form Master
+                </option>
+
+                <option value="administrator">
+                    Administrator
+                </option>
+
+            </select>
+
+            <small>
+                Form Master accounts can manage attendance for their assigned class.
+            </small>
+
+        `;
+
+        positionGroup.after(group);
+
+        roleSelect =
+            document.getElementById("staffRole");
+
+    }
+
+
+    /*
+     * PASSWORD
+     */
+
+    const emailGroup =
+        staffEmail?.closest(".form-group");
+
+    if (
+        emailGroup &&
+        !document.getElementById("staffPassword")
+    ) {
+
+        passwordGroup =
+            document.createElement("div");
+
+        passwordGroup.className =
+            "form-group";
+
+        passwordGroup.innerHTML = `
+
+            <label for="staffPassword">
+                Login Password
+            </label>
+
+            <input
+                type="password"
+                id="staffPassword"
+                placeholder="Create login password"
+                minlength="6"
+                autocomplete="new-password"
+            >
+
+            <small>
+                Required when creating a new login account. Minimum 6 characters.
+            </small>
+
+        `;
+
+        emailGroup.after(passwordGroup);
+
+        passwordInput =
+            document.getElementById("staffPassword");
+
+    }
+
+
+    /*
+     * FORM MASTER CLASS
+     */
+
+    if (
+        emailGroup &&
+        !document.getElementById(
+            "formMasterClassGroup"
+        )
+    ) {
+
+        formMasterClassGroup =
+            document.createElement("div");
+
+        formMasterClassGroup.id =
+            "formMasterClassGroup";
+
+        formMasterClassGroup.className =
+            "form-group";
+
+        formMasterClassGroup.style.display =
+            "none";
+
+        formMasterClassGroup.innerHTML = `
+
+            <label for="formMasterClass">
+                Assign Form Master Class
+            </label>
+
+            <select
+                id="formMasterClass"
+            >
+
+                <option value="">
+                    Select class
+                </option>
+
+            </select>
+
+            <small>
+                This Form Master will manage attendance for this class.
+            </small>
+
+        `;
+
+        passwordGroup.after(
+            formMasterClassGroup
+        );
+
+        formMasterClassSelect =
+            document.getElementById(
+                "formMasterClass"
+            );
+
+    }
+
+
+    /*
+     * ROLE CHANGE
+     */
+
+    if (roleSelect) {
+
+        roleSelect.addEventListener(
+            "change",
+            handleRoleChange
+        );
+
+    }
+
+}
+
+
+function handleRoleChange() {
+
+    const role =
+        roleSelect?.value || "";
+
+    if (
+        formMasterClassGroup
+    ) {
+
+        formMasterClassGroup.style.display =
+            role === "form_master"
+                ? "block"
+                : "none";
+
+    }
+
+    if (
+        formMasterClassSelect
+    ) {
+
+        formMasterClassSelect.required =
+            role === "form_master";
+
+    }
+
+}
+
+
+/* =========================================================
+   START APPLICATION
+========================================================= */
+
+onAuthStateChanged(
+    auth,
+    async user => {
 
         try {
 
             if (!user) {
 
-                console.log(
-                    "⚠️ No authenticated user."
-                );
-
                 window.location.href =
                     "login.html";
 
                 return;
+
             }
 
-
-            currentUser = user;
-
+            currentUser =
+                user;
 
             console.log(
-                "✅ Staff manager authenticated:",
+                "🔐 Administrator authenticated:",
+                user.uid,
                 user.email
             );
+
+
+            createExtraFormFields();
 
 
             await loadOrganization();
 
 
-            if (!currentOrganization) {
-                return;
-            }
+            await loadClasses();
 
 
             await loadStaff();
 
 
+            updateOrganizationUI();
+
+
+            updateStatistics();
+
+
+            renderStaff();
+
+
             hideLoading();
 
 
-        } catch (error) {
-
-            console.error(
-                "❌ Staff page initialization error:",
-                error
-            );
-
-            showError(
-                error.message ||
-                "Unable to load staff management."
+            console.log(
+                "✅ Virello Staff Management ready."
             );
 
         }
 
-    });
+        catch (error) {
 
-}
+            console.error(
+                "❌ Staff Management startup error:",
+                error
+            );
+
+            showError(
+                getFriendlyError(error)
+            );
+
+        }
+
+    }
+);
 
 
 /* =========================================================
@@ -206,152 +491,608 @@ function initializeStaffPage() {
 
 async function loadOrganization() {
 
-    console.log(
-        "🏢 Loading organization..."
-    );
+    let organizationId = "";
 
 
-    const organizationsRef =
-        collection(db, "organizations");
+    /*
+     * -------------------------------------------------------
+     * 1. CHECK ADMIN USER DOCUMENT
+     * -------------------------------------------------------
+     */
 
+    try {
 
-    const organizationQuery =
-        query(
-            organizationsRef,
-            where(
-                "ownerUid",
-                "==",
+        const userRef =
+            doc(
+                db,
+                "users",
                 currentUser.uid
-            )
+            );
+
+        const userSnapshot =
+            await getDoc(
+                userRef
+            );
+
+
+        if (
+            userSnapshot.exists()
+        ) {
+
+            const data =
+                userSnapshot.data();
+
+
+            organizationId =
+                data.organizationId ||
+                data.orgId ||
+                data.organizationID ||
+                "";
+
+            if (
+                data.fullName ||
+                data.name
+            ) {
+
+                if (adminName) {
+
+                    adminName.textContent =
+                        data.fullName ||
+                        data.name;
+
+                }
+
+            }
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "User profile lookup failed:",
+            error
+        );
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * 2. CHECK STAFF/ADMIN PROFILE
+     * -------------------------------------------------------
+     */
+
+    if (!organizationId) {
+
+        try {
+
+            const staffRef =
+                collection(
+                    db,
+                    "staff"
+                );
+
+            const q =
+                query(
+                    staffRef,
+                    where(
+                        "uid",
+                        "==",
+                        currentUser.uid
+                    )
+                );
+
+            const snapshot =
+                await getDocs(q);
+
+
+            if (
+                !snapshot.empty
+            ) {
+
+                const data =
+                    snapshot.docs[0].data();
+
+
+                organizationId =
+                    data.organizationId ||
+                    data.orgId ||
+                    "";
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Staff organization lookup failed:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * 3. LOCAL STORAGE FALLBACK
+     * -------------------------------------------------------
+     */
+
+    if (!organizationId) {
+
+        const possibleKeys = [
+
+            "virelloOrganization",
+
+            "organization",
+
+            "virelloAdmin",
+
+            "virelloUser",
+
+            "virelloOrganizationData"
+
+        ];
+
+
+        for (
+            const key of possibleKeys
+        ) {
+
+            try {
+
+                const stored =
+                    localStorage.getItem(
+                        key
+                    );
+
+
+                if (!stored) {
+                    continue;
+                }
+
+
+                const data =
+                    JSON.parse(
+                        stored
+                    );
+
+
+                if (
+                    data.organizationId
+                ) {
+
+                    organizationId =
+                        data.organizationId;
+
+                    break;
+
+                }
+
+
+                if (
+                    data.organization?.id
+                ) {
+
+                    organizationId =
+                        data.organization.id;
+
+                    break;
+
+                }
+
+            }
+
+            catch {
+
+                // Ignore invalid local storage.
+
+            }
+
+        }
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * 4. SEARCH ORGANIZATION BY ADMIN UID
+     * -------------------------------------------------------
+     */
+
+    if (!organizationId) {
+
+        try {
+
+            const organizationsRef =
+                collection(
+                    db,
+                    "organizations"
+                );
+
+
+            const q =
+                query(
+                    organizationsRef,
+                    where(
+                        "adminUid",
+                        "==",
+                        currentUser.uid
+                    )
+                );
+
+
+            const snapshot =
+                await getDocs(q);
+
+
+            if (
+                !snapshot.empty
+            ) {
+
+                organizationId =
+                    snapshot.docs[0].id;
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Organization adminUid lookup failed:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * 5. SEARCH BY ADMIN EMAIL
+     * -------------------------------------------------------
+     */
+
+    if (
+        !organizationId &&
+        currentUser.email
+    ) {
+
+        try {
+
+            const organizationsRef =
+                collection(
+                    db,
+                    "organizations"
+                );
+
+
+            const q =
+                query(
+                    organizationsRef,
+                    where(
+                        "adminEmail",
+                        "==",
+                        currentUser.email
+                    )
+                );
+
+
+            const snapshot =
+                await getDocs(q);
+
+
+            if (
+                !snapshot.empty
+            ) {
+
+                organizationId =
+                    snapshot.docs[0].id;
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Organization adminEmail lookup failed:",
+                error
+            );
+
+        }
+
+    }
+
+
+    if (!organizationId) {
+
+        throw new Error(
+            "Your administrator account is not linked to a Virello organization. Please complete organization registration first."
+        );
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * LOAD ORGANIZATION DOCUMENT
+     * -------------------------------------------------------
+     */
+
+    const organizationRef =
+        doc(
+            db,
+            "organizations",
+            organizationId
         );
 
 
     const snapshot =
-        await getDocs(
-            organizationQuery
+        await getDoc(
+            organizationRef
         );
 
 
-    if (snapshot.empty) {
+    if (
+        !snapshot.exists()
+    ) {
 
-        console.log(
-            "⚠️ Organization not found."
+        throw new Error(
+            "The Virello organization linked to this administrator account could not be found."
         );
 
-        showError(
-            "Your organization account could not be found. Please complete registration first."
-        );
-
-        return;
     }
 
 
-    const organizationDoc =
-        snapshot.docs[0];
+    organization = {
 
+        id:
+            snapshot.id,
 
-    currentOrganization = {
-
-        id: organizationDoc.id,
-
-        ...organizationDoc.data()
+        ...snapshot.data()
 
     };
 
 
     console.log(
-        "✅ Organization loaded:",
-        currentOrganization
+        "🏢 Organization loaded:",
+        organization
     );
-
-
-    displayOrganization();
 
 }
 
 
 /* =========================================================
-   DISPLAY ORGANIZATION
+   ORGANIZATION UI
 ========================================================= */
 
-function displayOrganization() {
+function updateOrganizationUI() {
 
-    if (!currentOrganization) {
+    if (!organization) {
         return;
     }
 
 
-    const organizationName =
-        currentOrganization.organizationName ||
-        currentOrganization.name ||
+    const name =
+        organization.organizationName ||
+        organization.name ||
         "Organization";
 
 
-    const organizationType =
-        currentOrganization.organizationType ||
-        currentOrganization.type ||
+    const type =
+        organization.organizationType ||
+        organization.type ||
         "Organization";
 
 
-    const administrator =
-        currentOrganization.adminName ||
-        currentOrganization.ownerName ||
-        currentOrganization.fullName ||
-        currentUser.displayName ||
-        currentUser.email ||
-        "Administrator";
+    if (organizationName) {
+
+        organizationName.textContent =
+            name;
+
+    }
 
 
-    document
-        .querySelectorAll("#organizationName")
-        .forEach(element => {
+    if (organizationType) {
 
-            element.textContent =
-                organizationName;
+        organizationType.textContent =
+            type;
 
-        });
+    }
 
 
-    document
-        .querySelectorAll("#organizationNameCard")
-        .forEach(element => {
+    if (organizationNameCard) {
 
-            element.textContent =
-                organizationName;
+        organizationNameCard.textContent =
+            name;
 
-        });
+    }
 
 
-    document
-        .querySelectorAll("#organizationType")
-        .forEach(element => {
+    if (organizationTypeCard) {
 
-            element.textContent =
-                organizationType;
+        organizationTypeCard.textContent =
+            type;
 
-        });
-
-
-    document
-        .querySelectorAll("#organizationTypeCard")
-        .forEach(element => {
-
-            element.textContent =
-                organizationType;
-
-        });
-
-
-    const adminName =
-        document.getElementById("adminName");
+    }
 
 
     if (adminName) {
 
         adminName.textContent =
-            administrator;
+            organization.adminName ||
+            organization.ownerName ||
+            currentUser.displayName ||
+            currentUser.email ||
+            "Administrator";
 
     }
+
+}
+
+
+/* =========================================================
+   LOAD CLASSES
+========================================================= */
+
+async function loadClasses() {
+
+    classes = [];
+
+
+    if (!organization?.id) {
+        return;
+    }
+
+
+    const classesRef =
+        collection(
+            db,
+            "classes"
+        );
+
+
+    try {
+
+        const q =
+            query(
+                classesRef,
+                where(
+                    "organizationId",
+                    "==",
+                    organization.id
+                )
+            );
+
+
+        const snapshot =
+            await getDocs(q);
+
+
+        snapshot.forEach(
+            item => {
+
+                classes.push({
+
+                    id:
+                        item.id,
+
+                    ...item.data()
+
+                });
+
+            }
+        );
+
+
+        classes.sort(
+            (a, b) =>
+                String(
+                    a.className ||
+                    a.name ||
+                    ""
+                ).localeCompare(
+                    String(
+                        b.className ||
+                        b.name ||
+                        ""
+                    )
+                )
+        );
+
+
+        console.log(
+            "🏫 Classes loaded:",
+            classes
+        );
+
+
+        populateClassSelect();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Could not load classes:",
+            error
+        );
+
+        throw error;
+
+    }
+
+}
+
+
+/* =========================================================
+   POPULATE CLASS SELECT
+========================================================= */
+
+function populateClassSelect() {
+
+    if (!formMasterClassSelect) {
+        return;
+    }
+
+
+    formMasterClassSelect.innerHTML = `
+
+        <option value="">
+            Select class
+        </option>
+
+    `;
+
+
+    if (!classes.length) {
+
+        formMasterClassSelect.innerHTML = `
+
+            <option value="">
+                No classes available
+            </option>
+
+        `;
+
+        return;
+
+    }
+
+
+    classes.forEach(
+        classItem => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                classItem.id;
+
+
+            option.textContent =
+                classItem.className ||
+                classItem.name ||
+                "Unnamed Class";
+
+
+            formMasterClassSelect.appendChild(
+                option
+            );
+
+        }
+    );
 
 }
 
@@ -362,528 +1103,723 @@ function displayOrganization() {
 
 async function loadStaff() {
 
-    console.log(
-        "👥 Loading staff members..."
-    );
-
-
-    if (!currentOrganization) {
-
-        console.log(
-            "⚠️ No organization available."
-        );
-
-        return;
-    }
-
-
-    const staffRef =
-        collection(db, "staff");
-
-
-    const staffQuery =
-        query(
-            staffRef,
-            where(
-                "organizationId",
-                "==",
-                currentOrganization.id
-            )
-        );
-
-
-    const snapshot =
-        await getDocs(staffQuery);
-
-
     staffMembers = [];
 
 
-    snapshot.forEach(documentSnapshot => {
-
-        staffMembers.push({
-
-            id:
-                documentSnapshot.id,
-
-            ...documentSnapshot.data()
-
-        });
-
-    });
-
-
-    console.log(
-        "✅ Staff loaded:",
-        staffMembers
-    );
-
-
-    updateStatistics();
-
-    displayStaff();
-
-}
-
-
-/* =========================================================
-   STATISTICS
-========================================================= */
-
-function updateStatistics() {
-
-    const totalStaff =
-        document.getElementById("totalStaff");
-
-    const activeStaff =
-        document.getElementById("activeStaff");
-
-    const inactiveStaff =
-        document.getElementById("inactiveStaff");
-
-
-    const total =
-        staffMembers.length;
-
-
-    const active =
-        staffMembers.filter(
-            staff =>
-                staff.status === "active"
-        ).length;
-
-
-    const inactive =
-        staffMembers.filter(
-            staff =>
-                staff.status !== "active"
-        ).length;
-
-
-    if (totalStaff) {
-        totalStaff.textContent = total;
-    }
-
-
-    if (activeStaff) {
-        activeStaff.textContent = active;
-    }
-
-
-    if (inactiveStaff) {
-        inactiveStaff.textContent = inactive;
-    }
-
-}
-
-
-/* =========================================================
-   DISPLAY STAFF TABLE
-========================================================= */
-
-function displayStaff() {
-
-    const emptyState =
-        document.getElementById("emptyState");
-
-    const tableContainer =
-        document.getElementById("staffTableContainer");
-
-    const tableBody =
-        document.getElementById("staffTableBody");
-
-
-    if (
-        !emptyState ||
-        !tableContainer ||
-        !tableBody
-    ) {
-
-        console.error(
-            "❌ Staff table elements not found."
-        );
-
+    if (!organization?.id) {
         return;
     }
-
-
-    tableBody.innerHTML = "";
-
-
-    if (staffMembers.length === 0) {
-
-        emptyState.style.display = "block";
-
-        tableContainer.style.display = "none";
-
-        return;
-    }
-
-
-    emptyState.style.display = "none";
-
-    tableContainer.style.display = "block";
-
-
-    staffMembers.forEach(staff => {
-
-        const row =
-            document.createElement("tr");
-
-
-        const fullName =
-            staff.fullName ||
-            staff.name ||
-            "Unknown Staff";
-
-
-        const initials =
-            getInitials(fullName);
-
-
-        const staffId =
-            staff.staffId || "—";
-
-
-        const position =
-            staff.position || "—";
-
-
-        const department =
-            staff.department || "—";
-
-
-        const status =
-            staff.status || "active";
-
-
-        const email =
-            staff.email || "";
-
-
-        row.innerHTML = `
-
-            <td>
-
-                <div class="staff-person">
-
-                    <div class="staff-avatar">
-                        ${escapeHtml(initials)}
-                    </div>
-
-                    <div>
-
-                        <div class="staff-person-name">
-                            ${escapeHtml(fullName)}
-                        </div>
-
-                        <div class="staff-person-email">
-                            ${escapeHtml(email)}
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </td>
-
-
-            <td>
-                ${escapeHtml(staffId)}
-            </td>
-
-
-            <td>
-                ${escapeHtml(position)}
-            </td>
-
-
-            <td>
-                ${escapeHtml(department)}
-            </td>
-
-
-            <td>
-
-                <span
-                    class="status-badge ${
-                        status === "active"
-                            ? "status-active"
-                            : "status-inactive"
-                    }"
-                >
-
-                    ${
-                        status === "active"
-                            ? "Active"
-                            : "Inactive"
-                    }
-
-                </span>
-
-            </td>
-
-
-            <td>
-
-                <div class="action-buttons">
-
-                    <button
-                        type="button"
-                        class="action-button edit-button"
-                        data-manage-id="${escapeHtml(staff.id)}"
-                    >
-                        Manage
-                    </button>
-
-                </div>
-
-            </td>
-
-        `;
-
-
-        tableBody.appendChild(row);
-
-    });
-
-
-    tableBody
-        .querySelectorAll("[data-manage-id]")
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    const staffDocumentId =
-                        button.dataset.manageId;
-
-                    openManageStaffModal(
-                        staffDocumentId
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================================
-   INITIALS
-========================================================= */
-
-function getInitials(name) {
-
-    if (!name) {
-        return "ST";
-    }
-
-
-    const parts =
-        String(name)
-            .trim()
-            .split(/\s+/);
-
-
-    if (parts.length === 1) {
-
-        return parts[0]
-            .substring(0, 2)
-            .toUpperCase();
-
-    }
-
-
-    return (
-        parts[0][0] +
-        parts[parts.length - 1][0]
-    ).toUpperCase();
-
-}
-
-
-/* =========================================================
-   ADD STAFF MODAL
-========================================================= */
-
-function openAddStaffModal() {
-
-    if (!addStaffModal) {
-
-        console.error(
-            "❌ Add Staff modal not found."
-        );
-
-        return;
-    }
-
-
-    addStaffModal.classList.add("show");
-
-    clearFormMessage();
-
-
-    setTimeout(() => {
-
-        const input =
-            document.getElementById(
-                "staffFullName"
-            );
-
-
-        if (input) {
-            input.focus();
-        }
-
-    }, 100);
-
-}
-
-
-function closeAddStaffModal() {
-
-    if (!addStaffModal) {
-        return;
-    }
-
-
-    addStaffModal.classList.remove("show");
-
-    clearFormMessage();
-
-
-    if (addStaffForm) {
-        addStaffForm.reset();
-    }
-
-}
-
-
-/* =========================================================
-   FORM MESSAGES
-========================================================= */
-
-function clearFormMessage() {
-
-    if (!staffFormMessage) {
-        return;
-    }
-
-
-    staffFormMessage.textContent = "";
-
-    staffFormMessage.className =
-        "form-message";
-
-}
-
-
-function showFormMessage(message, type) {
-
-    if (!staffFormMessage) {
-        return;
-    }
-
-
-    staffFormMessage.textContent =
-        message;
-
-
-    staffFormMessage.className =
-        "form-message show " + type;
-
-}
-
-
-/* =========================================================
-   SAVE NEW STAFF
-========================================================= */
-
-async function saveStaffToFirestore(staffData) {
-
-    if (!currentUser) {
-
-        throw new Error(
-            "You are not authenticated."
-        );
-
-    }
-
-
-    if (!currentOrganization) {
-
-        throw new Error(
-            "Organization information is not available."
-        );
-
-    }
-
-
-    const finalStaffData = {
-
-        fullName:
-            staffData.fullName,
-
-        staffId:
-            staffData.staffId,
-
-        position:
-            staffData.position,
-
-        department:
-            staffData.department,
-
-        email:
-            staffData.email,
-
-        phone:
-            staffData.phone,
-
-        employmentType:
-            staffData.employmentType,
-
-        status:
-            staffData.status || "active",
-
-        organizationId:
-            currentOrganization.id,
-
-        createdBy:
-            currentUser.uid,
-
-        createdAt:
-            serverTimestamp()
-
-    };
 
 
     const staffRef =
-        collection(db, "staff");
-
-
-    const newStaff =
-        await addDoc(
-            staffRef,
-            finalStaffData
+        collection(
+            db,
+            "staff"
         );
 
 
-    console.log(
-        "✅ Staff successfully saved:",
-        newStaff.id
-    );
+    try {
+
+        const q =
+            query(
+                staffRef,
+                where(
+                    "organizationId",
+                    "==",
+                    organization.id
+                )
+            );
 
 
-    return newStaff.id;
+        const snapshot =
+            await getDocs(q);
+
+
+        snapshot.forEach(
+            item => {
+
+                staffMembers.push({
+
+                    id:
+                        item.id,
+
+                    ...item.data()
+
+                });
+
+            }
+        );
+
+
+        staffMembers.sort(
+            (a, b) =>
+                String(
+                    a.fullName ||
+                    a.name ||
+                    ""
+                ).localeCompare(
+                    String(
+                        b.fullName ||
+                        b.name ||
+                        ""
+                    )
+                )
+        );
+
+
+        console.log(
+            "👥 Staff loaded:",
+            staffMembers
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Staff loading error:",
+            error
+        );
+
+        throw error;
+
+    }
 
 }
 
 
 /* =========================================================
-   ADD STAFF FORM
+   RENDER STAFF
+========================================================= */
+
+function renderStaff() {
+
+    if (!staffTableBody) {
+        return;
+    }
+
+
+    if (
+        !staffMembers.length
+    ) {
+
+        if (emptyState) {
+
+            emptyState.style.display =
+                "block";
+
+        }
+
+
+        if (staffTableContainer) {
+
+            staffTableContainer.style.display =
+                "none";
+
+        }
+
+
+        return;
+
+    }
+
+
+    if (emptyState) {
+
+        emptyState.style.display =
+            "none";
+
+    }
+
+
+    if (staffTableContainer) {
+
+        staffTableContainer.style.display =
+            "block";
+
+    }
+
+
+    staffTableBody.innerHTML = "";
+
+
+    staffMembers.forEach(
+        staff => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const fullName =
+                staff.fullName ||
+                staff.name ||
+                "Unnamed Staff";
+
+
+            const email =
+                staff.email ||
+                "";
+
+
+            const id =
+                staff.staffId ||
+                staff.id ||
+                "";
+
+
+            const position =
+                staff.position ||
+                "Staff";
+
+
+            const department =
+                staff.department ||
+                "—";
+
+
+            const status =
+                staff.status ||
+                "active";
+
+
+            const roleLabel =
+                getRoleLabel(
+                    staff.role
+                );
+
+
+            const initials =
+                getInitials(
+                    fullName
+                );
+
+
+            const className =
+                staff.formMasterClassName ||
+                staff.className ||
+                "";
+
+
+            row.innerHTML = `
+
+                <td>
+
+                    <div class="staff-person">
+
+                        <div class="staff-avatar">
+                            ${escapeHtml(initials)}
+                        </div>
+
+                        <div>
+
+                            <div class="staff-person-name">
+                                ${escapeHtml(fullName)}
+                            </div>
+
+                            <div class="staff-person-email">
+                                ${escapeHtml(email)}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+
+                <td>
+                    ${escapeHtml(id)}
+                </td>
+
+
+                <td>
+
+                    ${escapeHtml(position)}
+
+                    <br>
+
+                    <small
+                        style="
+                            color:#2563eb;
+                            font-size:9px;
+                            font-weight:bold;
+                        "
+                    >
+                        ${escapeHtml(roleLabel)}
+                    </small>
+
+                    ${
+                        className
+                            ? `
+                                <br>
+                                <small
+                                    style="
+                                        color:#64748b;
+                                        font-size:9px;
+                                    "
+                                >
+                                    Class:
+                                    ${escapeHtml(className)}
+                                </small>
+                              `
+                            : ""
+                    }
+
+                </td>
+
+
+                <td>
+                    ${escapeHtml(department)}
+                </td>
+
+
+                <td>
+
+                    <span
+                        class="
+                            status-badge
+                            ${
+                                status === "active"
+                                    ? "status-active"
+                                    : "status-inactive"
+                            }
+                        "
+                    >
+                        ${
+                            status === "active"
+                                ? "Active"
+                                : "Inactive"
+                        }
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <div class="action-buttons">
+
+                        <button
+                            type="button"
+                            class="action-button edit-button"
+                            data-action="edit"
+                            data-id="${staff.id}"
+                        >
+                            Edit
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-button toggle-button"
+                            data-action="toggle"
+                            data-id="${staff.id}"
+                        >
+                            ${
+                                status === "active"
+                                    ? "Deactivate"
+                                    : "Activate"
+                            }
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-button delete-button"
+                            data-action="delete"
+                            data-id="${staff.id}"
+                        >
+                            Delete
+                        </button>
+
+                    </div>
+
+                </td>
+
+            `;
+
+
+            staffTableBody.appendChild(
+                row
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   TABLE ACTIONS
+========================================================= */
+
+if (staffTableBody) {
+
+    staffTableBody.addEventListener(
+        "click",
+        async event => {
+
+            const button =
+                event.target.closest(
+                    "[data-action]"
+                );
+
+
+            if (!button) {
+                return;
+            }
+
+
+            const action =
+                button.dataset.action;
+
+
+            const id =
+                button.dataset.id;
+
+
+            const staff =
+                staffMembers.find(
+                    item =>
+                        item.id === id
+                );
+
+
+            if (!staff) {
+                return;
+            }
+
+
+            if (
+                action === "edit"
+            ) {
+
+                openEditStaff(
+                    staff
+                );
+
+                return;
+
+            }
+
+
+            if (
+                action === "toggle"
+            ) {
+
+                await toggleStaff(
+                    staff
+                );
+
+                return;
+
+            }
+
+
+            if (
+                action === "delete"
+            ) {
+
+                await deleteStaff(
+                    staff
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   OPEN ADD MODAL
+========================================================= */
+
+function openAddStaff() {
+
+    editingStaff =
+        null;
+
+
+    selectedFormMasterClass =
+        null;
+
+
+    if (modalTitle) {
+
+        modalTitle.textContent =
+            "Add Staff Member";
+
+    }
+
+
+    if (modalDescription) {
+
+        modalDescription.textContent =
+            "Create a staff member and, if required, a Virello login account.";
+
+    }
+
+
+    if (saveStaffButton) {
+
+        saveStaffButton.textContent =
+            "Add Staff";
+
+    }
+
+
+    clearForm();
+
+
+    if (staffStatus) {
+
+        staffStatus.value =
+            "active";
+
+    }
+
+
+    if (roleSelect) {
+
+        roleSelect.value =
+            "staff";
+
+    }
+
+
+    handleRoleChange();
+
+
+    hideFormMessage();
+
+
+    addStaffModal?.classList.add(
+        "show"
+    );
+
+}
+
+
+/* =========================================================
+   OPEN EDIT MODAL
+========================================================= */
+
+function openEditStaff(
+    staff
+) {
+
+    editingStaff =
+        staff;
+
+
+    if (modalTitle) {
+
+        modalTitle.textContent =
+            "Edit Staff Member";
+
+    }
+
+
+    if (modalDescription) {
+
+        modalDescription.textContent =
+            "Update this staff member's Virello profile.";
+
+    }
+
+
+    if (saveStaffButton) {
+
+        saveStaffButton.textContent =
+            "Save Changes";
+
+    }
+
+
+    clearForm();
+
+
+    staffFullName.value =
+        staff.fullName ||
+        staff.name ||
+        "";
+
+
+    staffId.value =
+        staff.staffId ||
+        staff.id ||
+        "";
+
+
+    staffPosition.value =
+        staff.position ||
+        "";
+
+
+    staffDepartment.value =
+        staff.department ||
+        "";
+
+
+    staffEmail.value =
+        staff.email ||
+        "";
+
+
+    staffPhone.value =
+        staff.phone ||
+        "";
+
+
+    employmentType.value =
+        staff.employmentType ||
+        "";
+
+
+    staffStatus.value =
+        staff.status ||
+        "active";
+
+
+    if (roleSelect) {
+
+        roleSelect.value =
+            staff.role ||
+            "staff";
+
+    }
+
+
+    handleRoleChange();
+
+
+    if (
+        formMasterClassSelect &&
+        staff.formMasterClassId
+    ) {
+
+        formMasterClassSelect.value =
+            staff.formMasterClassId;
+
+    }
+
+
+    /*
+     * Password is never editable here.
+     */
+
+    if (passwordInput) {
+
+        passwordInput.value = "";
+
+        passwordInput.placeholder =
+            "Password cannot be changed here";
+
+        passwordInput.disabled =
+            true;
+
+    }
+
+
+    hideFormMessage();
+
+
+    addStaffModal?.classList.add(
+        "show"
+    );
+
+}
+
+
+/* =========================================================
+   CLOSE MODAL
+========================================================= */
+
+function closeModal() {
+
+    addStaffModal?.classList.remove(
+        "show"
+    );
+
+
+    editingStaff =
+        null;
+
+
+    selectedFormMasterClass =
+        null;
+
+
+    if (passwordInput) {
+
+        passwordInput.disabled =
+            false;
+
+        passwordInput.placeholder =
+            "Create login password";
+
+    }
+
+}
+
+
+/* =========================================================
+   CLEAR FORM
+========================================================= */
+
+function clearForm() {
+
+    if (addStaffForm) {
+
+        addStaffForm.reset();
+
+    }
+
+
+    if (staffStatus) {
+
+        staffStatus.value =
+            "active";
+
+    }
+
+
+    if (roleSelect) {
+
+        roleSelect.value =
+            "staff";
+
+    }
+
+
+    if (passwordInput) {
+
+        passwordInput.disabled =
+            false;
+
+        passwordInput.placeholder =
+            "Create login password";
+
+    }
+
+
+    if (formMasterClassSelect) {
+
+        formMasterClassSelect.value =
+            "";
+
+    }
+
+
+    handleRoleChange();
+
+}
+
+
+/* =========================================================
+   SAVE STAFF
 ========================================================= */
 
 if (addStaffForm) {
@@ -895,59 +1831,68 @@ if (addStaffForm) {
             event.preventDefault();
 
 
-            if (!currentUser) {
+            hideFormMessage();
+
+
+            if (!organization?.id) {
 
                 showFormMessage(
-                    "You are not authenticated.",
+                    "Your organization could not be identified.",
                     "error"
                 );
 
                 return;
-            }
 
-
-            if (!currentOrganization) {
-
-                showFormMessage(
-                    "Organization information is not available.",
-                    "error"
-                );
-
-                return;
             }
 
 
             const fullName =
-                getElementValue("staffFullName");
+                staffFullName.value.trim();
 
 
-            const staffId =
-                getElementValue("staffId");
+            const enteredStaffId =
+                staffId.value.trim();
 
 
             const position =
-                getElementValue("staffPosition");
+                staffPosition.value.trim();
 
 
             const department =
-                getElementValue("staffDepartment");
+                staffDepartment.value.trim();
 
 
             const email =
-                getElementValue("staffEmail");
+                staffEmail.value
+                    .trim()
+                    .toLowerCase();
 
 
             const phone =
-                getElementValue("staffPhone");
+                staffPhone.value.trim();
 
 
-            const employmentType =
-                getElementValue("employmentType");
+            const employment =
+                employmentType.value;
 
 
             const status =
-                getElementValue("staffStatus") ||
-                "active";
+                staffStatus.value;
+
+
+            const role =
+                roleSelect?.value ||
+                "staff";
+
+
+            const password =
+                passwordInput?.value ||
+                "";
+
+
+            const classId =
+                formMasterClassSelect?.value ||
+                "";
 
 
             if (!fullName) {
@@ -958,10 +1903,11 @@ if (addStaffForm) {
                 );
 
                 return;
+
             }
 
 
-            if (!staffId) {
+            if (!enteredStaffId) {
 
                 showFormMessage(
                     "Please enter a Staff ID.",
@@ -969,6 +1915,7 @@ if (addStaffForm) {
                 );
 
                 return;
+
             }
 
 
@@ -980,10 +1927,11 @@ if (addStaffForm) {
                 );
 
                 return;
+
             }
 
 
-            if (!employmentType) {
+            if (!employment) {
 
                 showFormMessage(
                     "Please select the employment type.",
@@ -991,99 +1939,566 @@ if (addStaffForm) {
                 );
 
                 return;
+
             }
 
 
-            const duplicate =
-                staffMembers.find(
-                    staff =>
-                        String(
-                            staff.staffId || ""
-                        ).toLowerCase() ===
-                        staffId.toLowerCase()
-                );
+            /*
+             * Form Master requirements.
+             */
 
-
-            if (duplicate) {
+            if (
+                role === "form_master" &&
+                !classId &&
+                !editingStaff
+            ) {
 
                 showFormMessage(
-                    "A staff member with this Staff ID already exists.",
+                    "Please select the class this Form Master will manage.",
                     "error"
                 );
 
                 return;
-            }
-
-
-            if (saveStaffButton) {
-
-                saveStaffButton.disabled = true;
-
-                saveStaffButton.textContent =
-                    "Saving...";
 
             }
 
 
-            clearFormMessage();
+            /*
+             * New account requires email.
+             */
+
+            if (
+                !editingStaff &&
+                !email
+            ) {
+
+                showFormMessage(
+                    "A valid email address is required because this staff member needs a Virello login account.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            /*
+             * New account requires password.
+             */
+
+            if (
+                !editingStaff &&
+                password.length < 6
+            ) {
+
+                showFormMessage(
+                    "Please create a password with at least 6 characters.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            /*
+             * Prevent duplicate staff ID.
+             */
+
+            const duplicateId =
+                staffMembers.find(
+                    staff =>
+                        String(
+                            staff.staffId ||
+                            ""
+                        ).toLowerCase() ===
+                        enteredStaffId.toLowerCase()
+                        &&
+                        staff.id !==
+                        editingStaff?.id
+                );
+
+
+            if (duplicateId) {
+
+                showFormMessage(
+                    "That Staff ID is already being used.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            saveStaffButton.disabled =
+                true;
+
+
+            saveStaffButton.textContent =
+                editingStaff
+                    ? "Saving..."
+                    : "Creating Account...";
 
 
             try {
 
-                await saveStaffToFirestore({
+                /*
+                 * -------------------------------------------------
+                 * EDIT EXISTING STAFF
+                 * -------------------------------------------------
+                 */
 
-                    fullName,
-                    staffId,
-                    position,
-                    department,
-                    email,
-                    phone,
-                    employmentType,
-                    status
+                if (editingStaff) {
 
-                });
+                    await updateExistingStaff({
+
+                        fullName,
+
+                        enteredStaffId,
+
+                        position,
+
+                        department,
+
+                        email,
+
+                        phone,
+
+                        employment,
+
+                        status,
+
+                        role,
+
+                        classId
+
+                    });
+
+
+                    showFormMessage(
+                        "Staff member updated successfully.",
+                        "success"
+                    );
+
+
+                    await reloadStaff();
+
+
+                    setTimeout(
+                        () => {
+
+                            closeModal();
+
+                        },
+                        800
+                    );
+
+
+                    return;
+
+                }
+
+
+                /*
+                 * -------------------------------------------------
+                 * CREATE FIREBASE AUTH ACCOUNT
+                 * -------------------------------------------------
+                 */
+
+                const secondaryApp =
+                    initializeApp(
+                        {
+                            apiKey:
+                                getFirebaseConfig().apiKey,
+
+                            authDomain:
+                                getFirebaseConfig().authDomain,
+
+                            projectId:
+                                getFirebaseConfig().projectId,
+
+                            storageBucket:
+                                getFirebaseConfig().storageBucket,
+
+                            messagingSenderId:
+                                getFirebaseConfig().messagingSenderId,
+
+                            appId:
+                                getFirebaseConfig().appId
+
+                        },
+                        "virelloStaffCreator_" +
+                        Date.now()
+                    );
+
+
+                const secondaryAuth =
+                    getAuth(
+                        secondaryApp
+                    );
+
+
+                let createdUser;
+
+
+                try {
+
+                    const credential =
+                        await createUserWithEmailAndPassword(
+                            secondaryAuth,
+                            email,
+                            password
+                        );
+
+
+                    createdUser =
+                        credential.user;
+
+                }
+
+                finally {
+
+                    try {
+
+                        await signOut(
+                            secondaryAuth
+                        );
+
+                    }
+
+                    catch {
+                        // Ignore secondary logout.
+                    }
+
+
+                    try {
+
+                        await deleteApp(
+                            secondaryApp
+                        );
+
+                    }
+
+                    catch {
+                        // Ignore secondary app cleanup.
+                    }
+
+                }
+
+
+                const newUid =
+                    createdUser.uid;
+
+
+                console.log(
+                    "✅ Firebase account created:",
+                    newUid
+                );
+
+
+                /*
+                 * -------------------------------------------------
+                 * CREATE STAFF PROFILE
+                 * -------------------------------------------------
+                 */
+
+                const staffDocumentId =
+                    newUid;
+
+
+                const selectedClass =
+                    classes.find(
+                        item =>
+                            item.id ===
+                            classId
+                    );
+
+
+                const staffData = {
+
+                    uid:
+                        newUid,
+
+                    organizationId:
+                        organization.id,
+
+                    fullName:
+                        fullName,
+
+                    name:
+                        fullName,
+
+                    staffId:
+                        enteredStaffId,
+
+                    position:
+                        position,
+
+                    department:
+                        department,
+
+                    email:
+                        email,
+
+                    phone:
+                        phone,
+
+                    employmentType:
+                        employment,
+
+                    status:
+                        status,
+
+                    role:
+                        role,
+
+                    isFormMaster:
+                        role ===
+                        "form_master",
+
+                    formMasterClassId:
+                        role ===
+                        "form_master"
+                            ? classId
+                            : "",
+
+                    formMasterClassName:
+                        role ===
+                        "form_master"
+                            ? (
+                                selectedClass?.className ||
+                                selectedClass?.name ||
+                                ""
+                              )
+                            : "",
+
+                    createdByUid:
+                        currentUser.uid,
+
+                    createdByEmail:
+                        currentUser.email ||
+                        "",
+
+                    createdAt:
+                        serverTimestamp(),
+
+                    updatedAt:
+                        serverTimestamp()
+
+                };
+
+
+                await setDoc(
+                    doc(
+                        db,
+                        "staff",
+                        staffDocumentId
+                    ),
+                    staffData
+                );
+
+
+                console.log(
+                    "✅ Staff profile created:",
+                    staffData
+                );
+
+
+                /*
+                 * -------------------------------------------------
+                 * CREATE/UPDATE TEACHER PROFILE
+                 * -------------------------------------------------
+                 */
+
+                if (
+                    role === "teacher" ||
+                    role === "form_master"
+                ) {
+
+                    await setDoc(
+                        doc(
+                            db,
+                            "teachers",
+                            newUid
+                        ),
+                        {
+
+                            uid:
+                                newUid,
+
+                            organizationId:
+                                organization.id,
+
+                            fullName:
+                                fullName,
+
+                            name:
+                                fullName,
+
+                            email:
+                                email,
+
+                            phone:
+                                phone,
+
+                            role:
+                                role,
+
+                            position:
+                                position,
+
+                            department:
+                                department,
+
+                            status:
+                                status,
+
+                            formMasterId:
+                                role ===
+                                "form_master"
+                                    ? newUid
+                                    : "",
+
+                            formMasterUid:
+                                role ===
+                                "form_master"
+                                    ? newUid
+                                    : "",
+
+                            formMasterClassId:
+                                role ===
+                                "form_master"
+                                    ? classId
+                                    : "",
+
+                            formMasterClassName:
+                                role ===
+                                "form_master"
+                                    ? (
+                                        selectedClass?.className ||
+                                        selectedClass?.name ||
+                                        ""
+                                      )
+                                    : "",
+
+                            createdAt:
+                                serverTimestamp(),
+
+                            updatedAt:
+                                serverTimestamp()
+
+                        },
+                        {
+                            merge:
+                                true
+                        }
+                    );
+
+                }
+
+
+                /*
+                 * -------------------------------------------------
+                 * ASSIGN FORM MASTER TO CLASS
+                 * -------------------------------------------------
+                 */
+
+                if (
+                    role ===
+                    "form_master" &&
+                    selectedClass
+                ) {
+
+                    await assignFormMasterToClass(
+                        selectedClass,
+                        {
+                            uid:
+                                newUid,
+
+                            staffId:
+                                newUid,
+
+                            fullName:
+                                fullName,
+
+                            email:
+                                email,
+
+                            role:
+                                "form_master"
+                        }
+                    );
+
+                }
+
+
+                /*
+                 * -------------------------------------------------
+                 * SUCCESS
+                 * -------------------------------------------------
+                 */
+
+                await reloadStaff();
 
 
                 showFormMessage(
-                    "Staff member added successfully!",
+                    `Form Master account created successfully for ${fullName}.`,
                     "success"
                 );
 
 
-                await loadStaff();
+                if (saveStaffButton) {
+
+                    saveStaffButton.textContent =
+                        "Created Successfully";
+
+                }
 
 
-                setTimeout(() => {
+                setTimeout(
+                    () => {
 
-                    closeAddStaffModal();
+                        closeModal();
 
-                }, 800);
+                    },
+                    1200
+                );
 
+            }
 
-            } catch (error) {
+            catch (error) {
 
                 console.error(
-                    "❌ Error saving staff:",
+                    "❌ Create/update staff error:",
                     error
                 );
 
 
                 showFormMessage(
-                    error.message ||
-                    "Unable to save staff member.",
+                    getFriendlyError(
+                        error
+                    ),
                     "error"
                 );
 
+            }
 
-            } finally {
+            finally {
 
-                if (saveStaffButton) {
+                if (
+                    !staffFormMessage?.classList.contains(
+                        "success"
+                    )
+                ) {
 
                     saveStaffButton.disabled =
                         false;
 
                     saveStaffButton.textContent =
-                        "Add Staff";
+                        editingStaff
+                            ? "Save Changes"
+                            : "Add Staff";
 
                 }
 
@@ -1096,1069 +2511,324 @@ if (addStaffForm) {
 
 
 /* =========================================================
-   GET ELEMENT VALUE
+   ASSIGN FORM MASTER TO CLASS
 ========================================================= */
 
-function getElementValue(id) {
+async function assignFormMasterToClass(
+    classItem,
+    formMasterData
+) {
 
-    const element =
-        document.getElementById(id);
+    const classRef =
+        doc(
+            db,
+            "classes",
+            classItem.id
+        );
 
 
-    if (!element) {
-        return "";
+    const existing =
+        await getDoc(
+            classRef
+        );
+
+
+    if (!existing.exists()) {
+
+        throw new Error(
+            "The selected class could not be found."
+        );
+
     }
 
 
-    return String(
-        element.value || ""
-    ).trim();
-
-}
+    const existingData =
+        existing.data();
 
 
-/* =========================================================
-   CREATE MANAGE MODAL
-========================================================= */
+    /*
+     * Prevent silently replacing another Form Master.
+     */
 
-function createManageStaffModal() {
+    const existingFormMasterUid =
+        existingData.formMasterUid ||
+        "";
+
 
     if (
-        document.getElementById(
-            "manageStaffModal"
-        )
+        existingFormMasterUid &&
+        existingFormMasterUid !==
+        formMasterData.uid
     ) {
-        return;
-    }
 
+        const existingName =
+            existingData.formMasterName ||
+            "another Form Master";
 
-    const modal =
-        document.createElement("div");
 
-
-    modal.id =
-        "manageStaffModal";
-
-
-    modal.innerHTML = `
-
-        <div class="virello-manage-backdrop">
-
-            <div
-                class="virello-manage-card"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="manageStaffName"
-            >
-
-                <!-- HEADER -->
-
-                <div class="virello-manage-header">
-
-                    <div class="virello-profile">
-
-                        <div
-                            id="manageStaffAvatar"
-                            class="virello-profile-avatar"
-                        >
-                            ST
-                        </div>
-
-                        <div class="virello-profile-info">
-
-                            <div
-                                id="manageStaffName"
-                                class="virello-profile-name"
-                            >
-                                Staff Member
-                            </div>
-
-                            <div
-                                id="manageStaffSubtitle"
-                                class="virello-profile-role"
-                            >
-                                Staff information
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        id="closeManageStaffModal"
-                        class="virello-modal-close"
-                        aria-label="Close"
-                    >
-                        ×
-                    </button>
-
-                </div>
-
-
-                <!-- MESSAGE -->
-
-                <div
-                    id="manageStaffMessage"
-                    class="virello-manage-message"
-                ></div>
-
-
-                <!-- FORM -->
-
-                <form
-                    id="manageStaffForm"
-                    class="virello-manage-form"
-                >
-
-                    <div class="virello-section-title">
-                        Personal Information
-                    </div>
-
-
-                    <div class="virello-form-grid">
-
-                        <div class="virello-field">
-
-                            <label>
-                                Full Name
-                            </label>
-
-                            <input
-                                type="text"
-                                id="manageFullName"
-                                required
-                            >
-
-                        </div>
-
-
-                        <div class="virello-field">
-
-                            <label>
-                                Staff ID
-                            </label>
-
-                            <input
-                                type="text"
-                                id="manageStaffId"
-                                required
-                            >
-
-                        </div>
-
-
-                        <div class="virello-field">
-
-                            <label>
-                                Position
-                            </label>
-
-                            <input
-                                type="text"
-                                id="managePosition"
-                                required
-                            >
-
-                        </div>
-
-
-                        <div class="virello-field">
-
-                            <label>
-                                Department
-                            </label>
-
-                            <input
-                                type="text"
-                                id="manageDepartment"
-                            >
-
-                        </div>
-
-
-                        <div class="virello-field">
-
-                            <label>
-                                Email Address
-                            </label>
-
-                            <input
-                                type="email"
-                                id="manageEmail"
-                            >
-
-                        </div>
-
-
-                        <div class="virello-field">
-
-                            <label>
-                                Phone Number
-                            </label>
-
-                            <input
-                                type="tel"
-                                id="managePhone"
-                            >
-
-                        </div>
-
-
-                        <div class="virello-field">
-
-                            <label>
-                                Employment Type
-                            </label>
-
-                            <select
-                                id="manageEmploymentType"
-                                required
-                            >
-
-                                <option value="">
-                                    Select employment type
-                                </option>
-
-                                <option value="Full Time">
-                                    Full Time
-                                </option>
-
-                                <option value="Part Time">
-                                    Part Time
-                                </option>
-
-                                <option value="Contract">
-                                    Contract
-                                </option>
-
-                                <option value="Temporary">
-                                    Temporary
-                                </option>
-
-                            </select>
-
-                        </div>
-
-
-                        <div class="virello-field">
-
-                            <label>
-                                Status
-                            </label>
-
-                            <select
-                                id="manageStatus"
-                                required
-                            >
-
-                                <option value="active">
-                                    Active
-                                </option>
-
-                                <option value="inactive">
-                                    Inactive
-                                </option>
-
-                            </select>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- ACCOUNT STATUS -->
-
-                    <div class="virello-status-box">
-
-                        <div class="virello-status-info">
-
-                            <div class="virello-status-title">
-                                Staff Account Status
-                            </div>
-
-                            <div
-                                id="manageStatusDescription"
-                                class="virello-status-description"
-                            >
-                                This staff member is currently active.
-                            </div>
-
-                        </div>
-
-
-                        <button
-                            type="button"
-                            id="manageToggleButton"
-                            class="virello-status-button"
-                        >
-                            Deactivate
-                        </button>
-
-                    </div>
-
-
-                    <!-- DANGER -->
-
-                    <div class="virello-delete-box">
-
-                        <div>
-
-                            <div class="virello-delete-title">
-                                Delete Staff Member
-                            </div>
-
-                            <div class="virello-delete-description">
-                                Permanently remove this staff member from your organization.
-                            </div>
-
-                        </div>
-
-
-                        <button
-                            type="button"
-                            id="manageDeleteButton"
-                            class="virello-delete-button"
-                        >
-                            Delete
-                        </button>
-
-                    </div>
-
-
-                    <!-- ACTIONS -->
-
-                    <div class="virello-manage-actions">
-
-                        <button
-                            type="button"
-                            id="manageCancelButton"
-                            class="virello-cancel-button"
-                        >
-                            Cancel
-                        </button>
-
-
-                        <button
-                            type="submit"
-                            id="manageSaveButton"
-                            class="virello-save-button"
-                        >
-                            Save Changes
-                        </button>
-
-                    </div>
-
-                </form>
-
-            </div>
-
-        </div>
-
-    `;
-
-
-    document.body.appendChild(modal);
-
-
-    injectManageModalStyles();
-
-
-    const backdrop =
-        modal.querySelector(
-            ".virello-manage-backdrop"
-        );
-
-
-    const closeButton =
-        document.getElementById(
-            "closeManageStaffModal"
-        );
-
-
-    const cancelButton =
-        document.getElementById(
-            "manageCancelButton"
-        );
-
-
-    const form =
-        document.getElementById(
-            "manageStaffForm"
-        );
-
-
-    const toggleButton =
-        document.getElementById(
-            "manageToggleButton"
-        );
-
-
-    const deleteButton =
-        document.getElementById(
-            "manageDeleteButton"
-        );
-
-
-    if (closeButton) {
-
-        closeButton.addEventListener(
-            "click",
-            closeManageStaffModal
+        throw new Error(
+            `This class is already assigned to ${existingName}. Please remove the existing Form Master before assigning another one.`
         );
 
     }
 
 
-    if (cancelButton) {
+    await updateDoc(
+        classRef,
+        {
 
-        cancelButton.addEventListener(
-            "click",
-            closeManageStaffModal
-        );
+            formMasterId:
+                formMasterData.uid,
 
-    }
+            formMasterUid:
+                formMasterData.uid,
 
+            formMasterName:
+                formMasterData.fullName,
 
-    if (backdrop) {
+            formMasterEmail:
+                formMasterData.email,
 
-        backdrop.addEventListener(
-            "click",
-            event => {
+            formMasterRole:
+                "form_master",
 
-                if (
-                    event.target === backdrop
-                ) {
-
-                    closeManageStaffModal();
-
-                }
-
-            }
-        );
-
-    }
-
-
-    if (form) {
-
-        form.addEventListener(
-            "submit",
-            saveManageStaff
-        );
-
-    }
-
-
-    if (toggleButton) {
-
-        toggleButton.addEventListener(
-            "click",
-            toggleCurrentStaff
-        );
-
-    }
-
-
-    if (deleteButton) {
-
-        deleteButton.addEventListener(
-            "click",
-            deleteCurrentStaff
-        );
-
-    }
-
-
-    document.addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key === "Escape"
-            ) {
-
-                const currentModal =
-                    document.getElementById(
-                        "manageStaffModal"
-                    );
-
-
-                if (
-                    currentModal &&
-                    currentModal.classList.contains(
-                        "show"
-                    )
-                ) {
-
-                    closeManageStaffModal();
-
-                }
-
-            }
+            updatedAt:
+                serverTimestamp()
 
         }
     );
 
-}
-
-
-/* =========================================================
-   OPEN MANAGE STAFF
-========================================================= */
-
-function openManageStaffModal(
-    staffDocumentId
-) {
 
     console.log(
-        "🔧 Opening Manage Staff:",
-        staffDocumentId
+        "✅ Form Master assigned to class:",
+        classItem.id
     );
-
-
-    const staff =
-        staffMembers.find(
-            member =>
-                member.id === staffDocumentId
-        );
-
-
-    if (!staff) {
-
-        console.error(
-            "❌ Staff member not found:",
-            staffDocumentId
-        );
-
-        alert(
-            "Staff member could not be found."
-        );
-
-        return;
-    }
-
-
-    currentManagingStaff =
-        staff;
-
-
-    const modal =
-        document.getElementById(
-            "manageStaffModal"
-        );
-
-
-    if (!modal) {
-
-        console.error(
-            "❌ Manage modal does not exist."
-        );
-
-        return;
-    }
-
-
-    const fullName =
-        staff.fullName ||
-        staff.name ||
-        "Staff Member";
-
-
-    const avatar =
-        document.getElementById(
-            "manageStaffAvatar"
-        );
-
-
-    const name =
-        document.getElementById(
-            "manageStaffName"
-        );
-
-
-    const subtitle =
-        document.getElementById(
-            "manageStaffSubtitle"
-        );
-
-
-    if (avatar) {
-
-        avatar.textContent =
-            getInitials(fullName);
-
-    }
-
-
-    if (name) {
-
-        name.textContent =
-            fullName;
-
-    }
-
-
-    if (subtitle) {
-
-        subtitle.textContent =
-            staff.position ||
-            "Staff information";
-
-    }
-
-
-    setManageValue(
-        "manageFullName",
-        fullName
-    );
-
-
-    setManageValue(
-        "manageStaffId",
-        staff.staffId || ""
-    );
-
-
-    setManageValue(
-        "managePosition",
-        staff.position || ""
-    );
-
-
-    setManageValue(
-        "manageDepartment",
-        staff.department || ""
-    );
-
-
-    setManageValue(
-        "manageEmail",
-        staff.email || ""
-    );
-
-
-    setManageValue(
-        "managePhone",
-        staff.phone || ""
-    );
-
-
-    setManageValue(
-        "manageEmploymentType",
-        staff.employmentType || ""
-    );
-
-
-    setManageValue(
-        "manageStatus",
-        staff.status || "active"
-    );
-
-
-    updateManageStatusUI(
-        staff.status || "active"
-    );
-
-
-    clearManageMessage();
-
-
-    modal.classList.add("show");
-
-
-    setTimeout(() => {
-
-        const input =
-            document.getElementById(
-                "manageFullName"
-            );
-
-
-        if (input) {
-            input.focus();
-        }
-
-    }, 100);
 
 }
 
 
 /* =========================================================
-   SET MANAGE VALUE
+   UPDATE EXISTING STAFF
 ========================================================= */
 
-function setManageValue(
-    elementId,
-    value
+async function updateExistingStaff(
+    data
 ) {
 
-    const element =
-        document.getElementById(
-            elementId
-        );
-
-
-    if (!element) {
-
-        console.warn(
-            "⚠️ Manage element missing:",
-            elementId
-        );
-
+    if (!editingStaff) {
         return;
     }
 
 
-    element.value =
-        value;
-
-}
-
-
-/* =========================================================
-   CLOSE MANAGE
-========================================================= */
-
-function closeManageStaffModal() {
-
-    const modal =
-        document.getElementById(
-            "manageStaffModal"
+    const staffRef =
+        doc(
+            db,
+            "staff",
+            editingStaff.id
         );
 
 
-    if (!modal) {
-        return;
-    }
-
-
-    modal.classList.remove("show");
-
-
-    currentManagingStaff =
-        null;
-
-
-    clearManageMessage();
-
-}
-
-
-/* =========================================================
-   MANAGE MESSAGES
-========================================================= */
-
-function clearManageMessage() {
-
-    const message =
-        document.getElementById(
-            "manageStaffMessage"
+    const selectedClass =
+        classes.find(
+            item =>
+                item.id ===
+                data.classId
         );
 
 
-    if (!message) {
-        return;
-    }
+    const updates = {
 
+        fullName:
+            data.fullName,
 
-    message.textContent = "";
+        name:
+            data.fullName,
 
-    message.className =
-        "virello-manage-message";
+        staffId:
+            data.enteredStaffId,
 
-}
+        position:
+            data.position,
 
+        department:
+            data.department,
 
-function showManageMessage(
-    message,
-    type
-) {
+        email:
+            data.email,
 
-    const element =
-        document.getElementById(
-            "manageStaffMessage"
-        );
+        phone:
+            data.phone,
 
+        employmentType:
+            data.employment,
 
-    if (!element) {
-        return;
-    }
+        status:
+            data.status,
 
+        role:
+            data.role,
 
-    element.textContent =
-        message;
+        isFormMaster:
+            data.role ===
+            "form_master",
 
+        formMasterClassId:
+            data.role ===
+            "form_master"
+                ? data.classId
+                : "",
 
-    element.className =
-        "virello-manage-message show " +
-        type;
+        formMasterClassName:
+            data.role ===
+            "form_master"
+                ? (
+                    selectedClass?.className ||
+                    selectedClass?.name ||
+                    ""
+                  )
+                : "",
 
-}
+        updatedAt:
+            serverTimestamp()
 
+    };
 
-/* =========================================================
-   SAVE MANAGED STAFF
-========================================================= */
 
-async function saveManageStaff(event) {
+    await updateDoc(
+        staffRef,
+        updates
+    );
 
-    event.preventDefault();
 
+    /*
+     * Update teacher record if applicable.
+     */
 
-    if (!currentManagingStaff) {
+    if (
+        editingStaff.uid &&
+        (
+            editingStaff.role ===
+            "teacher" ||
+            editingStaff.role ===
+            "form_master" ||
+            data.role ===
+            "teacher" ||
+            data.role ===
+            "form_master"
+        )
+    ) {
 
-        showManageMessage(
-            "No staff member is selected.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const fullName =
-        getElementValue(
-            "manageFullName"
-        );
-
-
-    const staffId =
-        getElementValue(
-            "manageStaffId"
-        );
-
-
-    const position =
-        getElementValue(
-            "managePosition"
-        );
-
-
-    const department =
-        getElementValue(
-            "manageDepartment"
-        );
-
-
-    const email =
-        getElementValue(
-            "manageEmail"
-        );
-
-
-    const phone =
-        getElementValue(
-            "managePhone"
-        );
-
-
-    const employmentType =
-        getElementValue(
-            "manageEmploymentType"
-        );
-
-
-    const status =
-        getElementValue(
-            "manageStatus"
-        ) || "active";
-
-
-    if (!fullName) {
-
-        showManageMessage(
-            "Please enter the staff member's full name.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (!staffId) {
-
-        showManageMessage(
-            "Please enter a Staff ID.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (!position) {
-
-        showManageMessage(
-            "Please enter the staff member's position.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (!employmentType) {
-
-        showManageMessage(
-            "Please select the employment type.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const duplicate =
-        staffMembers.find(
-            staff =>
-
-                staff.id !==
-                currentManagingStaff.id &&
-
-                String(
-                    staff.staffId || ""
-                ).toLowerCase() ===
-                staffId.toLowerCase()
-        );
-
-
-    if (duplicate) {
-
-        showManageMessage(
-            "Another staff member already uses this Staff ID.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const saveButton =
-        document.getElementById(
-            "manageSaveButton"
-        );
-
-
-    if (saveButton) {
-
-        saveButton.disabled = true;
-
-        saveButton.textContent =
-            "Saving...";
-
-    }
-
-
-    clearManageMessage();
-
-
-    try {
-
-        const staffDocument =
+        await setDoc(
             doc(
                 db,
-                "staff",
-                currentManagingStaff.id
-            );
-
-
-        await updateDoc(
-            staffDocument,
+                "teachers",
+                editingStaff.uid
+            ),
             {
 
-                fullName,
+                uid:
+                    editingStaff.uid,
 
-                staffId,
+                organizationId:
+                    organization.id,
 
-                position,
+                fullName:
+                    data.fullName,
 
-                department,
+                name:
+                    data.fullName,
 
-                email,
+                email:
+                    data.email,
 
-                phone,
+                phone:
+                    data.phone,
 
-                employmentType,
+                role:
+                    data.role,
 
-                status,
+                position:
+                    data.position,
 
-                updatedBy:
-                    currentUser.uid,
+                department:
+                    data.department,
+
+                status:
+                    data.status,
+
+                formMasterId:
+                    data.role ===
+                    "form_master"
+                        ? editingStaff.uid
+                        : "",
+
+                formMasterUid:
+                    data.role ===
+                    "form_master"
+                        ? editingStaff.uid
+                        : "",
+
+                formMasterClassId:
+                    data.role ===
+                    "form_master"
+                        ? data.classId
+                        : "",
+
+                formMasterClassName:
+                    data.role ===
+                    "form_master"
+                        ? (
+                            selectedClass?.className ||
+                            selectedClass?.name ||
+                            ""
+                          )
+                        : "",
 
                 updatedAt:
                     serverTimestamp()
 
+            },
+            {
+                merge:
+                    true
             }
         );
 
+    }
 
-        console.log(
-            "✅ Staff updated successfully."
+
+    /*
+     * Assign class.
+     */
+
+    if (
+        data.role ===
+        "form_master" &&
+        selectedClass &&
+        editingStaff.uid
+    ) {
+
+        await assignFormMasterToClass(
+            selectedClass,
+            {
+
+                uid:
+                    editingStaff.uid,
+
+                staffId:
+                    editingStaff.uid,
+
+                fullName:
+                    data.fullName,
+
+                email:
+                    data.email,
+
+                role:
+                    "form_master"
+
+            }
         );
-
-
-        showManageMessage(
-            "Staff information saved successfully.",
-            "success"
-        );
-
-
-        await loadStaff();
-
-
-        const updatedStaff =
-            staffMembers.find(
-                staff =>
-                    staff.id ===
-                    currentManagingStaff.id
-            );
-
-
-        if (updatedStaff) {
-
-            currentManagingStaff =
-                updatedStaff;
-
-        }
-
-
-        updateManageStatusUI(status);
-
-
-        setTimeout(() => {
-
-            closeManageStaffModal();
-
-        }, 800);
-
-
-    } catch (error) {
-
-        console.error(
-            "❌ Save Changes error:",
-            error
-        );
-
-
-        showManageMessage(
-            error.message ||
-            "Unable to save changes.",
-            "error"
-        );
-
-
-    } finally {
-
-        if (saveButton) {
-
-            saveButton.disabled = false;
-
-            saveButton.textContent =
-                "Save Changes";
-
-        }
 
     }
 
@@ -2166,153 +2836,55 @@ async function saveManageStaff(event) {
 
 
 /* =========================================================
-   UPDATE STATUS UI
+   TOGGLE STAFF
 ========================================================= */
 
-function updateManageStatusUI(status) {
-
-    const toggleButton =
-        document.getElementById(
-            "manageToggleButton"
-        );
-
-
-    const description =
-        document.getElementById(
-            "manageStatusDescription"
-        );
-
-
-    if (!toggleButton) {
-        return;
-    }
-
-
-    if (status === "active") {
-
-        toggleButton.textContent =
-            "Deactivate";
-
-        toggleButton.className =
-            "virello-status-button deactivate";
-
-
-        if (description) {
-
-            description.textContent =
-                "This staff member is currently active.";
-
-        }
-
-    } else {
-
-        toggleButton.textContent =
-            "Activate";
-
-        toggleButton.className =
-            "virello-status-button activate";
-
-
-        if (description) {
-
-            description.textContent =
-                "This staff member is currently inactive.";
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   TOGGLE STAFF STATUS
-========================================================= */
-
-async function toggleCurrentStaff() {
-
-    if (!currentManagingStaff) {
-
-        showManageMessage(
-            "No staff member is selected.",
-            "error"
-        );
-
-        return;
-    }
-
+async function toggleStaff(
+    staff
+) {
 
     const currentStatus =
-        currentManagingStaff.status ||
+        staff.status ||
         "active";
 
 
     const newStatus =
-        currentStatus === "active"
+        currentStatus ===
+        "active"
             ? "inactive"
             : "active";
 
 
-    const action =
-        newStatus === "active"
-            ? "activate"
-            : "deactivate";
+    const confirmMessage =
+        newStatus === "inactive"
+            ? `Deactivate ${staff.fullName || staff.name}?`
+            : `Activate ${staff.fullName || staff.name}?`;
 
 
-    const fullName =
-        currentManagingStaff.fullName ||
-        "this staff member";
+    if (
+        !confirm(
+            confirmMessage
+        )
+    ) {
 
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to ${action} ${fullName}?`
-        );
-
-
-    if (!confirmed) {
         return;
-    }
-
-
-    const button =
-        document.getElementById(
-            "manageToggleButton"
-        );
-
-
-    if (button) {
-
-        button.disabled = true;
-
-        button.textContent =
-            newStatus === "active"
-                ? "Activating..."
-                : "Deactivating...";
 
     }
 
 
     try {
 
-        const staffDocument =
+        await updateDoc(
             doc(
                 db,
                 "staff",
-                currentManagingStaff.id
-            );
-
-
-        await updateDoc(
-            staffDocument,
+                staff.id
+            ),
             {
 
                 status:
                     newStatus,
 
-                updatedBy:
-                    currentUser.uid,
-
                 updatedAt:
                     serverTimestamp()
 
@@ -2320,69 +2892,23 @@ async function toggleCurrentStaff() {
         );
 
 
-        await loadStaff();
+        await reloadStaff();
 
+    }
 
-        const updatedStaff =
-            staffMembers.find(
-                staff =>
-                    staff.id ===
-                    currentManagingStaff.id
-            );
-
-
-        if (updatedStaff) {
-
-            currentManagingStaff =
-                updatedStaff;
-
-        }
-
-
-        setManageValue(
-            "manageStatus",
-            newStatus
-        );
-
-
-        updateManageStatusUI(
-            newStatus
-        );
-
-
-        showManageMessage(
-            `Staff member ${action}d successfully.`,
-            "success"
-        );
-
-
-    } catch (error) {
+    catch (error) {
 
         console.error(
-            "❌ Status update error:",
+            "❌ Staff status update error:",
             error
         );
 
 
-        showManageMessage(
-            error.message ||
-            "Unable to change staff status.",
-            "error"
+        alert(
+            getFriendlyError(
+                error
+            )
         );
-
-
-    } finally {
-
-        if (button) {
-
-            button.disabled = false;
-
-            updateManageStatusUI(
-                currentManagingStaff?.status ||
-                newStatus
-            );
-
-        }
 
     }
 
@@ -2393,27 +2919,19 @@ async function toggleCurrentStaff() {
    DELETE STAFF
 ========================================================= */
 
-async function deleteCurrentStaff() {
+async function deleteStaff(
+    staff
+) {
 
-    if (!currentManagingStaff) {
-
-        showManageMessage(
-            "No staff member is selected.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const fullName =
-        currentManagingStaff.fullName ||
+    const name =
+        staff.fullName ||
+        staff.name ||
         "this staff member";
 
 
     const confirmed =
         confirm(
-            `DELETE STAFF\n\nAre you sure you want to permanently delete ${fullName}?\n\nThis action cannot be undone.`
+            `Delete ${name} from your Virello staff records?\n\nThis removes the staff profile from Firestore.`
         );
 
 
@@ -2422,55 +2940,35 @@ async function deleteCurrentStaff() {
     }
 
 
-    const button =
-        document.getElementById(
-            "manageDeleteButton"
-        );
-
-
-    if (button) {
-
-        button.disabled = true;
-
-        button.textContent =
-            "Deleting...";
-
-    }
-
-
     try {
 
-        const staffDocument =
+        await deleteDoc(
             doc(
                 db,
                 "staff",
-                currentManagingStaff.id
-            );
-
-
-        await deleteDoc(
-            staffDocument
+                staff.id
+            )
         );
 
 
-        console.log(
-            "🗑️ Staff permanently deleted:",
-            currentManagingStaff.id
-        );
+        /*
+         * We intentionally do NOT delete the
+         * Firebase Authentication account here.
+         *
+         * Deleting another user's Auth account
+         * requires Admin SDK/server privileges.
+         */
 
-
-        await loadStaff();
-
-
-        closeManageStaffModal();
+        await reloadStaff();
 
 
         alert(
-            `${fullName} has been deleted successfully.`
+            "Staff profile deleted successfully."
         );
 
+    }
 
-    } catch (error) {
+    catch (error) {
 
         console.error(
             "❌ Delete staff error:",
@@ -2478,23 +2976,11 @@ async function deleteCurrentStaff() {
         );
 
 
-        showManageMessage(
-            error.message ||
-            "Unable to delete staff member.",
-            "error"
+        alert(
+            getFriendlyError(
+                error
+            )
         );
-
-
-    } finally {
-
-        if (button) {
-
-            button.disabled = false;
-
-            button.textContent =
-                "Delete";
-
-        }
 
     }
 
@@ -2502,14 +2988,81 @@ async function deleteCurrentStaff() {
 
 
 /* =========================================================
-   ADD BUTTON EVENTS
+   RELOAD STAFF
+========================================================= */
+
+async function reloadStaff() {
+
+    await loadStaff();
+
+    updateStatistics();
+
+    renderStaff();
+
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+function updateStatistics() {
+
+    const total =
+        staffMembers.length;
+
+
+    const active =
+        staffMembers.filter(
+            staff =>
+                (
+                    staff.status ||
+                    "active"
+                ) ===
+                "active"
+        ).length;
+
+
+    const inactive =
+        total -
+        active;
+
+
+    if (totalStaff) {
+
+        totalStaff.textContent =
+            total;
+
+    }
+
+
+    if (activeStaff) {
+
+        activeStaff.textContent =
+            active;
+
+    }
+
+
+    if (inactiveStaff) {
+
+        inactiveStaff.textContent =
+            inactive;
+
+    }
+
+}
+
+
+/* =========================================================
+   BUTTONS
 ========================================================= */
 
 if (addStaffButton) {
 
     addStaffButton.addEventListener(
         "click",
-        openAddStaffModal
+        openAddStaff
     );
 
 }
@@ -2519,7 +3072,7 @@ if (emptyAddButton) {
 
     emptyAddButton.addEventListener(
         "click",
-        openAddStaffModal
+        openAddStaff
     );
 
 }
@@ -2529,7 +3082,7 @@ if (closeModalButton) {
 
     closeModalButton.addEventListener(
         "click",
-        closeAddStaffModal
+        closeModal
     );
 
 }
@@ -2539,15 +3092,11 @@ if (cancelStaffButton) {
 
     cancelStaffButton.addEventListener(
         "click",
-        closeAddStaffModal
+        closeModal
     );
 
 }
 
-
-/* =========================================================
-   ADD MODAL OUTSIDE CLICK
-========================================================= */
 
 if (addStaffModal) {
 
@@ -2560,7 +3109,7 @@ if (addStaffModal) {
                 addStaffModal
             ) {
 
-                closeAddStaffModal();
+                closeModal();
 
             }
 
@@ -2568,28 +3117,6 @@ if (addStaffModal) {
     );
 
 }
-
-
-/* =========================================================
-   ESCAPE ADD MODAL
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    event => {
-
-        if (
-            event.key === "Escape" &&
-            addStaffModal &&
-            addStaffModal.classList.contains("show")
-        ) {
-
-            closeAddStaffModal();
-
-        }
-
-    }
-);
 
 
 /* =========================================================
@@ -2604,28 +3131,21 @@ if (logoutButton) {
 
             try {
 
-                console.log(
-                    "🚪 Logging out..."
+                await signOut(
+                    auth
                 );
-
-
-                await signOut(auth);
 
 
                 window.location.href =
                     "login.html";
 
+            }
 
-            } catch (error) {
+            catch (error) {
 
                 console.error(
                     "❌ Logout error:",
                     error
-                );
-
-
-                alert(
-                    "Unable to logout. Please try again."
                 );
 
             }
@@ -2637,711 +3157,174 @@ if (logoutButton) {
 
 
 /* =========================================================
-   MANAGE MODAL CSS
+   FORM MESSAGE
 ========================================================= */
 
-function injectManageModalStyles() {
+function showFormMessage(
+    message,
+    type
+) {
+
+    if (!staffFormMessage) {
+        return;
+    }
+
+
+    staffFormMessage.textContent =
+        message;
+
+
+    staffFormMessage.className =
+        `form-message show ${type}`;
+
+}
+
+
+function hideFormMessage() {
+
+    if (!staffFormMessage) {
+        return;
+    }
+
+
+    staffFormMessage.textContent =
+        "";
+
+
+    staffFormMessage.className =
+        "form-message";
+
+}
+
+
+/* =========================================================
+   FIREBASE CONFIG
+========================================================= */
+
+function getFirebaseConfig() {
+
+    /*
+     * firebase-config.js initializes Firebase,
+     * but normally does not export the configuration.
+     *
+     * We read the active Firebase app so we can
+     * create a secondary Auth instance without
+     * logging out the administrator.
+     */
+
+    const firebaseApp =
+        auth.app;
+
+
+    if (!firebaseApp) {
+
+        throw new Error(
+            "Firebase application is not available."
+        );
+
+    }
+
+
+    return {
+
+        apiKey:
+            firebaseApp.options.apiKey,
+
+        authDomain:
+            firebaseApp.options.authDomain,
+
+        projectId:
+            firebaseApp.options.projectId,
+
+        storageBucket:
+            firebaseApp.options.storageBucket,
+
+        messagingSenderId:
+            firebaseApp.options.messagingSenderId,
+
+        appId:
+            firebaseApp.options.appId
+
+    };
+
+}
+
+
+/* =========================================================
+   ROLE LABEL
+========================================================= */
+
+function getRoleLabel(
+    role
+) {
+
+    const labels = {
+
+        administrator:
+            "Administrator",
+
+        form_master:
+            "Form Master",
+
+        teacher:
+            "Teacher",
+
+        staff:
+            "Staff Member"
+
+    };
+
+
+    return (
+        labels[role] ||
+        "Staff Member"
+    );
+
+}
+
+
+/* =========================================================
+   INITIALS
+========================================================= */
+
+function getInitials(
+    name
+) {
+
+    const parts =
+        String(
+            name || ""
+        )
+            .trim()
+            .split(
+                /\s+/
+            )
+            .filter(Boolean);
+
+
+    if (!parts.length) {
+        return "S";
+    }
+
 
     if (
-        document.getElementById(
-            "virelloManageStyles"
-        )
+        parts.length === 1
     ) {
 
-        return;
-    }
-
-
-    const style =
-        document.createElement("style");
-
-
-    style.id =
-        "virelloManageStyles";
-
-
-    style.textContent = `
-
-        /* =================================================
-           VIRELLO MANAGE STAFF
-        ================================================= */
-
-        #manageStaffModal {
-            display: none;
-        }
-
-
-        #manageStaffModal.show {
-            display: block;
-        }
-
-
-        .virello-manage-backdrop {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            padding: 20px;
-
-            background:
-                rgba(15, 23, 42, 0.65);
-
-            backdrop-filter:
-                blur(4px);
-
-            overflow-y: auto;
-        }
-
-
-        .virello-manage-card {
-            width: 100%;
-            max-width: 760px;
-
-            max-height: 94vh;
-
-            overflow-y: auto;
-
-            background: #ffffff;
-
-            border-radius: 20px;
-
-            box-shadow:
-                0 25px 80px
-                rgba(0,0,0,0.25);
-
-            animation:
-                virelloModalIn
-                0.18s
-                ease-out;
-        }
-
-
-        @keyframes virelloModalIn {
-
-            from {
-                opacity: 0;
-                transform: translateY(12px) scale(0.98);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-
-        }
-
-
-        /* HEADER */
-
-        .virello-manage-header {
-            display: flex;
-
-            align-items: center;
-            justify-content: space-between;
-
-            padding: 24px;
-
-            border-bottom:
-                1px solid #e5e7eb;
-        }
-
-
-        .virello-profile {
-            display: flex;
-
-            align-items: center;
-
-            gap: 14px;
-        }
-
-
-        .virello-profile-avatar {
-            width: 54px;
-            height: 54px;
-
-            flex-shrink: 0;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            border-radius: 50%;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #2563eb,
-                    #1d4ed8
-                );
-
-            color: #ffffff;
-
-            font-size: 15px;
-            font-weight: 800;
-        }
-
-
-        .virello-profile-name {
-            color: #111827;
-
-            font-size: 20px;
-
-            font-weight: 800;
-        }
-
-
-        .virello-profile-role {
-            margin-top: 4px;
-
-            color: #64748b;
-
-            font-size: 12px;
-        }
-
-
-        .virello-modal-close {
-            width: 38px;
-            height: 38px;
-
-            border: none;
-
-            border-radius: 10px;
-
-            background: #f1f5f9;
-
-            color: #475569;
-
-            font-size: 25px;
-
-            cursor: pointer;
-
-            line-height: 1;
-        }
-
-
-        .virello-modal-close:hover {
-            background: #e2e8f0;
-        }
-
-
-        /* MESSAGE */
-
-        .virello-manage-message {
-            display: none;
-
-            margin:
-                18px 24px 0;
-
-            padding: 12px 14px;
-
-            border-radius: 10px;
-
-            font-size: 12px;
-
-            font-weight: 600;
-        }
-
-
-        .virello-manage-message.show {
-            display: block;
-        }
-
-
-        .virello-manage-message.success {
-            background: #f0fdf4;
-
-            border:
-                1px solid #bbf7d0;
-
-            color: #15803d;
-        }
-
-
-        .virello-manage-message.error {
-            background: #fef2f2;
-
-            border:
-                1px solid #fecaca;
-
-            color: #b91c1c;
-        }
-
-
-        /* FORM */
-
-        .virello-manage-form {
-            padding: 24px;
-        }
-
-
-        .virello-section-title {
-            margin-bottom: 16px;
-
-            color: #0f172a;
-
-            font-size: 14px;
-
-            font-weight: 800;
-        }
-
-
-        .virello-form-grid {
-            display: grid;
-
-            grid-template-columns:
-                repeat(2, minmax(0, 1fr));
-
-            gap: 16px;
-        }
-
-
-        .virello-field {
-            display: flex;
-
-            flex-direction: column;
-        }
-
-
-        .virello-field label {
-            margin-bottom: 7px;
-
-            color: #334155;
-
-            font-size: 12px;
-
-            font-weight: 700;
-        }
-
-
-        .virello-field input,
-        .virello-field select {
-
-            width: 100%;
-
-            min-height: 44px;
-
-            box-sizing: border-box;
-
-            padding:
-                10px 12px;
-
-            border:
-                1px solid #cbd5e1;
-
-            border-radius: 9px;
-
-            background: #ffffff;
-
-            color: #172033;
-
-            font-size: 13px;
-
-            outline: none;
-
-            transition:
-                border-color .15s,
-                box-shadow .15s;
-        }
-
-
-        .virello-field input:focus,
-        .virello-field select:focus {
-
-            border-color: #2563eb;
-
-            box-shadow:
-                0 0 0 3px
-                rgba(37,99,235,.10);
-        }
-
-
-        /* STATUS */
-
-        .virello-status-box {
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: space-between;
-
-            gap: 16px;
-
-            margin-top: 24px;
-
-            padding: 17px;
-
-            border:
-                1px solid #dbeafe;
-
-            border-radius: 12px;
-
-            background: #f8fbff;
-        }
-
-
-        .virello-status-title {
-
-            color: #1e293b;
-
-            font-size: 12px;
-
-            font-weight: 800;
-        }
-
-
-        .virello-status-description {
-
-            margin-top: 4px;
-
-            color: #64748b;
-
-            font-size: 11px;
-        }
-
-
-        .virello-status-button {
-
-            flex-shrink: 0;
-
-            min-width: 105px;
-
-            padding:
-                10px 14px;
-
-            border-radius: 8px;
-
-            font-size: 11px;
-
-            font-weight: 800;
-
-            cursor: pointer;
-        }
-
-
-        .virello-status-button.deactivate {
-
-            border:
-                1px solid #fcd34d;
-
-            background: #fffbeb;
-
-            color: #b45309;
-        }
-
-
-        .virello-status-button.activate {
-
-            border:
-                1px solid #86efac;
-
-            background: #f0fdf4;
-
-            color: #15803d;
-        }
-
-
-        .virello-status-button:disabled {
-
-            opacity: .5;
-
-            cursor: not-allowed;
-        }
-
-
-        /* DELETE */
-
-        .virello-delete-box {
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: space-between;
-
-            gap: 16px;
-
-            margin-top: 14px;
-
-            padding: 17px;
-
-            border:
-                1px solid #fee2e2;
-
-            border-radius: 12px;
-
-            background: #fffafa;
-        }
-
-
-        .virello-delete-title {
-
-            color: #991b1b;
-
-            font-size: 12px;
-
-            font-weight: 800;
-        }
-
-
-        .virello-delete-description {
-
-            margin-top: 4px;
-
-            color: #7f1d1d;
-
-            font-size: 10px;
-        }
-
-
-        .virello-delete-button {
-
-            flex-shrink: 0;
-
-            padding:
-                10px 15px;
-
-            border:
-                1px solid #fecaca;
-
-            border-radius: 8px;
-
-            background: #ffffff;
-
-            color: #dc2626;
-
-            font-size: 11px;
-
-            font-weight: 800;
-
-            cursor: pointer;
-        }
-
-
-        .virello-delete-button:hover {
-
-            background: #fef2f2;
-        }
-
-
-        .virello-delete-button:disabled {
-
-            opacity: .5;
-
-            cursor: not-allowed;
-        }
-
-
-        /* ACTIONS */
-
-        .virello-manage-actions {
-
-            display: flex;
-
-            justify-content: flex-end;
-
-            gap: 10px;
-
-            margin-top: 24px;
-
-            padding-top: 20px;
-
-            border-top:
-                1px solid #e5e7eb;
-        }
-
-
-        .virello-cancel-button,
-        .virello-save-button {
-
-            min-height: 42px;
-
-            padding:
-                10px 20px;
-
-            border-radius: 8px;
-
-            font-size: 12px;
-
-            font-weight: 800;
-
-            cursor: pointer;
-        }
-
-
-        .virello-cancel-button {
-
-            border:
-                1px solid #cbd5e1;
-
-            background: #ffffff;
-
-            color: #475569;
-        }
-
-
-        .virello-cancel-button:hover {
-
-            background: #f8fafc;
-        }
-
-
-        .virello-save-button {
-
-            border: none;
-
-            background: #2563eb;
-
-            color: #ffffff;
-        }
-
-
-        .virello-save-button:hover {
-
-            background: #1d4ed8;
-        }
-
-
-        .virello-save-button:disabled {
-
-            background: #93c5fd;
-
-            cursor: not-allowed;
-        }
-
-
-        /* MOBILE */
-
-        @media (max-width: 650px) {
-
-            .virello-manage-backdrop {
-
-                align-items: flex-start;
-
-                padding: 10px;
-            }
-
-
-            .virello-manage-card {
-
-                max-height: 96vh;
-
-                border-radius: 15px;
-            }
-
-
-            .virello-manage-header {
-
-                padding: 18px;
-            }
-
-
-            .virello-manage-form {
-
-                padding: 18px;
-            }
-
-
-            .virello-form-grid {
-
-                grid-template-columns: 1fr;
-            }
-
-
-            .virello-profile-name {
-
-                font-size: 17px;
-            }
-
-
-            .virello-status-box,
-            .virello-delete-box {
-
-                flex-direction: column;
-
-                align-items: flex-start;
-            }
-
-
-            .virello-status-button,
-            .virello-delete-button {
-
-                width: 100%;
-            }
-
-
-            .virello-manage-actions {
-
-                flex-direction: column-reverse;
-            }
-
-
-            .virello-cancel-button,
-            .virello-save-button {
-
-                width: 100%;
-            }
-
-        }
-
-    `;
-
-
-    document.head.appendChild(style);
-
-}
-
-
-/* =========================================================
-   LOADING
-========================================================= */
-
-function hideLoading() {
-
-    if (!loadingScreen) {
-        return;
-    }
-
-
-    loadingScreen.style.display =
-        "none";
-
-}
-
-
-/* =========================================================
-   ERROR
-========================================================= */
-
-function showError(message) {
-
-    if (loadingScreen) {
-
-        loadingScreen.style.display =
-            "none";
+        return parts[0]
+            .substring(
+                0,
+                2
+            )
+            .toUpperCase();
 
     }
 
 
-    if (errorScreen) {
-
-        errorScreen.style.display =
-            "block";
-
-    }
-
-
-    if (errorMessage) {
-
-        errorMessage.textContent =
-            message;
-
-    }
+    return (
+        parts[0][0] +
+        parts[parts.length - 1][0]
+    ).toUpperCase();
 
 }
 
@@ -3350,19 +3333,13 @@ function showError(message) {
    ESCAPE HTML
 ========================================================= */
 
-function escapeHtml(value) {
+function escapeHtml(
+    value
+) {
 
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return "";
-
-    }
-
-
-    return String(value)
+    return String(
+        value ?? ""
+    )
 
         .replace(
             /&/g,
@@ -3393,9 +3370,189 @@ function escapeHtml(value) {
 
 
 /* =========================================================
-   FINAL LOG
+   FRIENDLY ERROR
 ========================================================= */
 
+function getFriendlyError(
+    error
+) {
+
+    console.error(
+        "Virello error:",
+        error
+    );
+
+
+    if (!error) {
+
+        return "Something went wrong.";
+
+    }
+
+
+    const code =
+        error.code ||
+        "";
+
+
+    switch (code) {
+
+        case "auth/email-already-in-use":
+
+            return (
+                "This email address already has a Virello Firebase account. Use another email address or use the existing account."
+            );
+
+
+        case "auth/invalid-email":
+
+            return (
+                "The email address is not valid."
+            );
+
+
+        case "auth/weak-password":
+
+            return (
+                "The password is too weak. Please use at least 6 characters."
+            );
+
+
+        case "auth/network-request-failed":
+
+            return (
+                "Firebase could not connect to the internet. Please check your connection."
+            );
+
+
+        case "permission-denied":
+
+        case "firestore/permission-denied":
+
+            return (
+                "Virello was blocked by Firestore security rules. The administrator account does not currently have permission to create or update this record."
+            );
+
+
+        case "failed-precondition":
+
+            return (
+                "Firebase requires an index or configuration change for this request."
+            );
+
+
+        case "auth/operation-not-allowed":
+
+            return (
+                "Email/password authentication is not enabled in Firebase Authentication."
+            );
+
+
+        case "auth/invalid-api-key":
+
+            return (
+                "The Firebase API key is invalid. Check firebase-config.js."
+            );
+
+
+        case "auth/configuration-not-found":
+
+            return (
+                "Firebase Authentication configuration could not be found."
+            );
+
+
+        default:
+
+            if (
+                error.message
+            ) {
+
+                return error.message;
+
+            }
+
+
+            return (
+                "Unable to complete the staff operation."
+            );
+
+    }
+
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+function hideLoading() {
+
+    if (loadingScreen) {
+
+        loadingScreen.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   ERROR SCREEN
+========================================================= */
+
+function showError(
+    message
+) {
+
+    if (loadingScreen) {
+
+        loadingScreen.style.display =
+            "none";
+
+    }
+
+
+    if (errorScreen) {
+
+        errorScreen.style.display =
+            "block";
+
+    }
+
+
+    if (errorMessage) {
+
+        errorMessage.textContent =
+            message;
+
+    }
+
+}
+
+
+/* =========================================================
+   GLOBAL DEBUG
+========================================================= */
+
+window.virelloStaffDebug = {
+
+    getCurrentUser:
+        () => currentUser,
+
+    getOrganization:
+        () => organization,
+
+    getStaff:
+        () => staffMembers,
+
+    getClasses:
+        () => classes
+
+};
+
+
 console.log(
-    "✅ Virello complete staff.js loaded."
+    "✅ Virello Staff Management JavaScript loaded."
 );
