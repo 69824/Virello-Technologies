@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Virello Technologies | Form Master Login</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Inter, Arial, sans-serif;
+            min-height: 100vh;
+            background: #f5f7fb;
+            color: #172033;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 430px;
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .brand-logo {
+            width: 58px;
+            height: 58px;
+            margin: 0 auto 12px;
+            border-radius: 15px;
+
+            background: #172554;
+            color: #fff;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 25px;
+            font-weight: 800;
+        }
+
+        .brand h1 {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .brand p {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .login-card {
+            background: #fff;
+            border: 1px solid #e5e9f2;
+            border-radius: 16px;
+            padding: 30px;
+
+            box-shadow: 0 15px 40px rgba(15, 23, 42, .08);
+        }
+
+        .login-card h2 {
+            font-size: 21px;
+            margin-bottom: 7px;
+        }
+
+        .login-description {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 17px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 13px;
+
+            border: 1px solid #d8dee9;
+            border-radius: 9px;
+
+            outline: none;
+            font-size: 14px;
+            background: #fff;
+        }
+
+        .form-group input:focus {
+            border-color: #4f46e5;
+
+            box-shadow:
+                0 0 0 3px rgba(79, 70, 229, .10);
+        }
+
+        .login-button {
+            width: 100%;
+
+            border: 0;
+            border-radius: 9px;
+
+            padding: 13px;
+
+            background: #172554;
+            color: #fff;
+
+            font-weight: 700;
+            font-size: 14px;
+
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .login-button:hover {
+            background: #1e3a8a;
+        }
+
+        .login-button:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            display: none;
+
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+
+            padding: 11px 12px;
+
+            border-radius: 8px;
+
+            font-size: 13px;
+            line-height: 1.4;
+
+            margin-bottom: 17px;
+        }
+
+        .success-message {
+            display: none;
+
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+
+            padding: 11px 12px;
+
+            border-radius: 8px;
+
+            font-size: 13px;
+            line-height: 1.4;
+
+            margin-bottom: 17px;
+        }
+
+        .info-box {
+            margin-top: 20px;
+
+            padding: 13px;
+
+            border-radius: 9px;
+
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+
+            color: #64748b;
+
+            font-size: 12px;
+            line-height: 1.5;
+
+            text-align: center;
+        }
+
+        .back-link {
+            display: block;
+
+            text-align: center;
+
+            margin-top: 20px;
+
+            color: #475569;
+
+            font-size: 13px;
+
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #172554;
+        }
+
+        .footer {
+            text-align: center;
+
+            color: #94a3b8;
+
+            font-size: 11px;
+
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-wrapper">
+
+    <div class="brand">
+
+        <div class="brand-logo">
+            V
+        </div>
+
+        <h1>
+            Virello Technologies
+        </h1>
+
+        <p>
+            Student Attendance Platform
+        </p>
+
+    </div>
+
+
+    <div class="login-card">
+
+        <h2>
+            Form Master Login
+        </h2>
+
+        <p class="login-description">
+            Sign in to manage your assigned class
+            and today's student attendance register.
+        </p>
+
+
+        <div
+            id="errorMessage"
+            class="error-message"
+        ></div>
+
+
+        <div
+            id="successMessage"
+            class="success-message"
+        ></div>
+
+
+        <form id="loginForm">
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email Address
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Enter your email"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                id="loginButton"
+                class="login-button"
+            >
+                Sign In
+            </button>
+
+        </form>
+
+
+        <div class="info-box">
+            Use the email address and password provided
+            for your Virello Form Master account.
+        </div>
+
+    </div>
+
+
+    <a
+        href="login.html"
+        class="back-link"
+    >
+        ← Back to Administrator Login
+    </a>
+
+
+    <div class="footer">
+        © 2026 Virello Technologies
+    </div>
+
+</div>
+
+
+<script
+    type="module"
+    src="js/form-master-login.js"
+></script>
+
+</body>
+</html>
