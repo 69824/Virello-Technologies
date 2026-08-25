@@ -1,9 +1,7 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
-
 
 <meta charset="UTF-8">
 
@@ -16,727 +14,730 @@
     Dashboard | Virello Technologies
 </title>
 
-
 <style>
 
-    /* =========================================
-       RESET
-    ========================================= */
+/* =========================================
+   RESET
+========================================= */
 
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* =========================================
+   BODY
+========================================= */
+
+body {
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: #f5f7fb;
+
+    color: #172033;
+
+    min-height: 100vh;
+
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+header {
+
+    height: 72px;
+
+    background: #ffffff;
+
+    border-bottom:
+        1px solid #e5e7eb;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 5%;
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 1000;
+
+}
+
+
+/* =========================================
+   LOGO
+========================================= */
+
+.logo {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+}
+
+
+.logo-icon {
+
+    width: 42px;
+
+    height: 42px;
+
+    background: #2563eb;
+
+    color: white;
+
+    border-radius: 10px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    font-size: 21px;
+
+    font-weight: 800;
+
+}
+
+
+.logo-text h2 {
+
+    font-size: 18px;
+
+    color: #111827;
+
+}
+
+
+.logo-text p {
+
+    font-size: 10px;
+
+    color: #64748b;
+
+    margin-top: 2px;
+
+}
+
+
+/* =========================================
+   HEADER RIGHT
+========================================= */
+
+.header-right {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+
+}
+
+
+.admin-name {
+
+    font-size: 13px;
+
+    color: #475569;
+
+}
+
+
+.logout-button {
+
+    border:
+        1px solid #fecaca;
+
+    background: #fef2f2;
+
+    color: #dc2626;
+
+    padding: 9px 15px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+
+.logout-button:hover {
+
+    background: #fee2e2;
+
+}
+
+
+/* =========================================
+   PAGE
+========================================= */
+
+.page {
+
+    max-width: 1200px;
+
+    margin: auto;
+
+    padding: 35px 25px 60px;
+
+}
+
+
+/* =========================================
+   WELCOME
+========================================= */
+
+.welcome {
+
+    margin-bottom: 30px;
+
+}
+
+
+.welcome h1 {
+
+    font-size:
+        clamp(26px, 4vw, 36px);
+
+    color: #111827;
+
+    margin-bottom: 8px;
+
+}
+
+
+.welcome p {
+
+    color: #64748b;
+
+    font-size: 14px;
+
+}
+
+
+/* =========================================
+   ORGANIZATION CARD
+========================================= */
+
+.organization-card {
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
+
+    color: white;
+
+    border-radius: 18px;
+
+    padding: 28px;
+
+    margin-bottom: 25px;
+
+    box-shadow:
+        0 10px 30px
+        rgba(37, 99, 235, 0.18);
+
+}
+
+
+.organization-label {
+
+    font-size: 11px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+
+    opacity: 0.8;
+
+    margin-bottom: 8px;
+
+}
+
+
+.organization-name {
+
+    font-size: 28px;
+
+    font-weight: bold;
+
+    margin-bottom: 8px;
+
+}
+
+
+.organization-details {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+}
+
+
+.organization-badge {
+
+    background:
+        rgba(255,255,255,0.15);
+
+    padding: 7px 12px;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+
+}
+
+
+/* =========================================
+   STATISTICS
+========================================= */
+
+.stats-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 18px;
+
+    margin-bottom: 30px;
+
+}
+
+
+.stat-card {
+
+    background: white;
+
+    border:
+        1px solid #e2e8f0;
+
+    border-radius: 14px;
+
+    padding: 22px;
+
+}
+
+
+.stat-icon {
+
+    font-size: 25px;
+
+    margin-bottom: 13px;
+
+}
+
+
+.stat-label {
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    margin-bottom: 6px;
+
+}
+
+
+.stat-number {
+
+    color: #111827;
+
+    font-size: 28px;
+
+    font-weight: bold;
+
+}
+
+
+/* =========================================
+   QUICK ACTIONS
+========================================= */
+
+.section-title {
+
+    margin-bottom: 15px;
+
+}
+
+
+.section-title h2 {
+
+    font-size: 20px;
+
+    color: #111827;
+
+}
+
+
+.section-title p {
+
+    color: #64748b;
+
+    font-size: 13px;
+
+    margin-top: 4px;
+
+}
+
+
+.actions-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 18px;
+
+}
+
+
+/* =========================================
+   ACTION CARD
+========================================= */
+
+.action-card {
+
+    background: white;
+
+    border:
+        1px solid #e2e8f0;
+
+    border-radius: 14px;
+
+    padding: 24px 18px;
+
+    text-decoration: none;
+
+    color: #172033;
+
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s,
+        border-color 0.2s;
+
+}
+
+
+.action-card:hover {
+
+    transform:
+        translateY(-3px);
+
+    border-color:
+        #bfdbfe;
+
+    box-shadow:
+        0 8px 20px
+        rgba(15, 23, 42, 0.07);
+
+}
+
+
+.action-icon {
+
+    width: 45px;
+
+    height: 45px;
+
+    background: #eff6ff;
+
+    border-radius: 10px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 22px;
+
+    margin-bottom: 15px;
+
+}
+
+
+.action-card h3 {
+
+    font-size: 15px;
+
+    margin-bottom: 7px;
+
+}
+
+
+.action-card p {
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+
+}
+
+
+/* =========================================
+   LOADING
+========================================= */
+
+#loadingScreen {
+
+    position: fixed;
+
+    inset: 0;
+
+    background: #f5f7fb;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    z-index: 5000;
+
+}
+
+
+.loader {
+
+    width: 40px;
+
+    height: 40px;
+
+    border:
+        4px solid #dbeafe;
+
+    border-top-color:
+        #2563eb;
+
+    border-radius: 50%;
+
+    animation:
+        spin 0.8s linear infinite;
+
+    margin-bottom: 15px;
+
+}
+
+
+@keyframes spin {
+
+    to {
+
+        transform:
+            rotate(360deg);
+
     }
 
+}
 
-    /* =========================================
-       BODY
-    ========================================= */
 
-    body {
+#loadingScreen p {
 
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
+    color: #64748b;
 
-        background: #f5f7fb;
+    font-size: 13px;
 
-        color: #172033;
+}
 
-        min-height: 100vh;
 
-    }
+/* =========================================
+   ERROR
+========================================= */
 
+#errorScreen {
 
-    /* =========================================
-       HEADER
-    ========================================= */
+    display: none;
 
-    header {
+    max-width: 500px;
 
-        height: 72px;
+    margin: 100px auto;
 
-        background: #ffffff;
+    padding: 30px;
 
-        border-bottom:
-            1px solid #e5e7eb;
+    background: white;
 
-        display: flex;
+    border:
+        1px solid #fecaca;
 
-        align-items: center;
+    border-radius: 15px;
 
-        justify-content: space-between;
+    text-align: center;
 
-        padding: 0 5%;
+}
 
-        position: sticky;
 
-        top: 0;
+#errorScreen h2 {
 
-        z-index: 1000;
+    color: #dc2626;
 
-    }
+    margin-bottom: 10px;
 
+}
 
-    /* =========================================
-       LOGO
-    ========================================= */
 
-    .logo {
+#errorScreen p {
 
-        display: flex;
+    color: #64748b;
 
-        align-items: center;
+    font-size: 14px;
 
-        gap: 11px;
+    line-height: 1.6;
 
-    }
+}
 
 
-    .logo-icon {
+/* =========================================
+   MOBILE
+========================================= */
 
-        width: 42px;
-
-        height: 42px;
-
-        background: #2563eb;
-
-        color: white;
-
-        border-radius: 10px;
-
-        display: flex;
-
-        justify-content: center;
-
-        align-items: center;
-
-        font-size: 21px;
-
-        font-weight: 800;
-
-    }
-
-
-    .logo-text h2 {
-
-        font-size: 18px;
-
-        color: #111827;
-
-    }
-
-
-    .logo-text p {
-
-        font-size: 10px;
-
-        color: #64748b;
-
-        margin-top: 2px;
-
-    }
-
-
-    /* =========================================
-       HEADER RIGHT
-    ========================================= */
-
-    .header-right {
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 18px;
-
-    }
-
-
-    .admin-name {
-
-        font-size: 13px;
-
-        color: #475569;
-
-    }
-
-
-    .logout-button {
-
-        border:
-            1px solid #fecaca;
-
-        background: #fef2f2;
-
-        color: #dc2626;
-
-        padding: 9px 15px;
-
-        border-radius: 8px;
-
-        font-size: 12px;
-
-        font-weight: bold;
-
-        cursor: pointer;
-
-    }
-
-
-    .logout-button:hover {
-
-        background: #fee2e2;
-
-    }
-
-
-    /* =========================================
-       PAGE
-    ========================================= */
-
-    .page {
-
-        max-width: 1200px;
-
-        margin: auto;
-
-        padding: 35px 25px 60px;
-
-    }
-
-
-    /* =========================================
-       WELCOME
-    ========================================= */
-
-    .welcome {
-
-        margin-bottom: 30px;
-
-    }
-
-
-    .welcome h1 {
-
-        font-size:
-            clamp(26px, 4vw, 36px);
-
-        color: #111827;
-
-        margin-bottom: 8px;
-
-    }
-
-
-    .welcome p {
-
-        color: #64748b;
-
-        font-size: 14px;
-
-    }
-
-
-    /* =========================================
-       ORGANIZATION CARD
-    ========================================= */
-
-    .organization-card {
-
-        background:
-            linear-gradient(
-                135deg,
-                #2563eb,
-                #1d4ed8
-            );
-
-        color: white;
-
-        border-radius: 18px;
-
-        padding: 28px;
-
-        margin-bottom: 25px;
-
-        box-shadow:
-            0 10px 30px
-            rgba(37, 99, 235, 0.18);
-
-    }
-
-
-    .organization-label {
-
-        font-size: 11px;
-
-        text-transform: uppercase;
-
-        letter-spacing: 1px;
-
-        opacity: 0.8;
-
-        margin-bottom: 8px;
-
-    }
-
-
-    .organization-name {
-
-        font-size: 28px;
-
-        font-weight: bold;
-
-        margin-bottom: 8px;
-
-    }
-
-
-    .organization-details {
-
-        display: flex;
-
-        flex-wrap: wrap;
-
-        gap: 10px;
-
-    }
-
-
-    .organization-badge {
-
-        background:
-            rgba(255,255,255,0.15);
-
-        padding: 7px 12px;
-
-        border-radius: 20px;
-
-        font-size: 12px;
-
-    }
-
-
-    /* =========================================
-       STATISTICS
-    ========================================= */
+@media (max-width: 900px) {
 
     .stats-grid {
 
-        display: grid;
-
         grid-template-columns:
-            repeat(4, 1fr);
-
-        gap: 18px;
-
-        margin-bottom: 30px;
-
-    }
-
-
-    .stat-card {
-
-        background: white;
-
-        border:
-            1px solid #e2e8f0;
-
-        border-radius: 14px;
-
-        padding: 22px;
-
-    }
-
-
-    .stat-icon {
-
-        font-size: 25px;
-
-        margin-bottom: 13px;
-
-    }
-
-
-    .stat-label {
-
-        color: #64748b;
-
-        font-size: 12px;
-
-        margin-bottom: 6px;
-
-    }
-
-
-    .stat-number {
-
-        color: #111827;
-
-        font-size: 28px;
-
-        font-weight: bold;
-
-    }
-
-
-    /* =========================================
-       QUICK ACTIONS
-    ========================================= */
-
-    .section-title {
-
-        margin-bottom: 15px;
-
-    }
-
-
-    .section-title h2 {
-
-        font-size: 20px;
-
-        color: #111827;
-
-    }
-
-
-    .section-title p {
-
-        color: #64748b;
-
-        font-size: 13px;
-
-        margin-top: 4px;
+            repeat(2, 1fr);
 
     }
 
 
     .actions-grid {
 
-        display: grid;
-
         grid-template-columns:
-            repeat(4, 1fr);
+            repeat(2, 1fr);
 
-        gap: 18px;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    header {
+
+        padding: 0 18px;
 
     }
 
 
-    .action-card {
-
-        background: white;
-
-        border:
-            1px solid #e2e8f0;
-
-        border-radius: 14px;
-
-        padding: 24px 18px;
-
-        text-decoration: none;
-
-        color: #172033;
-
-        transition:
-            transform 0.2s,
-            box-shadow 0.2s,
-            border-color 0.2s;
-
-    }
-
-
-    .action-card:hover {
-
-        transform:
-            translateY(-3px);
-
-        border-color:
-            #bfdbfe;
-
-        box-shadow:
-            0 8px 20px
-            rgba(15, 23, 42, 0.07);
-
-    }
-
-
-    .action-icon {
-
-        width: 45px;
-
-        height: 45px;
-
-        background: #eff6ff;
-
-        border-radius: 10px;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        font-size: 22px;
-
-        margin-bottom: 15px;
-
-    }
-
-
-    .action-card h3 {
-
-        font-size: 15px;
-
-        margin-bottom: 7px;
-
-    }
-
-
-    .action-card p {
-
-        color: #64748b;
-
-        font-size: 12px;
-
-        line-height: 1.5;
-
-    }
-
-
-    /* =========================================
-       LOADING
-    ========================================= */
-
-    #loadingScreen {
-
-        position: fixed;
-
-        inset: 0;
-
-        background: #f5f7fb;
-
-        display: flex;
-
-        flex-direction: column;
-
-        align-items: center;
-
-        justify-content: center;
-
-        z-index: 5000;
-
-    }
-
-
-    .loader {
-
-        width: 40px;
-
-        height: 40px;
-
-        border:
-            4px solid #dbeafe;
-
-        border-top-color:
-            #2563eb;
-
-        border-radius: 50%;
-
-        animation:
-            spin 0.8s linear infinite;
-
-        margin-bottom: 15px;
-
-    }
-
-
-    @keyframes spin {
-
-        to {
-
-            transform:
-                rotate(360deg);
-
-        }
-
-    }
-
-
-    #loadingScreen p {
-
-        color: #64748b;
-
-        font-size: 13px;
-
-    }
-
-
-    /* =========================================
-       ERROR
-    ========================================= */
-
-    #errorScreen {
+    .logo-text p {
 
         display: none;
 
-        max-width: 500px;
+    }
 
-        margin: 100px auto;
 
-        padding: 30px;
+    .logo-text h2 {
 
-        background: white;
-
-        border:
-            1px solid #fecaca;
-
-        border-radius: 15px;
-
-        text-align: center;
+        font-size: 16px;
 
     }
 
 
-    #errorScreen h2 {
+    .admin-name {
 
-        color: #dc2626;
-
-        margin-bottom: 10px;
+        display: none;
 
     }
 
 
-    #errorScreen p {
+    .page {
 
-        color: #64748b;
-
-        font-size: 14px;
-
-        line-height: 1.6;
+        padding:
+            25px 15px 50px;
 
     }
 
 
-    /* =========================================
-       MOBILE
-    ========================================= */
+    .organization-card {
 
-    @media (max-width: 900px) {
-
-        .stats-grid {
-
-            grid-template-columns:
-                repeat(2, 1fr);
-
-        }
-
-
-        .actions-grid {
-
-            grid-template-columns:
-                repeat(2, 1fr);
-
-        }
+        padding: 22px;
 
     }
 
 
-    @media (max-width: 600px) {
+    .organization-name {
 
-        header {
-
-            padding: 0 18px;
-
-        }
-
-
-        .logo-text p {
-
-            display: none;
-
-        }
-
-
-        .logo-text h2 {
-
-            font-size: 16px;
-
-        }
-
-
-        .admin-name {
-
-            display: none;
-
-        }
-
-
-        .page {
-
-            padding:
-                25px 15px 50px;
-
-        }
-
-
-        .organization-card {
-
-            padding: 22px;
-
-        }
-
-
-        .organization-name {
-
-            font-size: 23px;
-
-        }
-
-
-        .stats-grid {
-
-            grid-template-columns:
-                1fr 1fr;
-
-            gap: 12px;
-
-        }
-
-
-        .stat-card {
-
-            padding: 17px;
-
-        }
-
-
-        .stat-number {
-
-            font-size: 24px;
-
-        }
-
-
-        .actions-grid {
-
-            grid-template-columns:
-                1fr;
-
-        }
+        font-size: 23px;
 
     }
+
+
+    .stats-grid {
+
+        grid-template-columns:
+            1fr 1fr;
+
+        gap: 12px;
+
+    }
+
+
+    .stat-card {
+
+        padding: 17px;
+
+    }
+
+
+    .stat-number {
+
+        font-size: 24px;
+
+    }
+
+
+    .actions-grid {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+}
 
 </style>
-```
 
 </head>
 
+
 <body>
 
-```
+
 <!-- =========================================
      LOADING SCREEN
 ========================================= -->
@@ -1040,6 +1041,33 @@
 
 
             <!-- =================================
+                 FORM MASTER DASHBOARD
+            ================================== -->
+
+            <a
+                href="form-master.html"
+                class="action-card"
+            >
+
+                <div class="action-icon">
+                    👨‍🏫
+                </div>
+
+                <h3>
+                    Form Master
+                </h3>
+
+                <p>
+                    View assigned classes,
+                    manage class attendance,
+                    and mark students Present,
+                    Late or Absent.
+                </p>
+
+            </a>
+
+
+            <!-- =================================
                  ATTENDANCE
             ================================== -->
 
@@ -1148,6 +1176,7 @@
     type="module"
     src="js/dashboard.js"
 ></script>
+
 
 </body>
 
