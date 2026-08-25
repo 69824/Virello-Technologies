@@ -8,21 +8,19 @@
    PURPOSE:
    FORM MASTER DASHBOARD + CLASS ATTENDANCE REGISTER
 
-   FEATURES:
-   - Firebase authentication
-   - Load Form Master staff profile
-   - Load organization
-   - Load classes assigned to Form Master
-   - Load students
-   - Select class
-   - Select attendance date
-   - Mark Present
-   - Mark Late
-   - Mark Absent
+   FIXES:
+   - Automatically connects existing staff profile to Firebase login
+   - Searches staff by userUid
+   - Searches by uid
+   - Searches by userId
+   - Searches by email
+   - Searches by organization + email
+   - Loads organization correctly using document ID
+   - Loads Form Master assigned classes
+   - Loads students
+   - Attendance register
+   - Present / Late / Absent
    - Save attendance
-   - Load previously saved attendance
-   - Prevent duplicate attendance records
-   - Dashboard statistics
 ========================================================= */
 
 
@@ -45,6 +43,7 @@ import {
     query,
     where,
     getDocs,
+    getDoc,
     addDoc,
     updateDoc,
     doc,
@@ -67,19 +66,14 @@ import {
 ========================================================= */
 
 let currentUser = null;
-
 let currentOrganization = null;
-
 let currentTeacher = null;
 
 let assignedClasses = [];
-
 let selectedClass = null;
-
 let selectedStudents = [];
 
 let attendanceMap = {};
-
 let existingAttendance = {};
 
 
@@ -88,109 +82,67 @@ let existingAttendance = {};
 ========================================================= */
 
 const loadingScreen =
-    document.getElementById(
-        "loadingScreen"
-    );
+    document.getElementById("loadingScreen");
 
 const errorScreen =
-    document.getElementById(
-        "errorScreen"
-    );
+    document.getElementById("errorScreen");
 
 const errorMessage =
-    document.getElementById(
-        "errorMessage"
-    );
+    document.getElementById("errorMessage");
 
 const teacherNameElement =
-    document.getElementById(
-        "teacherName"
-    );
+    document.getElementById("teacherName");
 
 const welcomeNameElement =
-    document.getElementById(
-        "welcomeName"
-    );
+    document.getElementById("welcomeName");
 
 const organizationNameElement =
-    document.getElementById(
-        "organizationName"
-    );
+    document.getElementById("organizationName");
 
 const totalClassesElement =
-    document.getElementById(
-        "totalClasses"
-    );
+    document.getElementById("totalClasses");
 
 const totalStudentsElement =
-    document.getElementById(
-        "totalStudents"
-    );
+    document.getElementById("totalStudents");
 
 const presentTodayElement =
-    document.getElementById(
-        "presentToday"
-    );
+    document.getElementById("presentToday");
 
 const lateTodayElement =
-    document.getElementById(
-        "lateToday"
-    );
+    document.getElementById("lateToday");
 
 const classListElement =
-    document.getElementById(
-        "classList"
-    );
+    document.getElementById("classList");
 
 const attendanceDateInput =
-    document.getElementById(
-        "attendanceDate"
-    );
+    document.getElementById("attendanceDate");
 
 const registerClassName =
-    document.getElementById(
-        "registerClassName"
-    );
+    document.getElementById("registerClassName");
 
 const registerDescription =
-    document.getElementById(
-        "registerDescription"
-    );
+    document.getElementById("registerDescription");
 
 const attendanceRegister =
-    document.getElementById(
-        "attendanceRegister"
-    );
+    document.getElementById("attendanceRegister");
 
 const registerToolbar =
-    document.getElementById(
-        "registerToolbar"
-    );
+    document.getElementById("registerToolbar");
 
 const toolbarInfo =
-    document.getElementById(
-        "toolbarInfo"
-    );
+    document.getElementById("toolbarInfo");
 
 const saveAttendanceButton =
-    document.getElementById(
-        "saveAttendanceButton"
-    );
+    document.getElementById("saveAttendanceButton");
 
 const markAllPresentButton =
-    document.getElementById(
-        "markAllPresent"
-    );
+    document.getElementById("markAllPresent");
 
 const markAllAbsentButton =
-    document.getElementById(
-        "markAllAbsent"
-    );
+    document.getElementById("markAllAbsent");
 
 const logoutButton =
-    document.getElementById(
-        "logoutButton"
-    );
+    document.getElementById("logoutButton");
 
 
 /* =========================================================
@@ -206,19 +158,12 @@ document.addEventListener(
     "DOMContentLoaded",
     () => {
 
-        const today =
-            getLocalDateString();
-
         if (attendanceDateInput) {
-
             attendanceDateInput.value =
-                today;
-
+                getLocalDateString();
         }
 
-
         startFormMasterDashboard();
-
     }
 );
 
@@ -230,9 +175,8 @@ document.addEventListener(
 function startFormMasterDashboard() {
 
     console.log(
-        "🔐 Checking Form Master authentication..."
+        "🔐 Checking Firebase authentication..."
     );
-
 
     onAuthStateChanged(
         auth,
@@ -243,64 +187,75 @@ function startFormMasterDashboard() {
                 if (!user) {
 
                     console.log(
-                        "⚠️ No authenticated Form Master."
+                        "⚠️ No authenticated user."
                     );
 
                     window.location.href =
                         "login.html";
 
                     return;
-
                 }
 
-
-                currentUser =
-                    user;
-
+                currentUser = user;
 
                 console.log(
-                    "✅ Form Master authenticated:",
+                    "✅ Logged in user:",
                     user.email
                 );
 
+                console.log(
+                    "🆔 Firebase UID:",
+                    user.uid
+                );
+
+
+                /* =========================================
+                   LOAD STAFF PROFILE
+                ========================================= */
 
                 await loadTeacherProfile();
 
 
                 if (!currentTeacher) {
-
                     return;
-
                 }
 
+
+                /* =========================================
+                   LOAD ORGANIZATION
+                ========================================= */
 
                 await loadOrganization();
 
 
                 if (!currentOrganization) {
-
                     return;
-
                 }
 
 
+                /* =========================================
+                   LOAD CLASSES
+                ========================================= */
+
                 await loadAssignedClasses();
 
+
+                /* =========================================
+                   STATISTICS
+                ========================================= */
 
                 await loadTodayDashboardStatistics();
 
 
                 renderClasses();
 
-
                 updateStatistics();
-
 
                 hideLoading();
 
 
                 console.log(
-                    "✅ Form Master dashboard ready."
+                    "✅ Virello Form Master dashboard ready."
                 );
 
             }
@@ -312,7 +267,6 @@ function startFormMasterDashboard() {
                     error
                 );
 
-
                 showError(
                     error.message ||
                     "Unable to load Form Master dashboard."
@@ -322,7 +276,6 @@ function startFormMasterDashboard() {
 
         }
     );
-
 }
 
 
@@ -333,7 +286,7 @@ function startFormMasterDashboard() {
 async function loadTeacherProfile() {
 
     console.log(
-        "👨‍🏫 Loading Form Master profile..."
+        "👨‍🏫 Searching for Virello staff profile..."
     );
 
 
@@ -344,11 +297,18 @@ async function loadTeacherProfile() {
         );
 
 
-    /*
-       First try userUid.
-    */
+    let teacherSnapshot = null;
 
-    let teacherSnapshot =
+
+    /* =========================================
+       1. SEARCH userUid
+    ========================================= */
+
+    console.log(
+        "🔎 Searching staff.userUid..."
+    );
+
+    teacherSnapshot =
         await getDocs(
             query(
                 staffRef,
@@ -361,12 +321,15 @@ async function loadTeacherProfile() {
         );
 
 
-    /*
-       If userUid is not stored,
-       try uid.
-    */
+    /* =========================================
+       2. SEARCH uid
+    ========================================= */
 
     if (teacherSnapshot.empty) {
+
+        console.log(
+            "🔎 Searching staff.uid..."
+        );
 
         teacherSnapshot =
             await getDocs(
@@ -379,16 +342,45 @@ async function loadTeacherProfile() {
                     )
                 )
             );
-
     }
 
 
-    /*
-       If still not found, try email.
-    */
+    /* =========================================
+       3. SEARCH userId
+    ========================================= */
 
-    if (teacherSnapshot.empty &&
-        currentUser.email) {
+    if (teacherSnapshot.empty) {
+
+        console.log(
+            "🔎 Searching staff.userId..."
+        );
+
+        teacherSnapshot =
+            await getDocs(
+                query(
+                    staffRef,
+                    where(
+                        "userId",
+                        "==",
+                        currentUser.uid
+                    )
+                )
+            );
+    }
+
+
+    /* =========================================
+       4. SEARCH EMAIL
+    ========================================= */
+
+    if (
+        teacherSnapshot.empty &&
+        currentUser.email
+    ) {
+
+        console.log(
+            "🔎 Searching staff.email..."
+        );
 
         teacherSnapshot =
             await getDocs(
@@ -401,20 +393,57 @@ async function loadTeacherProfile() {
                     )
                 )
             );
-
     }
 
+
+    /* =========================================
+       5. EMAIL LOWERCASE
+    ========================================= */
+
+    if (
+        teacherSnapshot.empty &&
+        currentUser.email
+    ) {
+
+        console.log(
+            "🔎 Searching staff.emailLower..."
+        );
+
+        teacherSnapshot =
+            await getDocs(
+                query(
+                    staffRef,
+                    where(
+                        "emailLower",
+                        "==",
+                        currentUser.email.toLowerCase()
+                    )
+                )
+            );
+    }
+
+
+    /* =========================================
+       NO STAFF PROFILE
+    ========================================= */
 
     if (teacherSnapshot.empty) {
 
+        console.error(
+            "❌ No staff profile found."
+        );
+
         showError(
-            "Your Form Master staff profile could not be found. Please make sure your staff account is connected to your Virello login."
+            "Your Virello staff profile could not be connected to this login. The administrator must first create your staff account using the same email address as your Virello login."
         );
 
         return;
-
     }
 
+
+    /* =========================================
+       GET FIRST STAFF DOCUMENT
+    ========================================= */
 
     const teacherDocument =
         teacherSnapshot.docs[0];
@@ -429,6 +458,122 @@ async function loadTeacherProfile() {
 
     };
 
+
+    console.log(
+        "✅ Staff profile found:",
+        currentTeacher
+    );
+
+
+    /* =========================================
+       AUTOMATICALLY CONNECT STAFF TO LOGIN
+    ========================================= */
+
+    const connectionData = {};
+
+
+    if (
+        currentTeacher.userUid !==
+        currentUser.uid
+    ) {
+
+        connectionData.userUid =
+            currentUser.uid;
+    }
+
+
+    if (
+        currentTeacher.uid !==
+        currentUser.uid
+    ) {
+
+        connectionData.uid =
+            currentUser.uid;
+    }
+
+
+    if (
+        currentTeacher.userId !==
+        currentUser.uid
+    ) {
+
+        connectionData.userId =
+            currentUser.uid;
+    }
+
+
+    if (
+        currentUser.email &&
+        currentTeacher.email !==
+        currentUser.email
+    ) {
+
+        connectionData.email =
+            currentUser.email;
+    }
+
+
+    if (
+        currentUser.email &&
+        currentTeacher.emailLower !==
+        currentUser.email.toLowerCase()
+    ) {
+
+        connectionData.emailLower =
+            currentUser.email.toLowerCase();
+    }
+
+
+    if (
+        Object.keys(connectionData).length
+    ) {
+
+        console.log(
+            "🔗 Connecting staff profile to Firebase login..."
+        );
+
+        try {
+
+            await updateDoc(
+                doc(
+                    db,
+                    "staff",
+                    currentTeacher.id
+                ),
+                connectionData
+            );
+
+
+            currentTeacher = {
+
+                ...currentTeacher,
+
+                ...connectionData
+
+            };
+
+
+            console.log(
+                "✅ Staff profile successfully connected to login."
+            );
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "⚠️ Could not automatically update staff profile:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =========================================
+       DISPLAY TEACHER NAME
+    ========================================= */
 
     const name =
         getTeacherName(
@@ -451,12 +596,6 @@ async function loadTeacherProfile() {
 
     }
 
-
-    console.log(
-        "✅ Form Master profile loaded:",
-        currentTeacher
-    );
-
 }
 
 
@@ -467,62 +606,98 @@ async function loadTeacherProfile() {
 async function loadOrganization() {
 
     console.log(
-        "🏢 Loading organization..."
+        "🏢 Loading Form Master organization..."
     );
 
 
     let organizationId =
         currentTeacher.organizationId ||
+        currentTeacher.orgId ||
+        currentTeacher.organizationID ||
         null;
 
 
-    /*
-       If staff has organizationId,
-       use it directly.
-    */
+    /* =========================================
+       ORGANIZATION ID EXISTS
+    ========================================= */
 
     if (organizationId) {
 
-        const organizationRef =
-            doc(
-                db,
-                "organizations",
-                organizationId
+        console.log(
+            "🏢 Organization ID:",
+            organizationId
+        );
+
+
+        try {
+
+            const organizationDocument =
+                await getDoc(
+                    doc(
+                        db,
+                        "organizations",
+                        organizationId
+                    )
+                );
+
+
+            if (
+                organizationDocument.exists()
+            ) {
+
+                currentOrganization = {
+
+                    id:
+                        organizationDocument.id,
+
+                    ...organizationDocument.data()
+
+                };
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "❌ Organization lookup failed:",
+                error
             );
 
-
-        /*
-           Instead of getDoc dependency,
-           query organizations by document id
-           through getDocs is avoided here.
-
-           We therefore load by owner when needed.
-        */
+        }
 
     }
 
 
-    /*
-       Find organization through
-       current teacher organizationId.
-    */
+    /* =========================================
+       FALLBACK ownerUid
+    ========================================= */
 
-    const organizationsRef =
-        collection(
-            db,
-            "organizations"
+    if (
+        !currentOrganization &&
+        currentTeacher.ownerUid
+    ) {
+
+        console.log(
+            "🔎 Searching organization by ownerUid..."
         );
 
 
-    if (organizationId) {
+        const organizationsRef =
+            collection(
+                db,
+                "organizations"
+            );
+
 
         const organizationQuery =
             query(
                 organizationsRef,
                 where(
-                    "__name__",
+                    "ownerUid",
                     "==",
-                    organizationId
+                    currentTeacher.ownerUid
                 )
             );
 
@@ -533,7 +708,9 @@ async function loadOrganization() {
             );
 
 
-        if (!organizationSnapshot.empty) {
+        if (
+            !organizationSnapshot.empty
+        ) {
 
             const organizationDocument =
                 organizationSnapshot.docs[0];
@@ -553,79 +730,98 @@ async function loadOrganization() {
     }
 
 
-    /*
-       Fallback:
-       find organization using
-       ownerUid if available.
-    */
+    /* =========================================
+       FALLBACK organization owner
+    ========================================= */
 
-    if (!currentOrganization) {
+    if (
+        !currentOrganization &&
+        currentTeacher.organization
+    ) {
 
-        if (currentTeacher.ownerUid) {
-
-            const organizationQuery =
-                query(
-                    organizationsRef,
-                    where(
-                        "ownerUid",
-                        "==",
-                        currentTeacher.ownerUid
-                    )
-                );
+        const organizationsRef =
+            collection(
+                db,
+                "organizations"
+            );
 
 
-            const organizationSnapshot =
-                await getDocs(
-                    organizationQuery
-                );
+        const organizationQuery =
+            query(
+                organizationsRef,
+                where(
+                    "name",
+                    "==",
+                    currentTeacher.organization
+                )
+            );
 
 
-            if (!organizationSnapshot.empty) {
+        const organizationSnapshot =
+            await getDocs(
+                organizationQuery
+            );
 
-                const organizationDocument =
-                    organizationSnapshot.docs[0];
+
+        if (
+            !organizationSnapshot.empty
+        ) {
+
+            const organizationDocument =
+                organizationSnapshot.docs[0];
 
 
-                currentOrganization = {
+            currentOrganization = {
 
-                    id:
-                        organizationDocument.id,
+                id:
+                    organizationDocument.id,
 
-                    ...organizationDocument.data()
+                ...organizationDocument.data()
 
-                };
-
-            }
+            };
 
         }
 
     }
 
 
+    /* =========================================
+       ORGANIZATION NOT FOUND
+    ========================================= */
+
     if (!currentOrganization) {
 
         showError(
-            "No organization could be found for this Form Master."
+            "Your staff account was found, but it is not connected to a Virello organization. Please make sure your staff profile has an organizationId."
         );
 
         return;
-
     }
+
+
+    /* =========================================
+       DISPLAY ORGANIZATION
+    ========================================= */
+
+    const organizationName =
+        currentOrganization.organizationName ||
+        currentOrganization.name ||
+        currentOrganization.schoolName ||
+        "Organization";
 
 
     if (organizationNameElement) {
 
         organizationNameElement.textContent =
-            currentOrganization.organizationName ||
-            currentOrganization.name ||
-            "Organization";
+            organizationName;
 
     }
 
 
     console.log(
         "✅ Organization loaded:",
-        currentOrganization.id
+        currentOrganization.id,
+        organizationName
     );
 
 }
@@ -638,7 +834,8 @@ async function loadOrganization() {
 async function loadAssignedClasses() {
 
     console.log(
-        "📚 Loading assigned classes..."
+        "📚 Loading classes assigned to:",
+        currentTeacher.id
     );
 
 
@@ -649,35 +846,104 @@ async function loadAssignedClasses() {
         );
 
 
-    /*
-       Classes are assigned using
-       formMasterId = staff document ID.
-    */
+    let snapshot = null;
 
-    const classQuery =
-        query(
-            classesRef,
 
-            where(
-                "organizationId",
-                "==",
-                currentOrganization.id
-            ),
+    /* =========================================
+       PRIMARY:
+       formMasterId
+    ========================================= */
 
-            where(
-                "formMasterId",
-                "==",
-                currentTeacher.id
-            )
+    try {
 
+        const classQuery =
+            query(
+                classesRef,
+
+                where(
+                    "organizationId",
+                    "==",
+                    currentOrganization.id
+                ),
+
+                where(
+                    "formMasterId",
+                    "==",
+                    currentTeacher.id
+                )
+            );
+
+
+        snapshot =
+            await getDocs(
+                classQuery
+            );
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "⚠️ Primary class query failed:",
+            error
         );
 
+        snapshot = {
+            empty: true,
+            docs: []
+        };
 
-    const snapshot =
-        await getDocs(
-            classQuery
-        );
+    }
 
+
+    /* =========================================
+       FALLBACK:
+       formMaster
+    ========================================= */
+
+    if (snapshot.empty) {
+
+        try {
+
+            const classQuery =
+                query(
+                    classesRef,
+
+                    where(
+                        "organizationId",
+                        "==",
+                        currentOrganization.id
+                    ),
+
+                    where(
+                        "formMaster",
+                        "==",
+                        currentTeacher.id
+                    )
+                );
+
+
+            snapshot =
+                await getDocs(
+                    classQuery
+                );
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "⚠️ formMaster class query failed."
+            );
+
+        }
+
+    }
+
+
+    /* =========================================
+       BUILD CLASS LIST
+    ========================================= */
 
     assignedClasses = [];
 
@@ -701,50 +967,61 @@ async function loadAssignedClasses() {
     );
 
 
-    /*
-       Load student counts.
-    */
+    /* =========================================
+       LOAD STUDENT COUNTS
+    ========================================= */
 
     for (
         const classItem
         of assignedClasses
     ) {
 
-        const studentsRef =
-            collection(
-                db,
-                "students"
+        try {
+
+            const studentsQuery =
+                query(
+
+                    collection(
+                        db,
+                        "students"
+                    ),
+
+                    where(
+                        "organizationId",
+                        "==",
+                        currentOrganization.id
+                    ),
+
+                    where(
+                        "classId",
+                        "==",
+                        classItem.id
+                    )
+
+                );
+
+
+            const studentsSnapshot =
+                await getDocs(
+                    studentsQuery
+                );
+
+
+            classItem.studentCount =
+                studentsSnapshot.size;
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "⚠️ Could not count students:",
+                error
             );
 
+            classItem.studentCount = 0;
 
-        const studentsQuery =
-            query(
-
-                studentsRef,
-
-                where(
-                    "organizationId",
-                    "==",
-                    currentOrganization.id
-                ),
-
-                where(
-                    "classId",
-                    "==",
-                    classItem.id
-                )
-
-            );
-
-
-        const studentsSnapshot =
-            await getDocs(
-                studentsQuery
-            );
-
-
-        classItem.studentCount =
-            studentsSnapshot.size;
+        }
 
     }
 
@@ -752,10 +1029,12 @@ async function loadAssignedClasses() {
     assignedClasses.sort(
         (a, b) =>
             getGradeNumber(
-                a.className
+                a.className ||
+                a.name
             ) -
             getGradeNumber(
-                b.className
+                b.className ||
+                b.name
             )
     );
 
@@ -775,31 +1054,23 @@ async function loadAssignedClasses() {
 function renderClasses() {
 
     if (!classListElement) {
-
         return;
-
     }
 
 
-    classListElement.innerHTML =
-        "";
+    classListElement.innerHTML = "";
 
 
     if (!assignedClasses.length) {
 
         classListElement.innerHTML = `
-
             <div class="no-classes">
-
                 No classes are currently assigned
                 to you as Form Master.
-
             </div>
-
         `;
 
         return;
-
     }
 
 
@@ -837,28 +1108,21 @@ function renderClasses() {
                 classItem.id;
 
 
+            const className =
+                classItem.className ||
+                classItem.name ||
+                "Class";
+
+
             button.innerHTML = `
-
                 <div class="class-item-name">
-
-                    ${escapeHtml(
-                        classItem.className ||
-                        "Class"
-                    )}
-
+                    ${escapeHtml(className)}
                 </div>
 
                 <span class="class-item-count">
-
                     ${classItem.studentCount}
-                    Student${
-                        classItem.studentCount === 1
-                            ? ""
-                            : "s"
-                    }
-
+                    Student${classItem.studentCount === 1 ? "" : "s"}
                 </span>
-
             `;
 
 
@@ -889,9 +1153,7 @@ if (classListElement) {
 
 
             if (!button) {
-
                 return;
-
             }
 
 
@@ -908,9 +1170,7 @@ if (classListElement) {
 
 
             if (!classItem) {
-
                 return;
-
             }
 
 
@@ -933,8 +1193,8 @@ async function selectClass(
 ) {
 
     console.log(
-        "📚 Selecting class:",
-        classItem.className
+        "📚 Selected class:",
+        classItem
     );
 
 
@@ -945,10 +1205,16 @@ async function selectClass(
     renderClasses();
 
 
+    const className =
+        classItem.className ||
+        classItem.name ||
+        "Class";
+
+
     if (registerClassName) {
 
         registerClassName.textContent =
-            classItem.className;
+            className;
 
     }
 
@@ -956,7 +1222,7 @@ async function selectClass(
     if (registerDescription) {
 
         registerDescription.textContent =
-            `Attendance register for ${classItem.className}.`;
+            `Attendance register for ${className}.`;
 
     }
 
@@ -979,12 +1245,9 @@ async function selectClass(
 
     await loadStudents();
 
-
     await loadAttendanceForSelectedDate();
 
-
     renderAttendanceRegister();
-
 
     updateStatistics();
 
@@ -1002,27 +1265,22 @@ async function loadStudents() {
         selectedStudents = [];
 
         return;
-
     }
 
 
     console.log(
         "👨‍🎓 Loading students:",
-        selectedClass.className
+        selectedClass.id
     );
-
-
-    const studentsRef =
-        collection(
-            db,
-            "students"
-        );
 
 
     const studentsQuery =
         query(
 
-            studentsRef,
+            collection(
+                db,
+                "students"
+            ),
 
             where(
                 "organizationId",
@@ -1066,9 +1324,7 @@ async function loadStudents() {
                 status ===
                 "inactive"
             ) {
-
                 return;
-
             }
 
 
@@ -1089,10 +1345,12 @@ async function loadStudents() {
         (a, b) =>
             String(
                 a.fullName ||
+                a.name ||
                 ""
             ).localeCompare(
                 String(
                     b.fullName ||
+                    b.name ||
                     ""
                 )
             )
@@ -1117,9 +1375,7 @@ async function loadAttendanceForSelectedDate() {
         !selectedClass ||
         !attendanceDateInput
     ) {
-
         return;
-
     }
 
 
@@ -1128,34 +1384,21 @@ async function loadAttendanceForSelectedDate() {
 
 
     if (!date) {
-
         return;
-
     }
 
 
-    console.log(
-        "📅 Loading attendance:",
-        date
-    );
-
-
     attendanceMap = {};
-
     existingAttendance = {};
-
-
-    const attendanceRef =
-        collection(
-            db,
-            "attendance"
-        );
 
 
     const attendanceQuery =
         query(
 
-            attendanceRef,
+            collection(
+                db,
+                "attendance"
+            ),
 
             where(
                 "organizationId",
@@ -1196,9 +1439,7 @@ async function loadAttendanceForSelectedDate() {
 
 
             if (!studentId) {
-
                 return;
-
             }
 
 
@@ -1225,13 +1466,6 @@ async function loadAttendanceForSelectedDate() {
     );
 
 
-    /*
-       Students without a saved attendance
-       record are initially Present.
-
-       This makes the register faster to use.
-    */
-
     selectedStudents.forEach(
         student => {
 
@@ -1253,7 +1487,7 @@ async function loadAttendanceForSelectedDate() {
 
 
     console.log(
-        "📋 Existing attendance:",
+        "📋 Attendance records loaded:",
         Object.keys(
             existingAttendance
         ).length
@@ -1269,84 +1503,55 @@ async function loadAttendanceForSelectedDate() {
 function renderAttendanceRegister() {
 
     if (!attendanceRegister) {
-
         return;
-
     }
 
 
     if (!selectedClass) {
 
         attendanceRegister.innerHTML = `
-
             <div class="empty-register">
-
                 Select a class to view its students.
-
             </div>
-
         `;
 
         return;
-
     }
 
 
     if (!selectedStudents.length) {
 
         attendanceRegister.innerHTML = `
-
             <div class="empty-register">
-
                 No students have been added to
                 ${escapeHtml(
-                    selectedClass.className
+                    selectedClass.className ||
+                    selectedClass.name ||
+                    "this class"
                 )}
                 yet.
-
             </div>
-
         `;
 
         return;
-
     }
 
 
     attendanceRegister.innerHTML = `
-
         <table class="attendance-table">
 
             <thead>
-
                 <tr>
-
-                    <th>
-                        #
-                    </th>
-
-                    <th>
-                        Student
-                    </th>
-
-                    <th>
-                        Student ID
-                    </th>
-
-                    <th>
-                        Attendance Status
-                    </th>
-
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Student ID</th>
+                    <th>Attendance Status</th>
                 </tr>
-
             </thead>
 
-            <tbody id="attendanceTableBody">
-
-            </tbody>
+            <tbody id="attendanceTableBody"></tbody>
 
         </table>
-
     `;
 
 
@@ -1366,6 +1571,18 @@ function renderAttendanceRegister() {
                 "present";
 
 
+            const studentName =
+                student.fullName ||
+                student.name ||
+                "Unnamed Student";
+
+
+            const studentNumber =
+                student.studentId ||
+                student.studentNumber ||
+                "";
+
+
             const row =
                 document.createElement(
                     "tr"
@@ -1373,49 +1590,27 @@ function renderAttendanceRegister() {
 
 
             row.innerHTML = `
-
                 <td class="student-number">
-
                     ${index + 1}
-
                 </td>
 
-
                 <td>
-
                     <div class="student-name">
-
-                        ${escapeHtml(
-                            student.fullName ||
-                            "Unnamed Student"
-                        )}
-
+                        ${escapeHtml(studentName)}
                     </div>
-
                 </td>
-
 
                 <td>
-
                     <div class="student-id">
-
-                        ${escapeHtml(
-                            student.studentId ||
-                            ""
-                        )}
-
+                        ${escapeHtml(studentNumber)}
                     </div>
-
                 </td>
-
 
                 <td>
 
                     <div
                         class="status-buttons"
-                        data-student-id="${escapeHtml(
-                            student.id
-                        )}"
+                        data-student-id="${escapeHtml(student.id)}"
                     >
 
                         <button
@@ -1430,7 +1625,6 @@ function renderAttendanceRegister() {
                             Present
                         </button>
 
-
                         <button
                             type="button"
                             class="status-button late ${
@@ -1442,7 +1636,6 @@ function renderAttendanceRegister() {
                         >
                             Late
                         </button>
-
 
                         <button
                             type="button"
@@ -1459,7 +1652,6 @@ function renderAttendanceRegister() {
                     </div>
 
                 </td>
-
             `;
 
 
@@ -1477,7 +1669,7 @@ function renderAttendanceRegister() {
 
 
 /* =========================================================
-   STATUS BUTTON CLICK
+   STATUS BUTTONS
 ========================================================= */
 
 if (attendanceRegister) {
@@ -1493,9 +1685,7 @@ if (attendanceRegister) {
 
 
             if (!button) {
-
                 return;
-
             }
 
 
@@ -1506,9 +1696,7 @@ if (attendanceRegister) {
 
 
             if (!container) {
-
                 return;
-
             }
 
 
@@ -1517,32 +1705,28 @@ if (attendanceRegister) {
 
 
             const status =
-                button.dataset.status;
+                normalizeStatus(
+                    button.dataset.status
+                );
 
 
             attendanceMap[
                 studentId
             ] =
-                normalizeStatus(
-                    status
-                );
+                status;
 
 
-            const buttons =
-                container.querySelectorAll(
+            container
+                .querySelectorAll(
                     "[data-status]"
+                )
+                .forEach(
+                    item => {
+                        item.classList.remove(
+                            "active"
+                        );
+                    }
                 );
-
-
-            buttons.forEach(
-                item => {
-
-                    item.classList.remove(
-                        "active"
-                    );
-
-                }
-            );
 
 
             button.classList.add(
@@ -1569,9 +1753,7 @@ if (attendanceDateInput) {
         async () => {
 
             if (!selectedClass) {
-
                 return;
-
             }
 
 
@@ -1583,9 +1765,7 @@ if (attendanceDateInput) {
 
                 await loadAttendanceForSelectedDate();
 
-
                 renderAttendanceRegister();
-
 
                 updateStatistics();
 
@@ -1594,14 +1774,13 @@ if (attendanceDateInput) {
             catch (error) {
 
                 console.error(
-                    "❌ Date attendance load error:",
+                    "❌ Attendance date error:",
                     error
                 );
 
-
                 showError(
                     error.message ||
-                    "Unable to load attendance for this date."
+                    "Unable to load attendance."
                 );
 
             }
@@ -1696,7 +1875,6 @@ if (saveAttendanceButton) {
                 );
 
                 return;
-
             }
 
 
@@ -1711,7 +1889,6 @@ if (saveAttendanceButton) {
                 );
 
                 return;
-
             }
 
 
@@ -1722,7 +1899,6 @@ if (saveAttendanceButton) {
                 );
 
                 return;
-
             }
 
 
@@ -1736,8 +1912,7 @@ if (saveAttendanceButton) {
 
             try {
 
-                let saved =
-                    0;
+                let saved = 0;
 
 
                 for (
@@ -1769,7 +1944,9 @@ if (saveAttendanceButton) {
                             selectedClass.id,
 
                         className:
-                            selectedClass.className,
+                            selectedClass.className ||
+                            selectedClass.name ||
+                            "Class",
 
                         studentId:
                             student.id,
@@ -1779,10 +1956,12 @@ if (saveAttendanceButton) {
 
                         studentName:
                             student.fullName ||
+                            student.name ||
                             "Student",
 
                         studentNumber:
                             student.studentId ||
+                            student.studentNumber ||
                             "",
 
                         staffId:
@@ -1808,11 +1987,6 @@ if (saveAttendanceButton) {
                     };
 
 
-                    /*
-                       Create check-in time for
-                       Present / Late records.
-                    */
-
                     if (
                         status === "present" ||
                         status === "late"
@@ -1830,11 +2004,6 @@ if (saveAttendanceButton) {
 
                     }
 
-
-                    /*
-                       If the student is absent,
-                       do not create a check-in.
-                    */
 
                     if (
                         status === "absent"
@@ -1884,19 +2053,11 @@ if (saveAttendanceButton) {
                 }
 
 
-                /*
-                   Reload attendance so the screen
-                   exactly matches Firestore.
-                */
-
                 await loadAttendanceForSelectedDate();
-
 
                 renderAttendanceRegister();
 
-
                 await loadTodayDashboardStatistics();
-
 
                 updateStatistics();
 
@@ -1913,7 +2074,6 @@ if (saveAttendanceButton) {
                     "❌ Save attendance error:",
                     error
                 );
-
 
                 alert(
                     error.message ||
@@ -1939,25 +2099,19 @@ if (saveAttendanceButton) {
 
 
 /* =========================================================
-   TODAY DASHBOARD STATISTICS
+   TODAY STATISTICS
 ========================================================= */
 
 async function loadTodayDashboardStatistics() {
 
     if (!currentOrganization) {
-
         return;
-
     }
 
 
     const today =
         getLocalDateString();
 
-
-    /*
-       Total students across assigned classes.
-    */
 
     const total =
         assignedClasses.reduce(
@@ -1974,34 +2128,22 @@ async function loadTodayDashboardStatistics() {
         );
 
 
-    let present =
-        0;
+    let present = 0;
+    let late = 0;
 
-    let late =
-        0;
-
-
-    /*
-       Count today's records across
-       the Form Master's classes.
-    */
 
     for (
         const classItem
         of assignedClasses
     ) {
 
-        const attendanceRef =
-            collection(
-                db,
-                "attendance"
-            );
-
-
         const attendanceQuery =
             query(
 
-                attendanceRef,
+                collection(
+                    db,
+                    "attendance"
+                ),
 
                 where(
                     "organizationId",
@@ -2033,33 +2175,23 @@ async function loadTodayDashboardStatistics() {
         snapshot.forEach(
             attendanceDocument => {
 
-                const record =
-                    attendanceDocument.data();
-
-
                 const status =
                     normalizeStatus(
-                        record.status
+                        attendanceDocument.data().status
                     );
 
 
                 if (
-                    status ===
-                    "present"
+                    status === "present"
                 ) {
-
                     present++;
-
                 }
 
 
                 if (
-                    status ===
-                    "late"
+                    status === "late"
                 ) {
-
                     late++;
-
                 }
 
             }
@@ -2068,42 +2200,22 @@ async function loadTodayDashboardStatistics() {
     }
 
 
-    /*
-       Store dashboard values.
-    */
-
     if (totalStudentsElement) {
-
         totalStudentsElement.textContent =
             total;
-
     }
 
 
     if (presentTodayElement) {
-
         presentTodayElement.textContent =
             present;
-
     }
 
 
     if (lateTodayElement) {
-
         lateTodayElement.textContent =
             late;
-
     }
-
-
-    console.log(
-        "📊 Form Master statistics:",
-        {
-            total,
-            present,
-            late
-        }
-    );
 
 }
 
@@ -2145,11 +2257,8 @@ function updateStatistics() {
     }
 
 
-    let present =
-        0;
-
-    let late =
-        0;
+    let present = 0;
+    let late = 0;
 
 
     Object.values(
@@ -2157,23 +2266,12 @@ function updateStatistics() {
     ).forEach(
         status => {
 
-            if (
-                status ===
-                "present"
-            ) {
-
+            if (status === "present") {
                 present++;
-
             }
 
-
-            if (
-                status ===
-                "late"
-            ) {
-
+            if (status === "late") {
                 late++;
-
             }
 
         }
@@ -2199,15 +2297,13 @@ function updateStatistics() {
 
 
 /* =========================================================
-   TOOLBAR INFO
+   TOOLBAR
 ========================================================= */
 
 function updateToolbarInfo() {
 
     if (!toolbarInfo) {
-
         return;
-
     }
 
 
@@ -2220,8 +2316,7 @@ function updateToolbarInfo() {
             attendanceMap
         ).filter(
             status =>
-                status ===
-                "present"
+                status === "present"
         ).length;
 
 
@@ -2230,8 +2325,7 @@ function updateToolbarInfo() {
             attendanceMap
         ).filter(
             status =>
-                status ===
-                "late"
+                status === "late"
         ).length;
 
 
@@ -2240,8 +2334,7 @@ function updateToolbarInfo() {
             attendanceMap
         ).filter(
             status =>
-                status ===
-                "absent"
+                status === "absent"
         ).length;
 
 
@@ -2255,36 +2348,23 @@ function updateToolbarInfo() {
    NORMALIZE STATUS
 ========================================================= */
 
-function normalizeStatus(
-    status
-) {
+function normalizeStatus(status) {
 
     const value =
         String(
-            status ||
-            ""
+            status || ""
         )
-            .trim()
-            .toLowerCase();
+        .trim()
+        .toLowerCase();
 
 
-    if (
-        value ===
-        "late"
-    ) {
-
+    if (value === "late") {
         return "late";
-
     }
 
 
-    if (
-        value ===
-        "absent"
-    ) {
-
+    if (value === "absent") {
         return "absent";
-
     }
 
 
@@ -2294,17 +2374,13 @@ function normalizeStatus(
 
 
 /* =========================================================
-   GET TEACHER NAME
+   TEACHER NAME
 ========================================================= */
 
-function getTeacherName(
-    teacher
-) {
+function getTeacherName(teacher) {
 
     if (!teacher) {
-
         return "Form Master";
-
     }
 
 
@@ -2330,26 +2406,21 @@ function getTeacherName(
 
 
 /* =========================================================
-   GET GRADE NUMBER
+   GRADE NUMBER
 ========================================================= */
 
-function getGradeNumber(
-    className
-) {
+function getGradeNumber(className) {
 
     const match =
         String(
-            className ||
-            ""
+            className || ""
         ).match(
             /(\d+)/
         );
 
 
     if (!match) {
-
         return 999;
-
     }
 
 
@@ -2361,7 +2432,7 @@ function getGradeNumber(
 
 
 /* =========================================================
-   GET LOCAL DATE
+   LOCAL DATE
 ========================================================= */
 
 function getLocalDateString(
@@ -2399,33 +2470,31 @@ function getLocalDateString(
    ESCAPE HTML
 ========================================================= */
 
-function escapeHtml(
-    value
-) {
+function escapeHtml(value) {
 
     return String(
         value ?? ""
     )
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
 
 }
 
@@ -2503,9 +2572,7 @@ function hideLoading() {
    SHOW ERROR
 ========================================================= */
 
-function showError(
-    message
-) {
+function showError(message) {
 
     console.error(
         "❌ Virello Form Master Error:",
