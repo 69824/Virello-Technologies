@@ -7,6 +7,7 @@
     <title>Virello Technologies | Digital Attendance</title>
 
     <style>
+
         * {
             margin: 0;
             padding: 0;
@@ -66,19 +67,50 @@
             margin-top: 3px;
         }
 
-        .header-login {
-            text-decoration: none;
-            color: #2563eb;
-            font-size: 14px;
-            font-weight: bold;
-            border: 1px solid #2563eb;
-            padding: 10px 18px;
-            border-radius: 8px;
+        /* =========================================
+           HEADER LOGIN BUTTONS
+        ========================================= */
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .header-login:hover {
+        .header-login {
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 10px 18px;
+            border-radius: 8px;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        /* Organization Login */
+
+        .organization-login {
+            color: #2563eb;
+            border: 1px solid #2563eb;
+            background: #ffffff;
+        }
+
+        .organization-login:hover {
             background: #2563eb;
             color: white;
+        }
+
+        /* Form Master Login */
+
+        .form-master-login {
+            color: white;
+            background: #111827;
+            border: 1px solid #111827;
+        }
+
+        .form-master-login:hover {
+            background: #2563eb;
+            border-color: #2563eb;
         }
 
         /* =========================================
@@ -609,6 +641,7 @@
                 grid-template-columns: 1fr;
                 max-width: 500px;
             }
+
         }
 
         @media (max-width: 600px) {
@@ -617,9 +650,13 @@
                 padding: 15px 18px;
             }
 
+            .header-actions {
+                gap: 6px;
+            }
+
             .header-login {
-                padding: 8px 12px;
-                font-size: 12px;
+                padding: 8px 10px;
+                font-size: 11px;
             }
 
             .logo-text h2 {
@@ -653,7 +690,33 @@
             .payment-box {
                 padding: 25px 18px;
             }
+
         }
+
+        @media (max-width: 450px) {
+
+            .logo-icon {
+                width: 38px;
+                height: 38px;
+                font-size: 18px;
+            }
+
+            .logo-text h2 {
+                font-size: 15px;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header-login {
+                text-align: center;
+                padding: 7px 9px;
+            }
+
+        }
+
     </style>
 </head>
 
@@ -685,9 +748,33 @@
 
         </div>
 
-        <a href="login.html" class="header-login">
-            Organization Login
-        </a>
+
+        <!-- =====================================
+             LOGIN OPTIONS
+        ====================================== -->
+
+        <div class="header-actions">
+
+            <!-- ORGANIZATION LOGIN -->
+
+            <a
+                href="login.html"
+                class="header-login organization-login"
+            >
+                Organization Login
+            </a>
+
+
+            <!-- FORM MASTER LOGIN -->
+
+            <a
+                href="form-master-login.html"
+                class="header-login form-master-login"
+            >
+                Form Master Login
+            </a>
+
+        </div>
 
     </header>
 
@@ -879,9 +966,7 @@
         <div class="pricing-grid">
 
 
-            <!-- =================================
-                 STARTER
-            ================================= -->
+            <!-- STARTER -->
 
             <div class="plan">
 
@@ -910,33 +995,13 @@
 
                 <ul class="plan-features">
 
-                    <li>
-                        Up to 10 staff
-                    </li>
-
-                    <li>
-                        Digital check-in
-                    </li>
-
-                    <li>
-                        Digital check-out
-                    </li>
-
-                    <li>
-                        Staff management
-                    </li>
-
-                    <li>
-                        Attendance history
-                    </li>
-
-                    <li>
-                        Basic attendance reports
-                    </li>
-
-                    <li>
-                        One organization
-                    </li>
+                    <li>Up to 10 staff</li>
+                    <li>Digital check-in</li>
+                    <li>Digital check-out</li>
+                    <li>Staff management</li>
+                    <li>Attendance history</li>
+                    <li>Basic attendance reports</li>
+                    <li>One organization</li>
 
                 </ul>
 
@@ -950,9 +1015,7 @@
             </div>
 
 
-            <!-- =================================
-                 PROFESSIONAL
-            ================================= -->
+            <!-- PROFESSIONAL -->
 
             <div class="plan popular">
 
@@ -985,37 +1048,14 @@
 
                 <ul class="plan-features">
 
-                    <li>
-                        Up to 50 staff
-                    </li>
-
-                    <li>
-                        Everything in Starter
-                    </li>
-
-                    <li>
-                        Late attendance tracking
-                    </li>
-
-                    <li>
-                        Absence tracking
-                    </li>
-
-                    <li>
-                        Advanced reports
-                    </li>
-
-                    <li>
-                        Monthly reports
-                    </li>
-
-                    <li>
-                        Staff attendance profiles
-                    </li>
-
-                    <li>
-                        Report export
-                    </li>
+                    <li>Up to 50 staff</li>
+                    <li>Everything in Starter</li>
+                    <li>Late attendance tracking</li>
+                    <li>Absence tracking</li>
+                    <li>Advanced reports</li>
+                    <li>Monthly reports</li>
+                    <li>Staff attendance profiles</li>
+                    <li>Report export</li>
 
                 </ul>
 
@@ -1029,9 +1069,7 @@
             </div>
 
 
-            <!-- =================================
-                 ENTERPRISE
-            ================================= -->
+            <!-- ENTERPRISE -->
 
             <div class="plan">
 
@@ -1060,37 +1098,14 @@
 
                 <ul class="plan-features">
 
-                    <li>
-                        Large staff capacity
-                    </li>
-
-                    <li>
-                        Everything in Professional
-                    </li>
-
-                    <li>
-                        Multiple departments
-                    </li>
-
-                    <li>
-                        Multiple branches
-                    </li>
-
-                    <li>
-                        Advanced organization reports
-                    </li>
-
-                    <li>
-                        Payroll-ready attendance data
-                    </li>
-
-                    <li>
-                        Priority support
-                    </li>
-
-                    <li>
-                        Custom requirements
-                    </li>
+                    <li>Large staff capacity</li>
+                    <li>Everything in Professional</li>
+                    <li>Multiple departments</li>
+                    <li>Multiple branches</li>
+                    <li>Advanced organization reports</li>
+                    <li>Payroll-ready attendance data</li>
+                    <li>Priority support</li>
+                    <li>Custom requirements</li>
 
                 </ul>
 
@@ -1136,11 +1151,7 @@
             <div
                 id="paymentMethods"
                 class="payment-methods"
-            >
-
-                <!-- METHODS ARE INSERTED BY JAVASCRIPT -->
-
-            </div>
+            ></div>
 
 
             <div class="payment-note">
@@ -1342,13 +1353,9 @@
 
     <script>
 
-        /*
-        =====================================================
-        VIRELLO DIGITAL ATTENDANCE
-        STEP 2
-        COUNTRY + PAYMENT METHOD DISPLAY
-        =====================================================
-        */
+        /* =========================================
+           COUNTRY + PAYMENT METHODS
+        ========================================= */
 
         function updatePaymentMethods() {
 
@@ -1368,9 +1375,7 @@
             paymentMethods.innerHTML = "";
 
 
-            /* =========================================
-               NO COUNTRY SELECTED
-            ========================================= */
+            /* NO COUNTRY */
 
             if (!country) {
 
@@ -1552,7 +1557,7 @@
 
 
         /* =========================================
-           SUBSCRIPTION BUTTON
+           SUBSCRIPTION
         ========================================= */
 
         function startSubscription(plan) {
@@ -1587,26 +1592,6 @@
                 return;
             }
 
-
-            /*
-            ================================================
-            TEMPORARY STEP 2 BEHAVIOUR
-
-            Later this button will take the organization to:
-
-            register.html
-
-            and pass:
-
-            plan
-            country
-
-            Example:
-
-            register.html?plan=Professional&country=gambia
-
-            ================================================
-            */
 
             window.location.href =
                 "register.html?plan=" +
