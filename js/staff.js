@@ -47,6 +47,7 @@ import {
 import {
     getAuth,
     createUserWithEmailAndPassword,
+    deleteUser,
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
@@ -61,6 +62,7 @@ import {
     setDoc,
     updateDoc,
     deleteDoc,
+    writeBatch,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
@@ -1013,302 +1015,97 @@ async function loadClasses() {
 
     classes = [];
 
-
     if (!organization?.id) {
         return;
     }
 
-
-    const classesRef =
-        collection(
-            db,
-            "classes"
-        );
-
+    const classesRef = collection(db, "classes");
 
     try {
 
-        /*
-         * ---------------------------------------------------
-         * LOAD EXISTING FIREBASE CLASSES
-         * ---------------------------------------------------
-         */
-
-        const q =
-            query(
-                classesRef,
-                where(
-                    "organizationId",
-                    "==",
-                    organization.id
-                )
-            );
-
-
-        const snapshot =
-            await getDocs(q);
-
-
-        snapshot.forEach(
-            item => {
-
-                classes.push({
-
-                    id:
-                        item.id,
-
-                    ...item.data()
-
-                });
-
-            }
+        const q = query(
+            classesRef,
+            where("organizationId", "==", organization.id)
         );
 
+        const snapshot = await getDocs(q);
 
-        /*
-         * ---------------------------------------------------
-         * VIRELLO STANDARD CLASS STRUCTURE
-         * ---------------------------------------------------
-         */
+        snapshot.forEach(item => {
+            classes.push({
+                id: item.id,
+                ...item.data()
+            });
+        });
 
         const standardClasses = [
-
-            {
-                id: "nursery-1",
-                name: "Nursery 1",
-                className: "Nursery 1",
-                level: 1
-            },
-
-            {
-                id: "nursery-2",
-                name: "Nursery 2",
-                className: "Nursery 2",
-                level: 2
-            },
-
-            {
-                id: "nursery-3",
-                name: "Nursery 3",
-                className: "Nursery 3",
-                level: 3
-            },
-
-            {
-                id: "grade-1",
-                name: "Grade 1",
-                className: "Grade 1",
-                level: 4
-            },
-
-            {
-                id: "grade-2",
-                name: "Grade 2",
-                className: "Grade 2",
-                level: 5
-            },
-
-            {
-                id: "grade-3",
-                name: "Grade 3",
-                className: "Grade 3",
-                level: 6
-            },
-
-            {
-                id: "grade-4",
-                name: "Grade 4",
-                className: "Grade 4",
-                level: 7
-            },
-
-            {
-                id: "grade-5",
-                name: "Grade 5",
-                className: "Grade 5",
-                level: 8
-            },
-
-            {
-                id: "grade-6",
-                name: "Grade 6",
-                className: "Grade 6",
-                level: 9
-            },
-
-            {
-                id: "grade-7",
-                name: "Grade 7",
-                className: "Grade 7",
-                level: 10
-            },
-
-            {
-                id: "grade-8",
-                name: "Grade 8",
-                className: "Grade 8",
-                level: 11
-            },
-
-            {
-                id: "grade-9",
-                name: "Grade 9",
-                className: "Grade 9",
-                level: 12
-            }
-
+            { id: "nursery-1", name: "Nursery 1", className: "Nursery 1", level: 1 },
+            { id: "nursery-2", name: "Nursery 2", className: "Nursery 2", level: 2 },
+            { id: "nursery-3", name: "Nursery 3", className: "Nursery 3", level: 3 },
+            { id: "grade-1", name: "Grade 1", className: "Grade 1", level: 4 },
+            { id: "grade-2", name: "Grade 2", className: "Grade 2", level: 5 },
+            { id: "grade-3", name: "Grade 3", className: "Grade 3", level: 6 },
+            { id: "grade-4", name: "Grade 4", className: "Grade 4", level: 7 },
+            { id: "grade-5", name: "Grade 5", className: "Grade 5", level: 8 },
+            { id: "grade-6", name: "Grade 6", className: "Grade 6", level: 9 },
+            { id: "grade-7", name: "Grade 7", className: "Grade 7", level: 10 },
+            { id: "grade-8", name: "Grade 8", className: "Grade 8", level: 11 },
+            { id: "grade-9", name: "Grade 9", className: "Grade 9", level: 12 }
         ];
 
+        standardClasses.forEach(standardClass => {
 
-        /*
-         * ---------------------------------------------------
-         * MERGE FIREBASE CLASSES WITH STANDARD CLASSES
-         * ---------------------------------------------------
-         */
+            const existing = classes.find(item => {
+                const existingName = String(
+                    item.className || item.name || ""
+                ).trim().toLowerCase();
 
-        standardClasses.forEach(
-            standardClass => {
+                return existingName === standardClass.name.toLowerCase();
+            });
 
-                const existing =
-                    classes.find(
-                        item => {
-
-                            const existingName =
-                                String(
-                                    item.className ||
-                                    item.name ||
-                                    ""
-                                )
-                                    .trim()
-                                    .toLowerCase();
-
-
-                            return (
-                                existingName ===
-                                standardClass.name
-                                    .toLowerCase()
-                            );
-
-                        }
-                    );
-
-
-                /*
-                 * Firebase already has this class.
-                 */
-
-                if (existing) {
-
-                    /*
-                     * Make sure the level is available
-                     * for correct sorting.
-                     */
-
-                    if (
-                        !existing.level
-                    ) {
-
-                        existing.level =
-                            standardClass.level;
-
-                    }
-
-                    return;
-
+            if (existing) {
+                if (!existing.level) {
+                    existing.level = standardClass.level;
                 }
-
-
-                /*
-                 * Firebase does not have this class.
-                 *
-                 * Add it to the in-memory list so it
-                 * appears in the Form Master dropdown.
-                 */
-
-                classes.push({
-
-                    id:
-                        standardClass.id,
-
-                    name:
-                        standardClass.name,
-
-                    className:
-                        standardClass.className,
-
-                    level:
-                        standardClass.level,
-
-                    organizationId:
-                        organization.id,
-
-                    virtualClass:
-                        true
-
-                });
-
+                return;
             }
+
+            /*
+             * IMPORTANT: virtual classes MUST be organization-specific.
+             * Never use a global ID such as "grade-7" for a virtual class.
+             */
+            const organizationClassId =
+                `${organization.id}__${standardClass.id}`;
+
+            classes.push({
+                id: organizationClassId,
+                standardClassId: standardClass.id,
+                name: standardClass.name,
+                className: standardClass.className,
+                level: standardClass.level,
+                organizationId: organization.id,
+                virtualClass: true
+            });
+        });
+
+        classes.sort((a, b) =>
+            Number(a.level || 999) - Number(b.level || 999)
         );
-
-
-        /*
-         * ---------------------------------------------------
-         * SORT IN SCHOOL ORDER
-         * ---------------------------------------------------
-         */
-
-        classes.sort(
-            (a, b) => {
-
-                const aLevel =
-                    Number(
-                        a.level || 999
-                    );
-
-
-                const bLevel =
-                    Number(
-                        b.level || 999
-                    );
-
-
-                return (
-                    aLevel -
-                    bLevel
-                );
-
-            }
-        );
-
 
         console.log(
-            "🏫 Complete Virello class list:",
+            "🏫 Organization-specific Virello class list:",
+            organization.id,
             classes
         );
 
-
-        /*
-         * Populate Form Master dropdown.
-         */
-
         populateClassSelect();
 
-    }
+    } catch (error) {
 
-    catch (error) {
-
-        console.error(
-            "❌ Could not load classes:",
-            error
-        );
-
-
+        console.error("❌ Could not load classes:", error);
         throw error;
-
     }
 
 }
-
 
 /* =========================================================
    POPULATE FORM MASTER CLASS SELECT
@@ -2158,6 +1955,55 @@ function clearForm() {
 
 
 /* =========================================================
+   FORM MASTER CLASS VALIDATION
+========================================================= */
+
+async function validateFormMasterClassAvailability(classItem) {
+
+    if (!classItem || !organization?.id) {
+        throw new Error("Please select a valid class for this Form Master.");
+    }
+
+    if (classItem.organizationId &&
+        classItem.organizationId !== organization.id) {
+        throw new Error("This class belongs to another organization and cannot be assigned here.");
+    }
+
+    const classRef = doc(db, "classes", classItem.id);
+    const existing = await getDoc(classRef);
+
+    if (!existing.exists()) {
+        if (!classItem.virtualClass) {
+            throw new Error("The selected class could not be found.");
+        }
+        return;
+    }
+
+    const data = existing.data();
+
+    if (data.organizationId !== organization.id) {
+        throw new Error("This class belongs to another organization and cannot be assigned here.");
+    }
+
+    const existingUid =
+        data.formMasterUid ||
+        data.formMasterId ||
+        data.formMaster ||
+        "";
+
+    if (existingUid) {
+        const existingName =
+            data.formMasterName ||
+            "another Form Master";
+
+        throw new Error(
+            `This class is already assigned to ${existingName}. Please remove the existing Form Master before assigning another one.`
+        );
+    }
+}
+
+
+/* =========================================================
    SAVE STAFF
 ========================================================= */
 
@@ -2445,6 +2291,27 @@ if (addStaffForm) {
 
                 /*
                  * -------------------------------------------------
+                 * VALIDATE FORM MASTER CLASS BEFORE CREATING ACCOUNT
+                 * -------------------------------------------------
+                 * This prevents the old problem where Firebase creates
+                 * the staff account first and the class assignment fails
+                 * afterwards, leaving a staff record behind.
+                 */
+
+                const selectedClass =
+                    classes.find(item => item.id === classId);
+
+                if (role === "form_master") {
+                    if (!selectedClass) {
+                        throw new Error("The selected Form Master class could not be found.");
+                    }
+
+                    await validateFormMasterClassAvailability(selectedClass);
+                }
+
+
+                /*
+                 * -------------------------------------------------
                  * CREATE SECONDARY FIREBASE APP
                  * -------------------------------------------------
                  */
@@ -2452,23 +2319,15 @@ if (addStaffForm) {
                 const firebaseConfig =
                     getFirebaseConfig();
 
-
                 const secondaryApp =
                     initializeApp(
                         firebaseConfig,
-                        "virelloStaffCreator_" +
-                        Date.now()
+                        "virelloStaffCreator_" + Date.now()
                     );
 
-
-                const secondaryAuth =
-                    getAuth(
-                        secondaryApp
-                    );
-
-
-                let createdUser;
-
+                const secondaryAuth = getAuth(secondaryApp);
+                let createdUser = null;
+                let firestoreCommitted = false;
 
                 try {
 
@@ -2479,306 +2338,185 @@ if (addStaffForm) {
                             password
                         );
 
+                    createdUser = credential.user;
+                    const newUid = createdUser.uid;
 
-                    createdUser =
-                        credential.user;
+                    console.log("✅ Firebase account created:", newUid);
 
-                }
+                    const staffData = {
+                        uid: newUid,
+                        organizationId: organization.id,
+                        fullName,
+                        name: fullName,
+                        staffId: enteredStaffId,
+                        position,
+                        department,
+                        email,
+                        phone,
+                        employmentType: employment,
+                        status,
+                        role,
+                        isFormMaster: role === "form_master",
+                        formMasterClassId: role === "form_master" ? classId : "",
+                        formMasterClassName: role === "form_master"
+                            ? (selectedClass?.className || selectedClass?.name || "")
+                            : "",
+                        createdByUid: currentUser.uid,
+                        createdByEmail: currentUser.email || "",
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    };
 
-                finally {
+                    const teacherData = {
+                        uid: newUid,
+                        organizationId: organization.id,
+                        fullName,
+                        name: fullName,
+                        email,
+                        phone,
+                        role,
+                        position,
+                        department,
+                        status,
+                        formMasterId: role === "form_master" ? newUid : "",
+                        formMasterUid: role === "form_master" ? newUid : "",
+                        formMasterClassId: role === "form_master" ? classId : "",
+                        formMasterClassName: role === "form_master"
+                            ? (selectedClass?.className || selectedClass?.name || "")
+                            : "",
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    };
 
-                    try {
+                    /*
+                     * All Firestore writes are committed together.
+                     * Therefore Staff + Teacher + Class succeed together
+                     * or none of them are written.
+                     */
+                    const batch = writeBatch(db);
 
-                        await signOut(
-                            secondaryAuth
+                    batch.set(
+                        doc(db, "staff", newUid),
+                        staffData
+                    );
+
+                    if (role === "teacher" || role === "form_master") {
+                        batch.set(
+                            doc(db, "teachers", newUid),
+                            teacherData,
+                            { merge: true }
                         );
-
                     }
 
-                    catch {
+                    if (role === "form_master" && selectedClass) {
+
+                        const classRef =
+                            doc(db, "classes", selectedClass.id);
+
+                        const classSnapshot =
+                            await getDoc(classRef);
+
+                        if (classSnapshot.exists()) {
+
+                            const classData = classSnapshot.data();
+
+                            if (classData.organizationId !== organization.id) {
+                                throw new Error(
+                                    "This class belongs to another organization and cannot be assigned here."
+                                );
+                            }
+
+                            const occupiedBy =
+                                classData.formMasterUid ||
+                                classData.formMasterId ||
+                                classData.formMaster ||
+                                "";
+
+                            if (occupiedBy) {
+                                const existingName =
+                                    classData.formMasterName ||
+                                    "another Form Master";
+
+                                throw new Error(
+                                    `This class is already assigned to ${existingName}. Please remove the existing Form Master before assigning another one.`
+                                );
+                            }
+
+                            batch.update(classRef, {
+                                formMasterId: newUid,
+                                formMasterUid: newUid,
+                                formMasterName: fullName,
+                                formMasterEmail: email,
+                                formMasterRole: "form_master",
+                                updatedAt: serverTimestamp()
+                            });
+
+                        } else {
+
+                            if (!selectedClass.virtualClass) {
+                                throw new Error("The selected class could not be found.");
+                            }
+
+                            batch.set(classRef, {
+                                organizationId: organization.id,
+                                standardClassId: selectedClass.standardClassId || "",
+                                name: selectedClass.name,
+                                className: selectedClass.className,
+                                level: selectedClass.level,
+                                formMasterId: newUid,
+                                formMasterUid: newUid,
+                                formMasterName: fullName,
+                                formMasterEmail: email,
+                                formMasterRole: "form_master",
+                                createdAt: serverTimestamp(),
+                                updatedAt: serverTimestamp()
+                            });
+                        }
+                    }
+
+                    await batch.commit();
+                    firestoreCommitted = true;
+
+                    console.log(
+                        "✅ Staff, teacher and class assignment committed successfully.",
+                        organization.id
+                    );
+
+                } catch (error) {
+
+                    /*
+                     * If Firebase Authentication was created but Firestore
+                     * failed, remove the new Auth account so the operation
+                     * does not leave an orphaned login account.
+                     */
+                    if (createdUser && !firestoreCommitted) {
+                        try {
+                            await deleteUser(createdUser);
+                            console.log("🧹 Rolled back Firebase Authentication account.");
+                        } catch (rollbackError) {
+                            console.warn(
+                                "Could not roll back Firebase account:",
+                                rollbackError
+                            );
+                        }
+                    }
+
+                    throw error;
+
+                } finally {
+
+                    try {
+                        await signOut(secondaryAuth);
+                    } catch {
                         // Ignore secondary logout.
                     }
 
-
                     try {
-
-                        await deleteApp(
-                            secondaryApp
-                        );
-
-                    }
-
-                    catch {
+                        await deleteApp(secondaryApp);
+                    } catch {
                         // Ignore secondary app cleanup.
                     }
-
                 }
-
-
-                const newUid =
-                    createdUser.uid;
-
-
-                console.log(
-                    "✅ Firebase account created:",
-                    newUid
-                );
-
-
-                /*
-                 * -------------------------------------------------
-                 * FIND SELECTED CLASS
-                 * -------------------------------------------------
-                 */
-
-                const selectedClass =
-                    classes.find(
-                        item =>
-                            item.id ===
-                            classId
-                    );
-
-
-                /*
-                 * -------------------------------------------------
-                 * CREATE STAFF PROFILE
-                 * -------------------------------------------------
-                 */
-
-                const staffDocumentId =
-                    newUid;
-
-
-                const staffData = {
-
-                    uid:
-                        newUid,
-
-                    organizationId:
-                        organization.id,
-
-                    fullName:
-                        fullName,
-
-                    name:
-                        fullName,
-
-                    staffId:
-                        enteredStaffId,
-
-                    position:
-                        position,
-
-                    department:
-                        department,
-
-                    email:
-                        email,
-
-                    phone:
-                        phone,
-
-                    employmentType:
-                        employment,
-
-                    status:
-                        status,
-
-                    role:
-                        role,
-
-                    isFormMaster:
-                        role ===
-                        "form_master",
-
-                    formMasterClassId:
-                        role ===
-                        "form_master"
-                            ? classId
-                            : "",
-
-                    formMasterClassName:
-                        role ===
-                        "form_master"
-                            ? (
-                                selectedClass?.className ||
-                                selectedClass?.name ||
-                                ""
-                              )
-                            : "",
-
-                    createdByUid:
-                        currentUser.uid,
-
-                    createdByEmail:
-                        currentUser.email ||
-                        "",
-
-                    createdAt:
-                        serverTimestamp(),
-
-                    updatedAt:
-                        serverTimestamp()
-
-                };
-
-
-                await setDoc(
-                    doc(
-                        db,
-                        "staff",
-                        staffDocumentId
-                    ),
-                    staffData
-                );
-
-
-                console.log(
-                    "✅ Staff profile created:",
-                    staffData
-                );
-
-
-                /*
-                 * -------------------------------------------------
-                 * CREATE TEACHER PROFILE
-                 * -------------------------------------------------
-                 */
-
-                if (
-                    role === "teacher" ||
-                    role === "form_master"
-                ) {
-
-                    await setDoc(
-                        doc(
-                            db,
-                            "teachers",
-                            newUid
-                        ),
-                        {
-
-                            uid:
-                                newUid,
-
-                            organizationId:
-                                organization.id,
-
-                            fullName:
-                                fullName,
-
-                            name:
-                                fullName,
-
-                            email:
-                                email,
-
-                            phone:
-                                phone,
-
-                            role:
-                                role,
-
-                            position:
-                                position,
-
-                            department:
-                                department,
-
-                            status:
-                                status,
-
-                            formMasterId:
-                                role ===
-                                "form_master"
-                                    ? newUid
-                                    : "",
-
-                            formMasterUid:
-                                role ===
-                                "form_master"
-                                    ? newUid
-                                    : "",
-
-                            formMasterClassId:
-                                role ===
-                                "form_master"
-                                    ? classId
-                                    : "",
-
-                            formMasterClassName:
-                                role ===
-                                "form_master"
-                                    ? (
-                                        selectedClass?.className ||
-                                        selectedClass?.name ||
-                                        ""
-                                      )
-                                    : "",
-
-                            createdAt:
-                                serverTimestamp(),
-
-                            updatedAt:
-                                serverTimestamp()
-
-                        },
-                        {
-                            merge:
-                                true
-                        }
-                    );
-
-                }
-
-
-                /*
-                 * -------------------------------------------------
-                 * ASSIGN FORM MASTER TO CLASS
-                 * -------------------------------------------------
-                 *
-                 * IMPORTANT:
-                 *
-                 * If the class is a virtual class that does not
-                 * yet exist in Firestore, create the class
-                 * document here automatically.
-                 *
-                 * This means Nursery 1 through Grade 9 can be
-                 * assigned even if the administrator has never
-                 * created the class manually.
-                 * -------------------------------------------------
-                 */
-
-                if (
-                    role ===
-                    "form_master" &&
-                    selectedClass
-                ) {
-
-                    await assignFormMasterToClass(
-                        selectedClass,
-                        {
-
-                            uid:
-                                newUid,
-
-                            staffId:
-                                newUid,
-
-                            fullName:
-                                fullName,
-
-                            email:
-                                email,
-
-                            role:
-                                "form_master"
-
-                        }
-                    );
-
-                }
-
 
                 /*
                  * -------------------------------------------------
@@ -2867,179 +2605,96 @@ async function assignFormMasterToClass(
     formMasterData
 ) {
 
-    /*
-     * -------------------------------------------------------
-     * CLASS DOCUMENT
-     * -------------------------------------------------------
-     */
+    if (!organization?.id) {
+        throw new Error("Organization could not be identified.");
+    }
 
-    const classRef =
-        doc(
-            db,
-            "classes",
-            classItem.id
-        );
+    if (!classItem) {
+        throw new Error("Please select a class.");
+    }
 
+    if (classItem.organizationId &&
+        classItem.organizationId !== organization.id) {
+        throw new Error("This class belongs to another organization and cannot be assigned here.");
+    }
 
-    const existing =
-        await getDoc(
-            classRef
-        );
-
-
-    /*
-     * -------------------------------------------------------
-     * VIRTUAL CLASS
-     *
-     * If the class does not exist yet, create it.
-     * -------------------------------------------------------
-     */
+    const classRef = doc(db, "classes", classItem.id);
+    const existing = await getDoc(classRef);
 
     if (!existing.exists()) {
 
         if (!classItem.virtualClass) {
-
-            throw new Error(
-                "The selected class could not be found."
-            );
-
+            throw new Error("The selected class could not be found.");
         }
 
+        await setDoc(classRef, {
+            organizationId: organization.id,
+            standardClassId: classItem.standardClassId || "",
+            name: classItem.name,
+            className: classItem.className,
+            level: classItem.level,
+            formMasterId: formMasterData.uid,
+            formMasterUid: formMasterData.uid,
+            formMasterName: formMasterData.fullName,
+            formMasterEmail: formMasterData.email,
+            formMasterRole: "form_master",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
 
-        await setDoc(
-            classRef,
-            {
-
-                organizationId:
-                    organization.id,
-
-                name:
-                    classItem.name,
-
-                className:
-                    classItem.className,
-
-                level:
-                    classItem.level,
-
-                formMasterId:
-                    formMasterData.uid,
-
-                formMasterUid:
-                    formMasterData.uid,
-
-                formMasterName:
-                    formMasterData.fullName,
-
-                formMasterEmail:
-                    formMasterData.email,
-
-                formMasterRole:
-                    "form_master",
-
-                createdAt:
-                    serverTimestamp(),
-
-                updatedAt:
-                    serverTimestamp()
-
-            }
-        );
-
-
-        /*
-         * Update local object.
-         */
-
-        classItem.virtualClass =
-            false;
-
+        classItem.virtualClass = false;
 
         console.log(
-            "✅ New class created and Form Master assigned:",
-            classItem.className
+            "✅ New organization-specific class created and Form Master assigned:",
+            classItem.className,
+            organization.id
         );
 
-
         return;
-
     }
 
+    const existingData = existing.data();
 
-    /*
-     * -------------------------------------------------------
-     * EXISTING CLASS
-     * -------------------------------------------------------
-     */
-
-    const existingData =
-        existing.data();
-
+    if (existingData.organizationId !== organization.id) {
+        throw new Error("This class belongs to another organization and cannot be assigned here.");
+    }
 
     const existingFormMasterUid =
         existingData.formMasterUid ||
+        existingData.formMasterId ||
+        existingData.formMaster ||
         "";
-
-
-    /*
-     * Prevent replacing another Form Master.
-     */
 
     if (
         existingFormMasterUid &&
-        existingFormMasterUid !==
-        formMasterData.uid
+        existingFormMasterUid !== formMasterData.uid
     ) {
-
         const existingName =
             existingData.formMasterName ||
             "another Form Master";
 
-
         throw new Error(
             `This class is already assigned to ${existingName}. Please remove the existing Form Master before assigning another one.`
         );
-
     }
 
-
-    /*
-     * Assign Form Master.
-     */
-
-    await updateDoc(
-        classRef,
-        {
-
-            formMasterId:
-                formMasterData.uid,
-
-            formMasterUid:
-                formMasterData.uid,
-
-            formMasterName:
-                formMasterData.fullName,
-
-            formMasterEmail:
-                formMasterData.email,
-
-            formMasterRole:
-                "form_master",
-
-            updatedAt:
-                serverTimestamp()
-
-        }
-    );
-
+    await updateDoc(classRef, {
+        organizationId: organization.id,
+        formMasterId: formMasterData.uid,
+        formMasterUid: formMasterData.uid,
+        formMasterName: formMasterData.fullName,
+        formMasterEmail: formMasterData.email,
+        formMasterRole: "form_master",
+        updatedAt: serverTimestamp()
+    });
 
     console.log(
-        "✅ Form Master assigned to class:",
+        "✅ Form Master assigned to organization class:",
+        organization.id,
         classItem.id
     );
 
 }
-
 
 /* =========================================================
    UPDATE EXISTING STAFF
