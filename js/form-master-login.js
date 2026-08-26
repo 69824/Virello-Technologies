@@ -13,7 +13,8 @@
 ========================================================= */
 
 import {
-    signInWithEmailAndPassword
+    signInWithEmailAndPassword,
+    signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 import {
@@ -455,38 +456,48 @@ async function findFormMaster(user) {
 function verifyProfile(profile) {
 
     if (!profile) {
-
         throw new Error(
             "Your Firebase account is not registered as a Virello Form Master. Please contact your administrator."
         );
-
     }
 
-
-    const status =
-        String(
-            profile.status ||
-            "active"
-        )
+    const role =
+        String(profile.role || "")
             .trim()
             .toLowerCase();
 
+    const isFormMaster =
+        profile.isFormMaster === true ||
+        role === "form_master";
+
+    if (!isFormMaster) {
+        throw new Error(
+            "This account is not a Virello Form Master account. Please use the correct login page."
+        );
+    }
+
+    if (!profile.organizationId) {
+        throw new Error(
+            "Your Form Master account is not connected to a Virello organization."
+        );
+    }
+
+    const status =
+        String(profile.status || "active")
+            .trim()
+            .toLowerCase();
 
     if (
         status === "inactive" ||
         status === "disabled" ||
         status === "suspended"
     ) {
-
         throw new Error(
             "Your Form Master account is inactive. Please contact your administrator."
         );
-
     }
 
-
     return true;
-
 }
 
 
@@ -719,6 +730,14 @@ if (loginForm) {
 
                 }
 
+
+                try {
+                    await signOut(auth);
+                } catch {
+                    // Ignore logout failure after rejected verification.
+                }
+
+                localStorage.removeItem("virelloFormMaster");
 
                 showError(
                     message
