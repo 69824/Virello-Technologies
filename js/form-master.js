@@ -194,6 +194,65 @@ const logoutButton =
 
 
 /* =========================================================
+   ATTENDANCE HISTORY BUTTON
+========================================================= */
+
+function addAttendanceHistoryButton() {
+
+    const topbarRight =
+        document.querySelector(
+            ".topbar-right"
+        );
+
+    if (!topbarRight) {
+        return;
+    }
+
+    if (
+        document.getElementById(
+            "attendanceHistoryButton"
+        )
+    ) {
+        return;
+    }
+
+    const button =
+        document.createElement(
+            "a"
+        );
+
+    button.id =
+        "attendanceHistoryButton";
+
+    button.href =
+        "form-master-history.html";
+
+    button.textContent =
+        "Attendance History";
+
+    button.style.cssText = `
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        border:0;
+        background:#eef2ff;
+        color:#3730a3;
+        padding:9px 15px;
+        border-radius:8px;
+        font-weight:700;
+        font-size:13px;
+        text-decoration:none;
+        white-space:nowrap;
+    `;
+
+    topbarRight.insertBefore(
+        button,
+        logoutButton || null
+    );
+}
+
+
+/* =========================================================
    START
 ========================================================= */
 
@@ -205,6 +264,8 @@ console.log(
 document.addEventListener(
     "DOMContentLoaded",
     () => {
+
+        addAttendanceHistoryButton();
 
         const today =
             getLocalDateString();
