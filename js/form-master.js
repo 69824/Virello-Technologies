@@ -6,28 +6,29 @@
    js/form-master.js
 
    PURPOSE:
-   FORM MASTER CLASS REGISTER
+   FORM MASTER DASHBOARD + CLASS ATTENDANCE REGISTER
 
-   FLOW:
-
-   Form Master Login
-        ↓
-   Staff Profile
-        ↓
-   Organization
-        ↓
-   Assigned Class
-        ↓
-   Students
-        ↓
-   CHECK IN
-        ↓
-   Firestore attendance
-        ↓
-   Administrator Dashboard
-
+   FEATURES:
+   - Firebase authentication
+   - Load Form Master staff profile
+   - Load organization
+   - Load classes assigned to Form Master
+   - Load students
+   - Select class
+   - Select attendance date
+   - Mark Present
+   - Mark Late
+   - Mark Absent
+   - Save attendance
+   - Load previously saved attendance
+   - Prevent duplicate attendance records
+   - Dashboard statistics
 ========================================================= */
 
+
+/* =========================================================
+   FIREBASE AUTH
+========================================================= */
 
 import {
     onAuthStateChanged,
@@ -35,18 +36,25 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 
+/* =========================================================
+   FIRESTORE
+========================================================= */
+
 import {
     collection,
     query,
     where,
     getDocs,
-    getDoc,
     addDoc,
     updateDoc,
     doc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
+
+/* =========================================================
+   FIREBASE CONFIG
+========================================================= */
 
 import {
     auth,
@@ -55,7 +63,7 @@ import {
 
 
 /* =========================================================
-   STATE
+   GLOBAL STATE
 ========================================================= */
 
 let currentUser = null;
@@ -164,6 +172,11 @@ const toolbarInfo =
         "toolbarInfo"
     );
 
+const saveAttendanceButton =
+    document.getElementById(
+        "saveAttendanceButton"
+    );
+
 const markAllPresentButton =
     document.getElementById(
         "markAllPresent"
@@ -184,28 +197,42 @@ const logoutButton =
    START
 ========================================================= */
 
+console.log(
+    "🔥 Virello Form Master dashboard starting..."
+);
+
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
 
+        const today =
+            getLocalDateString();
+
         if (attendanceDateInput) {
 
             attendanceDateInput.value =
-                getLocalDateString();
+                today;
 
         }
 
-        startDashboard();
+
+        startFormMasterDashboard();
 
     }
 );
 
 
 /* =========================================================
-   AUTH
+   START DASHBOARD
 ========================================================= */
 
-function startDashboard() {
+function startFormMasterDashboard() {
+
+    console.log(
+        "🔐 Checking Form Master authentication..."
+    );
+
 
     onAuthStateChanged(
         auth,
@@ -215,6 +242,10 @@ function startDashboard() {
 
                 if (!user) {
 
+                    console.log(
+                        "⚠️ No authenticated Form Master."
+                    );
+
                     window.location.href =
                         "login.html";
 
@@ -223,35 +254,59 @@ function startDashboard() {
                 }
 
 
-                currentUser = user;
+                currentUser =
+                    user;
 
 
                 console.log(
-                    "✅ Form Master logged in:",
+                    "✅ Form Master authenticated:",
                     user.email
                 );
 
 
                 await loadTeacherProfile();
 
-
                 if (!currentTeacher) {
                     return;
                 }
 
+                const currentRole =
+                    String(currentTeacher.role || "")
+                        .trim()
+                        .toLowerCase();
+
+                if (
+                    currentRole !== "form_master" &&
+                    currentTeacher.isFormMaster !== true
+                ) {
+                    console.error(
+                        "⛔ Account rejected from Form Master dashboard:",
+                        currentTeacher
+                    );
+
+                    try {
+                        await signOut(auth);
+                    } catch {}
+
+                    localStorage.removeItem("virelloFormMaster");
+                    window.location.href = "form-master-login.html";
+                    return;
+                }
 
                 await loadOrganization();
 
 
                 if (!currentOrganization) {
+
                     return;
+
                 }
 
 
                 await loadAssignedClasses();
 
 
-                await loadTodayStatistics();
+                await loadTodayDashboardStatistics();
 
 
                 renderClasses();
@@ -264,7 +319,7 @@ function startDashboard() {
 
 
                 console.log(
-                    "🔥 Form Master dashboard ready."
+                    "✅ Form Master dashboard ready."
                 );
 
             }
@@ -272,9 +327,10 @@ function startDashboard() {
             catch (error) {
 
                 console.error(
-                    "FORM MASTER ERROR:",
+                    "❌ Form Master dashboard error:",
                     error
                 );
+
 
                 showError(
                     error.message ||
@@ -290,10 +346,15 @@ function startDashboard() {
 
 
 /* =========================================================
-   STAFF PROFILE
+   LOAD TEACHER PROFILE
 ========================================================= */
 
 async function loadTeacherProfile() {
+
+    console.log(
+        "👨‍🏫 Loading Form Master profile..."
+    );
+
 
     const staffRef =
         collection(
@@ -302,14 +363,11 @@ async function loadTeacherProfile() {
         );
 
 
-    let snapshot;
+    /*
+       First try userUid.
+    */
 
-
-    /* -----------------------------------------
-       USER UID
-    ----------------------------------------- */
-
-    snapshot =
+    let teacherSnapshot =
         await getDocs(
             query(
                 staffRef,
@@ -322,13 +380,14 @@ async function loadTeacherProfile() {
         );
 
 
-    /* -----------------------------------------
-       UID
-    ----------------------------------------- */
+    /*
+       If userUid is not stored,
+       try uid.
+    */
 
-    if (snapshot.empty) {
+    if (teacherSnapshot.empty) {
 
-        snapshot =
+        teacherSnapshot =
             await getDocs(
                 query(
                     staffRef,
@@ -343,37 +402,14 @@ async function loadTeacherProfile() {
     }
 
 
-    /* -----------------------------------------
-       USER ID
-    ----------------------------------------- */
+    /*
+       If still not found, try email.
+    */
 
-    if (snapshot.empty) {
+    if (teacherSnapshot.empty &&
+        currentUser.email) {
 
-        snapshot =
-            await getDocs(
-                query(
-                    staffRef,
-                    where(
-                        "userId",
-                        "==",
-                        currentUser.uid
-                    )
-                )
-            );
-
-    }
-
-
-    /* -----------------------------------------
-       EMAIL
-    ----------------------------------------- */
-
-    if (
-        snapshot.empty &&
-        currentUser.email
-    ) {
-
-        snapshot =
+        teacherSnapshot =
             await getDocs(
                 query(
                     staffRef,
@@ -388,39 +424,10 @@ async function loadTeacherProfile() {
     }
 
 
-    /* -----------------------------------------
-       LOWER EMAIL
-    ----------------------------------------- */
-
-    if (
-        snapshot.empty &&
-        currentUser.email
-    ) {
-
-        snapshot =
-            await getDocs(
-                query(
-                    staffRef,
-                    where(
-                        "emailLower",
-                        "==",
-                        currentUser.email
-                            .toLowerCase()
-                    )
-                )
-            );
-
-    }
-
-
-    /* -----------------------------------------
-       NOT FOUND
-    ----------------------------------------- */
-
-    if (snapshot.empty) {
+    if (teacherSnapshot.empty) {
 
         showError(
-            "Your Virello staff profile could not be connected to this login."
+            "Your Form Master staff profile could not be found. Please make sure your staff account is connected to your Virello login."
         );
 
         return;
@@ -428,128 +435,18 @@ async function loadTeacherProfile() {
     }
 
 
-    const staffDocument =
-        snapshot.docs[0];
+    const teacherDocument =
+        teacherSnapshot.docs[0];
 
 
     currentTeacher = {
 
         id:
-            staffDocument.id,
+            teacherDocument.id,
 
-        ...staffDocument.data()
+        ...teacherDocument.data()
 
     };
-
-
-    console.log(
-        "👨‍🏫 Staff profile:",
-        currentTeacher
-    );
-
-
-    /* -----------------------------------------
-       CONNECT LOGIN
-    ----------------------------------------- */
-
-    const connectionData = {};
-
-
-    if (
-        currentTeacher.userUid !==
-        currentUser.uid
-    ) {
-
-        connectionData.userUid =
-            currentUser.uid;
-
-    }
-
-
-    if (
-        currentTeacher.uid !==
-        currentUser.uid
-    ) {
-
-        connectionData.uid =
-            currentUser.uid;
-
-    }
-
-
-    if (
-        currentTeacher.userId !==
-        currentUser.uid
-    ) {
-
-        connectionData.userId =
-            currentUser.uid;
-
-    }
-
-
-    if (
-        currentUser.email &&
-        currentTeacher.email !==
-        currentUser.email
-    ) {
-
-        connectionData.email =
-            currentUser.email;
-
-    }
-
-
-    if (
-        currentUser.email &&
-        currentTeacher.emailLower !==
-        currentUser.email.toLowerCase()
-    ) {
-
-        connectionData.emailLower =
-            currentUser.email.toLowerCase();
-
-    }
-
-
-    if (
-        Object.keys(
-            connectionData
-        ).length
-    ) {
-
-        try {
-
-            await updateDoc(
-                doc(
-                    db,
-                    "staff",
-                    currentTeacher.id
-                ),
-                connectionData
-            );
-
-
-            currentTeacher = {
-
-                ...currentTeacher,
-
-                ...connectionData
-
-            };
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "Staff connection update failed:",
-                error
-            );
-
-        }
-
-    }
 
 
     const name =
@@ -573,44 +470,100 @@ async function loadTeacherProfile() {
 
     }
 
+
+    console.log(
+        "✅ Form Master profile loaded:",
+        currentTeacher
+    );
+
 }
 
 
 /* =========================================================
-   ORGANIZATION
+   LOAD ORGANIZATION
 ========================================================= */
 
 async function loadOrganization() {
 
+    console.log(
+        "🏢 Loading organization..."
+    );
+
+
     let organizationId =
         currentTeacher.organizationId ||
-        currentTeacher.orgId ||
-        currentTeacher.organizationID ||
         null;
+
+
+    /*
+       If staff has organizationId,
+       use it directly.
+    */
+
+    if (organizationId) {
+
+        const organizationRef =
+            doc(
+                db,
+                "organizations",
+                organizationId
+            );
+
+
+        /*
+           Instead of getDoc dependency,
+           query organizations by document id
+           through getDocs is avoided here.
+
+           We therefore load by owner when needed.
+        */
+
+    }
+
+
+    /*
+       Find organization through
+       current teacher organizationId.
+    */
+
+    const organizationsRef =
+        collection(
+            db,
+            "organizations"
+        );
 
 
     if (organizationId) {
 
-        const organizationDoc =
-            await getDoc(
-                doc(
-                    db,
-                    "organizations",
+        const organizationQuery =
+            query(
+                organizationsRef,
+                where(
+                    "__name__",
+                    "==",
                     organizationId
                 )
             );
 
 
-        if (
-            organizationDoc.exists()
-        ) {
+        const organizationSnapshot =
+            await getDocs(
+                organizationQuery
+            );
+
+
+        if (!organizationSnapshot.empty) {
+
+            const organizationDocument =
+                organizationSnapshot.docs[0];
+
 
             currentOrganization = {
 
                 id:
-                    organizationDoc.id,
+                    organizationDocument.id,
 
-                ...organizationDoc.data()
+                ...organizationDocument.data()
 
             };
 
@@ -619,90 +572,49 @@ async function loadOrganization() {
     }
 
 
-    /* -----------------------------------------
-       OWNER FALLBACK
-    ----------------------------------------- */
+    /*
+       Fallback:
+       find organization using
+       ownerUid if available.
+    */
 
-    if (
-        !currentOrganization &&
-        currentTeacher.ownerUid
-    ) {
+    if (!currentOrganization) {
 
-        const snapshot =
-            await getDocs(
+        if (currentTeacher.ownerUid) {
+
+            const organizationQuery =
                 query(
-                    collection(
-                        db,
-                        "organizations"
-                    ),
+                    organizationsRef,
                     where(
                         "ownerUid",
                         "==",
                         currentTeacher.ownerUid
                     )
-                )
-            );
+                );
 
 
-        if (!snapshot.empty) {
-
-            const organizationDoc =
-                snapshot.docs[0];
-
-
-            currentOrganization = {
-
-                id:
-                    organizationDoc.id,
-
-                ...organizationDoc.data()
-
-            };
-
-        }
-
-    }
+            const organizationSnapshot =
+                await getDocs(
+                    organizationQuery
+                );
 
 
-    /* -----------------------------------------
-       NAME FALLBACK
-    ----------------------------------------- */
+            if (!organizationSnapshot.empty) {
 
-    if (
-        !currentOrganization &&
-        currentTeacher.organization
-    ) {
-
-        const snapshot =
-            await getDocs(
-                query(
-                    collection(
-                        db,
-                        "organizations"
-                    ),
-                    where(
-                        "name",
-                        "==",
-                        currentTeacher.organization
-                    )
-                )
-            );
+                const organizationDocument =
+                    organizationSnapshot.docs[0];
 
 
-        if (!snapshot.empty) {
+                currentOrganization = {
 
-            const organizationDoc =
-                snapshot.docs[0];
+                    id:
+                        organizationDocument.id,
 
+                    ...organizationDocument.data()
 
-            currentOrganization = {
+                };
 
-                id:
-                    organizationDoc.id,
-
-                ...organizationDoc.data()
-
-            };
+            }
 
         }
 
@@ -712,7 +624,7 @@ async function loadOrganization() {
     if (!currentOrganization) {
 
         showError(
-            "Your staff account is not connected to an organization."
+            "No organization could be found for this Form Master."
         );
 
         return;
@@ -720,23 +632,18 @@ async function loadOrganization() {
     }
 
 
-    const organizationName =
-        currentOrganization.organizationName ||
-        currentOrganization.name ||
-        currentOrganization.schoolName ||
-        "Organization";
-
-
     if (organizationNameElement) {
 
         organizationNameElement.textContent =
-            organizationName;
+            currentOrganization.organizationName ||
+            currentOrganization.name ||
+            "Organization";
 
     }
 
 
     console.log(
-        "🏢 Organization:",
+        "✅ Organization loaded:",
         currentOrganization.id
     );
 
@@ -744,10 +651,15 @@ async function loadOrganization() {
 
 
 /* =========================================================
-   ASSIGNED CLASSES
+   LOAD ASSIGNED CLASSES
 ========================================================= */
 
 async function loadAssignedClasses() {
+
+    console.log(
+        "📚 Loading assigned classes..."
+    );
+
 
     const classesRef =
         collection(
@@ -756,88 +668,34 @@ async function loadAssignedClasses() {
         );
 
 
-    let snapshot = {
-        empty: true,
-        docs: []
-    };
+    /*
+       Classes are assigned using
+       formMasterId = staff document ID.
+    */
 
+    const classQuery =
+        query(
+            classesRef,
 
-    /* -----------------------------------------
-       FORM MASTER ID
-    ----------------------------------------- */
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            ),
 
-    try {
+            where(
+                "formMasterId",
+                "==",
+                currentTeacher.id
+            )
 
-        snapshot =
-            await getDocs(
-                query(
-                    classesRef,
-
-                    where(
-                        "organizationId",
-                        "==",
-                        currentOrganization.id
-                    ),
-
-                    where(
-                        "formMasterId",
-                        "==",
-                        currentTeacher.id
-                    )
-                )
-            );
-
-    }
-
-    catch (error) {
-
-        console.warn(
-            "Primary class query failed.",
-            error
         );
 
-    }
 
-
-    /* -----------------------------------------
-       FALLBACK
-    ----------------------------------------- */
-
-    if (snapshot.empty) {
-
-        try {
-
-            snapshot =
-                await getDocs(
-                    query(
-                        classesRef,
-
-                        where(
-                            "organizationId",
-                            "==",
-                            currentOrganization.id
-                        ),
-
-                        where(
-                            "formMaster",
-                            "==",
-                            currentTeacher.id
-                        )
-                    )
-                );
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "Fallback class query failed.",
-                error
-            );
-
-        }
-
-    }
+    const snapshot =
+        await getDocs(
+            classQuery
+        );
 
 
     assignedClasses = [];
@@ -862,53 +720,50 @@ async function loadAssignedClasses() {
     );
 
 
-    /* -----------------------------------------
-       STUDENT COUNTS
-    ----------------------------------------- */
+    /*
+       Load student counts.
+    */
 
     for (
         const classItem
         of assignedClasses
     ) {
 
-        try {
-
-            const snapshot =
-                await getDocs(
-                    query(
-                        collection(
-                            db,
-                            "students"
-                        ),
-
-                        where(
-                            "organizationId",
-                            "==",
-                            currentOrganization.id
-                        ),
-
-                        where(
-                            "classId",
-                            "==",
-                            classItem.id
-                        )
-                    )
-                );
-
-
-            classItem.studentCount =
-                snapshot.size;
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "Student count failed:",
-                error
+        const studentsRef =
+            collection(
+                db,
+                "students"
             );
 
-        }
+
+        const studentsQuery =
+            query(
+
+                studentsRef,
+
+                where(
+                    "organizationId",
+                    "==",
+                    currentOrganization.id
+                ),
+
+                where(
+                    "classId",
+                    "==",
+                    classItem.id
+                )
+
+            );
+
+
+        const studentsSnapshot =
+            await getDocs(
+                studentsQuery
+            );
+
+
+        classItem.studentCount =
+            studentsSnapshot.size;
 
     }
 
@@ -916,18 +771,16 @@ async function loadAssignedClasses() {
     assignedClasses.sort(
         (a, b) =>
             getGradeNumber(
-                a.className ||
-                a.name
+                a.className
             ) -
             getGradeNumber(
-                b.className ||
-                b.name
+                b.className
             )
     );
 
 
     console.log(
-        "📚 Assigned classes:",
+        "✅ Assigned classes:",
         assignedClasses
     );
 
@@ -941,11 +794,14 @@ async function loadAssignedClasses() {
 function renderClasses() {
 
     if (!classListElement) {
+
         return;
+
     }
 
 
-    classListElement.innerHTML = "";
+    classListElement.innerHTML =
+        "";
 
 
     if (!assignedClasses.length) {
@@ -954,8 +810,8 @@ function renderClasses() {
 
             <div class="no-classes">
 
-                No classes have been assigned
-                to you yet.
+                No classes are currently assigned
+                to you as Form Master.
 
             </div>
 
@@ -983,10 +839,6 @@ function renderClasses() {
                 "class-item";
 
 
-            button.dataset.classId =
-                classItem.id;
-
-
             if (
                 selectedClass &&
                 selectedClass.id ===
@@ -1000,30 +852,28 @@ function renderClasses() {
             }
 
 
-            const name =
-                classItem.className ||
-                classItem.name ||
-                "Class";
+            button.dataset.classId =
+                classItem.id;
 
 
             button.innerHTML = `
 
                 <div class="class-item-name">
 
-                    ${escapeHtml(name)}
+                    ${escapeHtml(
+                        classItem.className ||
+                        "Class"
+                    )}
 
                 </div>
 
                 <span class="class-item-count">
 
                     ${classItem.studentCount}
-
                     Student${
-
                         classItem.studentCount === 1
                             ? ""
                             : "s"
-
                     }
 
                 </span>
@@ -1058,20 +908,28 @@ if (classListElement) {
 
 
             if (!button) {
+
                 return;
+
             }
+
+
+            const classId =
+                button.dataset.classId;
 
 
             const classItem =
                 assignedClasses.find(
                     item =>
                         item.id ===
-                        button.dataset.classId
+                        classId
                 );
 
 
             if (!classItem) {
+
                 return;
+
             }
 
 
@@ -1093,6 +951,12 @@ async function selectClass(
     classItem
 ) {
 
+    console.log(
+        "📚 Selecting class:",
+        classItem.className
+    );
+
+
     selectedClass =
         classItem;
 
@@ -1100,28 +964,42 @@ async function selectClass(
     renderClasses();
 
 
-    const className =
-        classItem.className ||
-        classItem.name ||
-        "Class";
+    if (registerClassName) {
+
+        registerClassName.textContent =
+            classItem.className;
+
+    }
 
 
-    registerClassName.textContent =
-        className;
+    if (registerDescription) {
+
+        registerDescription.textContent =
+            `Attendance register for ${classItem.className}.`;
+
+    }
 
 
-    registerDescription.textContent =
-        `Daily attendance register for ${className}.`;
+    if (registerToolbar) {
+
+        registerToolbar.style.display =
+            "flex";
+
+    }
 
 
-    registerToolbar.style.display =
-        "flex";
+    if (saveAttendanceButton) {
+
+        saveAttendanceButton.disabled =
+            false;
+
+    }
 
 
     await loadStudents();
 
 
-    await loadAttendance();
+    await loadAttendanceForSelectedDate();
 
 
     renderAttendanceRegister();
@@ -1138,35 +1016,55 @@ async function selectClass(
 
 async function loadStudents() {
 
-    selectedStudents = [];
-
-
     if (!selectedClass) {
+
+        selectedStudents = [];
+
         return;
+
     }
+
+
+    console.log(
+        "👨‍🎓 Loading students:",
+        selectedClass.className
+    );
+
+
+    const studentsRef =
+        collection(
+            db,
+            "students"
+        );
+
+
+    const studentsQuery =
+        query(
+
+            studentsRef,
+
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            ),
+
+            where(
+                "classId",
+                "==",
+                selectedClass.id
+            )
+
+        );
 
 
     const snapshot =
         await getDocs(
-            query(
-                collection(
-                    db,
-                    "students"
-                ),
-
-                where(
-                    "organizationId",
-                    "==",
-                    currentOrganization.id
-                ),
-
-                where(
-                    "classId",
-                    "==",
-                    selectedClass.id
-                )
-            )
+            studentsQuery
         );
+
+
+    selectedStudents = [];
 
 
     snapshot.forEach(
@@ -1187,7 +1085,9 @@ async function loadStudents() {
                 status ===
                 "inactive"
             ) {
+
                 return;
+
             }
 
 
@@ -1208,12 +1108,10 @@ async function loadStudents() {
         (a, b) =>
             String(
                 a.fullName ||
-                a.name ||
                 ""
             ).localeCompare(
                 String(
                     b.fullName ||
-                    b.name ||
                     ""
                 )
             )
@@ -1221,7 +1119,7 @@ async function loadStudents() {
 
 
     console.log(
-        "👨‍🎓 Students:",
+        "👨‍🎓 Students loaded:",
         selectedStudents.length
     );
 
@@ -1232,47 +1130,76 @@ async function loadStudents() {
    LOAD ATTENDANCE
 ========================================================= */
 
-async function loadAttendance() {
+async function loadAttendanceForSelectedDate() {
+
+    if (
+        !selectedClass ||
+        !attendanceDateInput
+    ) {
+
+        return;
+
+    }
+
+
+    const date =
+        attendanceDateInput.value;
+
+
+    if (!date) {
+
+        return;
+
+    }
+
+
+    console.log(
+        "📅 Loading attendance:",
+        date
+    );
+
 
     attendanceMap = {};
 
     existingAttendance = {};
 
 
-    if (
-        !selectedClass ||
-        !attendanceDateInput.value
-    ) {
-        return;
-    }
+    const attendanceRef =
+        collection(
+            db,
+            "attendance"
+        );
+
+
+    const attendanceQuery =
+        query(
+
+            attendanceRef,
+
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            ),
+
+            where(
+                "classId",
+                "==",
+                selectedClass.id
+            ),
+
+            where(
+                "date",
+                "==",
+                date
+            )
+
+        );
 
 
     const snapshot =
         await getDocs(
-            query(
-                collection(
-                    db,
-                    "attendance"
-                ),
-
-                where(
-                    "organizationId",
-                    "==",
-                    currentOrganization.id
-                ),
-
-                where(
-                    "classId",
-                    "==",
-                    selectedClass.id
-                ),
-
-                where(
-                    "date",
-                    "==",
-                    attendanceDateInput.value
-                )
-            )
+            attendanceQuery
         );
 
 
@@ -1283,13 +1210,19 @@ async function loadAttendance() {
                 attendanceDocument.data();
 
 
-            if (!record.studentId) {
+            const studentId =
+                record.studentId;
+
+
+            if (!studentId) {
+
                 return;
+
             }
 
 
             existingAttendance[
-                record.studentId
+                studentId
             ] = {
 
                 id:
@@ -1301,7 +1234,7 @@ async function loadAttendance() {
 
 
             attendanceMap[
-                record.studentId
+                studentId
             ] =
                 normalizeStatus(
                     record.status
@@ -1311,8 +1244,35 @@ async function loadAttendance() {
     );
 
 
+    /*
+       Students without a saved attendance
+       record are initially Present.
+
+       This makes the register faster to use.
+    */
+
+    selectedStudents.forEach(
+        student => {
+
+            if (
+                !attendanceMap[
+                    student.id
+                ]
+            ) {
+
+                attendanceMap[
+                    student.id
+                ] =
+                    "present";
+
+            }
+
+        }
+    );
+
+
     console.log(
-        "📋 Attendance loaded:",
+        "📋 Existing attendance:",
         Object.keys(
             existingAttendance
         ).length
@@ -1322,10 +1282,17 @@ async function loadAttendance() {
 
 
 /* =========================================================
-   RENDER REGISTER
+   RENDER ATTENDANCE REGISTER
 ========================================================= */
 
 function renderAttendanceRegister() {
+
+    if (!attendanceRegister) {
+
+        return;
+
+    }
+
 
     if (!selectedClass) {
 
@@ -1350,7 +1317,11 @@ function renderAttendanceRegister() {
 
             <div class="empty-register">
 
-                No students have been added to this class yet.
+                No students have been added to
+                ${escapeHtml(
+                    selectedClass.className
+                )}
+                yet.
 
             </div>
 
@@ -1363,45 +1334,37 @@ function renderAttendanceRegister() {
 
     attendanceRegister.innerHTML = `
 
-        <div class="table-wrapper">
+        <table class="attendance-table">
 
-            <table class="attendance-table">
+            <thead>
 
-                <thead>
+                <tr>
 
-                    <tr>
+                    <th>
+                        #
+                    </th>
 
-                        <th>
-                            #
-                        </th>
+                    <th>
+                        Student
+                    </th>
 
-                        <th>
-                            Student
-                        </th>
+                    <th>
+                        Student ID
+                    </th>
 
-                        <th>
-                            Student ID
-                        </th>
+                    <th>
+                        Attendance Status
+                    </th>
 
-                        <th>
-                            Status
-                        </th>
+                </tr>
 
-                        <th>
-                            Action
-                        </th>
+            </thead>
 
-                    </tr>
+            <tbody id="attendanceTableBody">
 
-                </thead>
+            </tbody>
 
-                <tbody
-                    id="attendanceTableBody"
-                ></tbody>
-
-            </table>
-
-        </div>
+        </table>
 
     `;
 
@@ -1418,25 +1381,8 @@ function renderAttendanceRegister() {
             const status =
                 attendanceMap[
                     student.id
-                ] || null;
-
-
-            const existing =
-                existingAttendance[
-                    student.id
-                ];
-
-
-            const studentName =
-                student.fullName ||
-                student.name ||
-                "Unnamed Student";
-
-
-            const studentNumber =
-                student.studentId ||
-                student.studentNumber ||
-                "";
+                ] ||
+                "present";
 
 
             const row =
@@ -1458,7 +1404,10 @@ function renderAttendanceRegister() {
 
                     <div class="student-name">
 
-                        ${escapeHtml(studentName)}
+                        ${escapeHtml(
+                            student.fullName ||
+                            "Unnamed Student"
+                        )}
 
                     </div>
 
@@ -1469,7 +1418,10 @@ function renderAttendanceRegister() {
 
                     <div class="student-id">
 
-                        ${escapeHtml(studentNumber)}
+                        ${escapeHtml(
+                            student.studentId ||
+                            ""
+                        )}
 
                     </div>
 
@@ -1478,71 +1430,52 @@ function renderAttendanceRegister() {
 
                 <td>
 
-                    ${renderStatus(
-                        status
-                    )}
-
-                    ${
-                        existing &&
-                        existing.checkIn
-                            ? `
-                                <div class="check-time">
-                                    ${formatTimestamp(
-                                        existing.checkIn
-                                    )}
-                                </div>
-                              `
-                            : ""
-                    }
-
-                </td>
-
-
-                <td>
-
-                    <button
-
-                        type="button"
-
-                        class="checkin-button
-                        ${
-                            status === "present"
-                                ? "checked"
-                                : ""
-                        }
-                        ${
-                            status === "late"
-                                ? "late"
-                                : ""
-                        }
-                        ${
-                            status === "absent"
-                                ? "absent"
-                                : ""
-                        }"
-
-                        data-checkin-student=
-                            "${escapeHtml(student.id)}"
-
-                        ${
-                            status === "present"
-                                ? "disabled"
-                                : ""
-                        }
-
+                    <div
+                        class="status-buttons"
+                        data-student-id="${escapeHtml(
+                            student.id
+                        )}"
                     >
 
-                        ${
-                            status === "present"
-                                ? "✓ Checked In"
-                                : status === "late"
-                                    ? "Mark Present"
-                                    : status === "absent"
-                                        ? "Check In"
-                                        : "Check In"
-                        }
+                        <button
+                            type="button"
+                            class="status-button present ${
+                                status === "present"
+                                    ? "active"
+                                    : ""
+                            }"
+                            data-status="present"
+                        >
+                            Present
+                        </button>
 
-                    </button>
+
+                        <button
+                            type="button"
+                            class="status-button late ${
+                                status === "late"
+                                    ? "active"
+                                    : ""
+                            }"
+                            data-status="late"
+                        >
+                            Late
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="status-button absent ${
+                                status === "absent"
+                                    ? "active"
+                                    : ""
+                            }"
+                            data-status="absent"
+                        >
+                            Absent
+                        </button>
+
+                    </div>
 
                 </td>
 
@@ -1563,595 +1496,80 @@ function renderAttendanceRegister() {
 
 
 /* =========================================================
-   CHECK IN CLICK
+   STATUS BUTTON CLICK
 ========================================================= */
 
 if (attendanceRegister) {
 
     attendanceRegister.addEventListener(
         "click",
-        async event => {
+        event => {
 
             const button =
                 event.target.closest(
-                    "[data-checkin-student]"
+                    "[data-status]"
                 );
 
 
             if (!button) {
+
                 return;
+
+            }
+
+
+            const container =
+                button.closest(
+                    "[data-student-id]"
+                );
+
+
+            if (!container) {
+
+                return;
+
             }
 
 
             const studentId =
-                button.dataset.checkinStudent;
+                container.dataset.studentId;
 
 
-            await checkInStudent(
-                studentId,
-                button
-            );
-
-        }
-    );
-
-}
+            const status =
+                button.dataset.status;
 
 
-/* =========================================================
-   CHECK IN STUDENT
-========================================================= */
-
-async function checkInStudent(
-    studentId,
-    button
-) {
-
-    if (!selectedClass) {
-
-        alert(
-            "Please select a class first."
-        );
-
-        return;
-
-    }
-
-
-    const student =
-        selectedStudents.find(
-            item =>
-                item.id ===
+            attendanceMap[
                 studentId
-        );
-
-
-    if (!student) {
-
-        alert(
-            "Student could not be found."
-        );
-
-        return;
-
-    }
-
-
-    const date =
-        attendanceDateInput.value;
-
-
-    if (!date) {
-
-        alert(
-            "Please select the attendance date."
-        );
-
-        return;
-
-    }
-
-
-    button.disabled =
-        true;
-
-    button.textContent =
-        "Checking In...";
-
-
-    try {
-
-        const existing =
-            existingAttendance[
-                studentId
-            ];
-
-
-        const attendanceData = {
-
-            organizationId:
-                currentOrganization.id,
-
-            classId:
-                selectedClass.id,
-
-            className:
-                selectedClass.className ||
-                selectedClass.name ||
-                "Class",
-
-            studentId:
-                student.id,
-
-            studentDocumentId:
-                student.id,
-
-            studentName:
-                student.fullName ||
-                student.name ||
-                "Student",
-
-            studentNumber:
-                student.studentId ||
-                student.studentNumber ||
-                "",
-
-            staffId:
-                currentTeacher.id,
-
-            formMasterId:
-                currentTeacher.id,
-
-            formMasterName:
-                getTeacherName(
-                    currentTeacher
-                ),
-
-            date:
-                date,
-
-            status:
-                "present",
-
-            checkIn:
-                serverTimestamp(),
-
-            updatedAt:
-                serverTimestamp(),
-
-            attendanceMethod:
-                "form_master"
-
-        };
-
-
-        /* -----------------------------------------
-           UPDATE EXISTING RECORD
-        ----------------------------------------- */
-
-        if (existing) {
-
-            await updateDoc(
-                doc(
-                    db,
-                    "attendance",
-                    existing.id
-                ),
-                attendanceData
-            );
-
-        }
-
-
-        /* -----------------------------------------
-           CREATE NEW RECORD
-        ----------------------------------------- */
-
-        else {
-
-            attendanceData.createdAt =
-                serverTimestamp();
-
-
-            const newDocument =
-                await addDoc(
-                    collection(
-                        db,
-                        "attendance"
-                    ),
-                    attendanceData
+            ] =
+                normalizeStatus(
+                    status
                 );
 
 
-            existingAttendance[
-                studentId
-            ] = {
-
-                id:
-                    newDocument.id,
-
-                ...attendanceData
-
-            };
-
-        }
+            const buttons =
+                container.querySelectorAll(
+                    "[data-status]"
+                );
 
 
-        attendanceMap[
-            studentId
-        ] =
-            "present";
+            buttons.forEach(
+                item => {
 
-
-        console.log(
-            "✅ Student checked in:",
-            student.fullName ||
-            student.name
-        );
-
-
-        renderAttendanceRegister();
-
-
-        await loadTodayStatistics();
-
-
-        updateStatistics();
-
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "❌ Check in error:",
-            error
-        );
-
-
-        alert(
-            error.message ||
-            "Unable to check in student."
-        );
-
-
-        button.disabled =
-            false;
-
-        button.textContent =
-            "Check In";
-
-    }
-
-}
-
-
-/* =========================================================
-   MARK ALL PRESENT
-========================================================= */
-
-if (markAllPresentButton) {
-
-    markAllPresentButton.addEventListener(
-        "click",
-        async () => {
-
-            if (!selectedStudents.length) {
-                return;
-            }
-
-
-            if (
-                !confirm(
-                    "Check in all students in this class?"
-                )
-            ) {
-                return;
-            }
-
-
-            for (
-                const student
-                of selectedStudents
-            ) {
-
-                const existing =
-                    existingAttendance[
-                        student.id
-                    ];
-
-
-                const attendanceData = {
-
-                    organizationId:
-                        currentOrganization.id,
-
-                    classId:
-                        selectedClass.id,
-
-                    className:
-                        selectedClass.className ||
-                        selectedClass.name ||
-                        "Class",
-
-                    studentId:
-                        student.id,
-
-                    studentDocumentId:
-                        student.id,
-
-                    studentName:
-                        student.fullName ||
-                        student.name ||
-                        "Student",
-
-                    studentNumber:
-                        student.studentId ||
-                        student.studentNumber ||
-                        "",
-
-                    staffId:
-                        currentTeacher.id,
-
-                    formMasterId:
-                        currentTeacher.id,
-
-                    formMasterName:
-                        getTeacherName(
-                            currentTeacher
-                        ),
-
-                    date:
-                        attendanceDateInput.value,
-
-                    status:
-                        "present",
-
-                    checkIn:
-                        serverTimestamp(),
-
-                    updatedAt:
-                        serverTimestamp(),
-
-                    attendanceMethod:
-                        "form_master"
-
-                };
-
-
-                if (existing) {
-
-                    await updateDoc(
-                        doc(
-                            db,
-                            "attendance",
-                            existing.id
-                        ),
-                        attendanceData
+                    item.classList.remove(
+                        "active"
                     );
 
                 }
-
-                else {
-
-                    const newDocument =
-                        await addDoc(
-                            collection(
-                                db,
-                                "attendance"
-                            ),
-                            {
-                                ...attendanceData,
-
-                                createdAt:
-                                    serverTimestamp()
-
-                            }
-                        );
-
-
-                    existingAttendance[
-                        student.id
-                    ] = {
-
-                        id:
-                            newDocument.id,
-
-                        ...attendanceData
-
-                    };
-
-                }
-
-
-                attendanceMap[
-                    student.id
-                ] =
-                    "present";
-
-            }
-
-
-            renderAttendanceRegister();
-
-
-            await loadTodayStatistics();
-
-
-            updateStatistics();
-
-
-            alert(
-                "All students have been checked in."
             );
 
-        }
-    );
 
-}
-
-
-/* =========================================================
-   MARK ALL ABSENT
-========================================================= */
-
-if (markAllAbsentButton) {
-
-    markAllAbsentButton.addEventListener(
-        "click",
-        async () => {
-
-            if (!selectedStudents.length) {
-                return;
-            }
-
-
-            if (
-                !confirm(
-                    "Mark all students absent?"
-                )
-            ) {
-                return;
-            }
-
-
-            for (
-                const student
-                of selectedStudents
-            ) {
-
-                const existing =
-                    existingAttendance[
-                        student.id
-                    ];
-
-
-                const attendanceData = {
-
-                    organizationId:
-                        currentOrganization.id,
-
-                    classId:
-                        selectedClass.id,
-
-                    className:
-                        selectedClass.className ||
-                        selectedClass.name ||
-                        "Class",
-
-                    studentId:
-                        student.id,
-
-                    studentDocumentId:
-                        student.id,
-
-                    studentName:
-                        student.fullName ||
-                        student.name ||
-                        "Student",
-
-                    studentNumber:
-                        student.studentId ||
-                        student.studentNumber ||
-                        "",
-
-                    staffId:
-                        currentTeacher.id,
-
-                    formMasterId:
-                        currentTeacher.id,
-
-                    formMasterName:
-                        getTeacherName(
-                            currentTeacher
-                        ),
-
-                    date:
-                        attendanceDateInput.value,
-
-                    status:
-                        "absent",
-
-                    checkIn:
-                        null,
-
-                    checkOut:
-                        null,
-
-                    updatedAt:
-                        serverTimestamp(),
-
-                    attendanceMethod:
-                        "form_master"
-
-                };
-
-
-                if (existing) {
-
-                    await updateDoc(
-                        doc(
-                            db,
-                            "attendance",
-                            existing.id
-                        ),
-                        attendanceData
-                    );
-
-                }
-
-                else {
-
-                    const newDocument =
-                        await addDoc(
-                            collection(
-                                db,
-                                "attendance"
-                            ),
-                            {
-                                ...attendanceData,
-
-                                createdAt:
-                                    serverTimestamp()
-
-                            }
-                        );
-
-
-                    existingAttendance[
-                        student.id
-                    ] = {
-
-                        id:
-                            newDocument.id,
-
-                        ...attendanceData
-
-                    };
-
-                }
-
-
-                attendanceMap[
-                    student.id
-                ] =
-                    "absent";
-
-            }
-
-
-            renderAttendanceRegister();
-
-
-            await loadTodayStatistics();
-
-
-            updateStatistics();
-
-
-            alert(
-                "All students have been marked absent."
+            button.classList.add(
+                "active"
             );
+
+
+            updateToolbarInfo();
 
         }
     );
@@ -2170,7 +1588,9 @@ if (attendanceDateInput) {
         async () => {
 
             if (!selectedClass) {
+
                 return;
+
             }
 
 
@@ -2180,7 +1600,7 @@ if (attendanceDateInput) {
                     true;
 
 
-                await loadAttendance();
+                await loadAttendanceForSelectedDate();
 
 
                 renderAttendanceRegister();
@@ -2193,12 +1613,14 @@ if (attendanceDateInput) {
             catch (error) {
 
                 console.error(
-                    "Date change error:",
+                    "❌ Date attendance load error:",
                     error
                 );
 
+
                 showError(
-                    error.message
+                    error.message ||
+                    "Unable to load attendance for this date."
                 );
 
             }
@@ -2217,13 +1639,334 @@ if (attendanceDateInput) {
 
 
 /* =========================================================
-   TODAY STATISTICS
+   MARK ALL PRESENT
 ========================================================= */
 
-async function loadTodayStatistics() {
+if (markAllPresentButton) {
+
+    markAllPresentButton.addEventListener(
+        "click",
+        () => {
+
+            selectedStudents.forEach(
+                student => {
+
+                    attendanceMap[
+                        student.id
+                    ] =
+                        "present";
+
+                }
+            );
+
+
+            renderAttendanceRegister();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   MARK ALL ABSENT
+========================================================= */
+
+if (markAllAbsentButton) {
+
+    markAllAbsentButton.addEventListener(
+        "click",
+        () => {
+
+            selectedStudents.forEach(
+                student => {
+
+                    attendanceMap[
+                        student.id
+                    ] =
+                        "absent";
+
+                }
+            );
+
+
+            renderAttendanceRegister();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SAVE ATTENDANCE
+========================================================= */
+
+if (saveAttendanceButton) {
+
+    saveAttendanceButton.addEventListener(
+        "click",
+        async () => {
+
+            if (!selectedClass) {
+
+                alert(
+                    "Please select a class first."
+                );
+
+                return;
+
+            }
+
+
+            const date =
+                attendanceDateInput?.value;
+
+
+            if (!date) {
+
+                alert(
+                    "Please select an attendance date."
+                );
+
+                return;
+
+            }
+
+
+            if (!selectedStudents.length) {
+
+                alert(
+                    "There are no students in this class."
+                );
+
+                return;
+
+            }
+
+
+            saveAttendanceButton.disabled =
+                true;
+
+
+            saveAttendanceButton.textContent =
+                "Saving Attendance...";
+
+
+            try {
+
+                let saved =
+                    0;
+
+
+                for (
+                    const student
+                    of selectedStudents
+                ) {
+
+                    const status =
+                        normalizeStatus(
+                            attendanceMap[
+                                student.id
+                            ] ||
+                            "present"
+                        );
+
+
+                    const existing =
+                        existingAttendance[
+                            student.id
+                        ];
+
+
+                    const attendanceData = {
+
+                        organizationId:
+                            currentOrganization.id,
+
+                        classId:
+                            selectedClass.id,
+
+                        className:
+                            selectedClass.className,
+
+                        studentId:
+                            student.id,
+
+                        studentDocumentId:
+                            student.id,
+
+                        studentName:
+                            student.fullName ||
+                            "Student",
+
+                        studentNumber:
+                            student.studentId ||
+                            "",
+
+                        staffId:
+                            currentTeacher.id,
+
+                        formMasterId:
+                            currentTeacher.id,
+
+                        formMasterName:
+                            getTeacherName(
+                                currentTeacher
+                            ),
+
+                        date:
+                            date,
+
+                        status:
+                            status,
+
+                        updatedAt:
+                            serverTimestamp()
+
+                    };
+
+
+                    /*
+                       Create check-in time for
+                       Present / Late records.
+                    */
+
+                    if (
+                        status === "present" ||
+                        status === "late"
+                    ) {
+
+                        if (
+                            !existing ||
+                            !existing.checkIn
+                        ) {
+
+                            attendanceData.checkIn =
+                                serverTimestamp();
+
+                        }
+
+                    }
+
+
+                    /*
+                       If the student is absent,
+                       do not create a check-in.
+                    */
+
+                    if (
+                        status === "absent"
+                    ) {
+
+                        attendanceData.checkIn =
+                            null;
+
+                        attendanceData.checkOut =
+                            null;
+
+                    }
+
+
+                    if (existing) {
+
+                        await updateDoc(
+                            doc(
+                                db,
+                                "attendance",
+                                existing.id
+                            ),
+                            attendanceData
+                        );
+
+                    }
+
+                    else {
+
+                        attendanceData.createdAt =
+                            serverTimestamp();
+
+
+                        await addDoc(
+                            collection(
+                                db,
+                                "attendance"
+                            ),
+                            attendanceData
+                        );
+
+                    }
+
+
+                    saved++;
+
+                }
+
+
+                /*
+                   Reload attendance so the screen
+                   exactly matches Firestore.
+                */
+
+                await loadAttendanceForSelectedDate();
+
+
+                renderAttendanceRegister();
+
+
+                await loadTodayDashboardStatistics();
+
+
+                updateStatistics();
+
+
+                alert(
+                    `Attendance saved successfully for ${saved} student${saved === 1 ? "" : "s"}.`
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "❌ Save attendance error:",
+                    error
+                );
+
+
+                alert(
+                    error.message ||
+                    "Unable to save attendance."
+                );
+
+            }
+
+            finally {
+
+                saveAttendanceButton.disabled =
+                    false;
+
+                saveAttendanceButton.textContent =
+                    "Save Attendance";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   TODAY DASHBOARD STATISTICS
+========================================================= */
+
+async function loadTodayDashboardStatistics() {
 
     if (!currentOrganization) {
+
         return;
+
     }
 
 
@@ -2231,53 +1974,91 @@ async function loadTodayStatistics() {
         getLocalDateString();
 
 
-    let present = 0;
+    /*
+       Total students across assigned classes.
+    */
 
-    let late = 0;
+    const total =
+        assignedClasses.reduce(
+            (
+                value,
+                classItem
+            ) =>
+                value +
+                Number(
+                    classItem.studentCount ||
+                    0
+                ),
+            0
+        );
 
+
+    let present =
+        0;
+
+    let late =
+        0;
+
+
+    /*
+       Count today's records across
+       the Form Master's classes.
+    */
 
     for (
         const classItem
         of assignedClasses
     ) {
 
+        const attendanceRef =
+            collection(
+                db,
+                "attendance"
+            );
+
+
+        const attendanceQuery =
+            query(
+
+                attendanceRef,
+
+                where(
+                    "organizationId",
+                    "==",
+                    currentOrganization.id
+                ),
+
+                where(
+                    "classId",
+                    "==",
+                    classItem.id
+                ),
+
+                where(
+                    "date",
+                    "==",
+                    today
+                )
+
+            );
+
+
         const snapshot =
             await getDocs(
-                query(
-                    collection(
-                        db,
-                        "attendance"
-                    ),
-
-                    where(
-                        "organizationId",
-                        "==",
-                        currentOrganization.id
-                    ),
-
-                    where(
-                        "classId",
-                        "==",
-                        classItem.id
-                    ),
-
-                    where(
-                        "date",
-                        "==",
-                        today
-                    )
-                )
+                attendanceQuery
             );
 
 
         snapshot.forEach(
             attendanceDocument => {
 
+                const record =
+                    attendanceDocument.data();
+
+
                 const status =
                     normalizeStatus(
-                        attendanceDocument
-                            .data()
-                            .status
+                        record.status
                     );
 
 
@@ -2285,7 +2066,9 @@ async function loadTodayStatistics() {
                     status ===
                     "present"
                 ) {
+
                     present++;
+
                 }
 
 
@@ -2293,7 +2076,9 @@ async function loadTodayStatistics() {
                     status ===
                     "late"
                 ) {
+
                     late++;
+
                 }
 
             }
@@ -2302,44 +2087,88 @@ async function loadTodayStatistics() {
     }
 
 
-    presentTodayElement.textContent =
-        present;
+    /*
+       Store dashboard values.
+    */
+
+    if (totalStudentsElement) {
+
+        totalStudentsElement.textContent =
+            total;
+
+    }
 
 
-    lateTodayElement.textContent =
-        late;
+    if (presentTodayElement) {
+
+        presentTodayElement.textContent =
+            present;
+
+    }
+
+
+    if (lateTodayElement) {
+
+        lateTodayElement.textContent =
+            late;
+
+    }
+
+
+    console.log(
+        "📊 Form Master statistics:",
+        {
+            total,
+            present,
+            late
+        }
+    );
 
 }
 
 
 /* =========================================================
-   STATISTICS
+   UPDATE STATISTICS
 ========================================================= */
 
 function updateStatistics() {
 
-    totalClassesElement.textContent =
-        assignedClasses.length;
+    if (totalClassesElement) {
+
+        totalClassesElement.textContent =
+            assignedClasses.length;
+
+    }
 
 
-    totalStudentsElement.textContent =
+    const totalStudents =
         assignedClasses.reduce(
             (
                 total,
-                item
+                classItem
             ) =>
                 total +
                 Number(
-                    item.studentCount ||
+                    classItem.studentCount ||
                     0
                 ),
             0
         );
 
 
-    let present = 0;
+    if (totalStudentsElement) {
 
-    let late = 0;
+        totalStudentsElement.textContent =
+            totalStudents;
+
+    }
+
+
+    let present =
+        0;
+
+    let late =
+        0;
 
 
     Object.values(
@@ -2351,7 +2180,9 @@ function updateStatistics() {
                 status ===
                 "present"
             ) {
+
                 present++;
+
             }
 
 
@@ -2359,34 +2190,43 @@ function updateStatistics() {
                 status ===
                 "late"
             ) {
+
                 late++;
+
             }
 
         }
     );
 
 
-    presentTodayElement.textContent =
-        present;
+    if (presentTodayElement) {
+
+        presentTodayElement.textContent =
+            present;
+
+    }
 
 
-    lateTodayElement.textContent =
-        late;
+    if (lateTodayElement) {
 
+        lateTodayElement.textContent =
+            late;
 
-    updateToolbarInfo();
+    }
 
 }
 
 
 /* =========================================================
-   TOOLBAR
+   TOOLBAR INFO
 ========================================================= */
 
 function updateToolbarInfo() {
 
     if (!toolbarInfo) {
+
         return;
+
     }
 
 
@@ -2397,134 +2237,35 @@ function updateToolbarInfo() {
     const present =
         Object.values(
             attendanceMap
-        )
-        .filter(
+        ).filter(
             status =>
-                status === "present"
-        )
-        .length;
+                status ===
+                "present"
+        ).length;
 
 
     const late =
         Object.values(
             attendanceMap
-        )
-        .filter(
+        ).filter(
             status =>
-                status === "late"
-        )
-        .length;
+                status ===
+                "late"
+        ).length;
 
 
     const absent =
         Object.values(
             attendanceMap
-        )
-        .filter(
+        ).filter(
             status =>
-                status === "absent"
-        )
-        .length;
-
-
-    const unmarked =
-        total -
-        present -
-        late -
-        absent;
+                status ===
+                "absent"
+        ).length;
 
 
     toolbarInfo.textContent =
-        `${total} Students • ${present} Present • ${late} Late • ${absent} Absent • ${unmarked} Unmarked`;
-
-}
-
-
-/* =========================================================
-   STATUS
-========================================================= */
-
-function renderStatus(status) {
-
-    if (
-        status ===
-        "present"
-    ) {
-
-        return `
-            <span class="status-pill status-present">
-                PRESENT
-            </span>
-        `;
-
-    }
-
-
-    if (
-        status ===
-        "late"
-    ) {
-
-        return `
-            <span class="status-pill status-late">
-                LATE
-            </span>
-        `;
-
-    }
-
-
-    if (
-        status ===
-        "absent"
-    ) {
-
-        return `
-            <span class="status-pill status-absent">
-                ABSENT
-            </span>
-        `;
-
-    }
-
-
-    return `
-        <span class="status-pill status-unmarked">
-            NOT CHECKED
-        </span>
-    `;
-
-}
-
-
-/* =========================================================
-   TIMESTAMP
-========================================================= */
-
-function formatTimestamp(
-    timestamp
-) {
-
-    if (
-        !timestamp ||
-        typeof timestamp.toDate !==
-        "function"
-    ) {
-
-        return "";
-
-    }
-
-
-    return timestamp
-        .toDate()
-        .toLocaleTimeString(
-            [],
-            {
-                hour: "2-digit",
-                minute: "2-digit"
-            }
-        );
+        `${total} Students • ${present} Present • ${late} Late • ${absent} Absent`;
 
 }
 
@@ -2539,17 +2280,20 @@ function normalizeStatus(
 
     const value =
         String(
-            status || ""
+            status ||
+            ""
         )
-        .trim()
-        .toLowerCase();
+            .trim()
+            .toLowerCase();
 
 
     if (
         value ===
         "late"
     ) {
+
         return "late";
+
     }
 
 
@@ -2557,15 +2301,9 @@ function normalizeStatus(
         value ===
         "absent"
     ) {
+
         return "absent";
-    }
 
-
-    if (
-        value ===
-        "present"
-    ) {
-        return "present";
     }
 
 
@@ -2575,7 +2313,7 @@ function normalizeStatus(
 
 
 /* =========================================================
-   TEACHER NAME
+   GET TEACHER NAME
 ========================================================= */
 
 function getTeacherName(
@@ -2583,7 +2321,9 @@ function getTeacherName(
 ) {
 
     if (!teacher) {
+
         return "Form Master";
+
     }
 
 
@@ -2609,7 +2349,7 @@ function getTeacherName(
 
 
 /* =========================================================
-   GRADE NUMBER
+   GET GRADE NUMBER
 ========================================================= */
 
 function getGradeNumber(
@@ -2618,15 +2358,17 @@ function getGradeNumber(
 
     const match =
         String(
-            className || ""
-        )
-        .match(
+            className ||
+            ""
+        ).match(
             /(\d+)/
         );
 
 
     if (!match) {
+
         return 999;
+
     }
 
 
@@ -2638,7 +2380,7 @@ function getGradeNumber(
 
 
 /* =========================================================
-   LOCAL DATE
+   GET LOCAL DATE
 ========================================================= */
 
 function getLocalDateString(
@@ -2652,8 +2394,7 @@ function getLocalDateString(
     const month =
         String(
             date.getMonth() + 1
-        )
-        .padStart(
+        ).padStart(
             2,
             "0"
         );
@@ -2662,8 +2403,7 @@ function getLocalDateString(
     const day =
         String(
             date.getDate()
-        )
-        .padStart(
+        ).padStart(
             2,
             "0"
         );
@@ -2685,31 +2425,26 @@ function escapeHtml(
     return String(
         value ?? ""
     )
-
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-
-    .replace(
-        /</g,
-        "&lt;"
-    )
-
-    .replace(
-        />/g,
-        "&gt;"
-    )
-
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-
-    .replace(
-        /'/g,
-        "&#039;"
-    );
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 
 }
 
@@ -2747,7 +2482,7 @@ if (logoutButton) {
             catch (error) {
 
                 console.error(
-                    "Logout error:",
+                    "❌ Logout error:",
                     error
                 );
 
@@ -2768,7 +2503,7 @@ if (logoutButton) {
 
 
 /* =========================================================
-   LOADING
+   HIDE LOADING
 ========================================================= */
 
 function hideLoading() {
@@ -2784,7 +2519,7 @@ function hideLoading() {
 
 
 /* =========================================================
-   ERROR
+   SHOW ERROR
 ========================================================= */
 
 function showError(
@@ -2792,7 +2527,7 @@ function showError(
 ) {
 
     console.error(
-        "Virello Form Master Error:",
+        "❌ Virello Form Master Error:",
         message
     );
 
@@ -2822,6 +2557,10 @@ function showError(
 
 }
 
+
+/* =========================================================
+   FINAL
+========================================================= */
 
 console.log(
     "✅ Virello form-master.js loaded successfully."
