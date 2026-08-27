@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Virello Technologies | Parent Registration</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            min-height: 100vh;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #f5f7fb 0%,
+                    #eef4ff 100%
+                );
+
+            color: #1f2937;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 30px 16px;
+        }
+
+
+        /* =========================================
+           CONTAINER
+        ========================================= */
+
+        .register-wrapper {
+            width: 100%;
+
+            max-width: 470px;
+        }
+
+
+        /* =========================================
+           BRAND
+        ========================================= */
+
+        .brand {
+            text-align: center;
+
+            margin-bottom: 22px;
+        }
+
+        .brand-logo {
+            width: 58px;
+            height: 58px;
+
+            margin: 0 auto 12px;
+
+            background: #2563eb;
+
+            color: white;
+
+            border-radius: 14px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 25px;
+
+            font-weight: 800;
+
+            box-shadow:
+                0 8px 20px
+                rgba(37, 99, 235, .20);
+        }
+
+        .brand h1 {
+            font-size: 22px;
+
+            margin-bottom: 5px;
+        }
+
+        .brand p {
+            color: #6b7280;
+
+            font-size: 13px;
+        }
+
+
+        /* =========================================
+           CARD
+        ========================================= */
+
+        .card {
+            background: white;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 18px;
+
+            padding: 30px;
+
+            box-shadow:
+                0 15px 45px
+                rgba(0, 0, 0, .08);
+        }
+
+        .card-header {
+            margin-bottom: 24px;
+        }
+
+        .card-header h2 {
+            font-size: 20px;
+
+            margin-bottom: 7px;
+        }
+
+        .card-header p {
+            font-size: 13px;
+
+            color: #6b7280;
+
+            line-height: 1.5;
+        }
+
+
+        /* =========================================
+           FORM
+        ========================================= */
+
+        .form-group {
+            margin-bottom: 17px;
+        }
+
+        .form-group label {
+            display: block;
+
+            margin-bottom: 7px;
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+
+            height: 45px;
+
+            border:
+                1px solid #d1d5db;
+
+            border-radius: 9px;
+
+            padding:
+                0 13px;
+
+            font-size: 14px;
+
+            outline: none;
+
+            transition:
+                border-color .2s,
+                box-shadow .2s;
+        }
+
+        .form-group input:focus {
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37, 99, 235, .10);
+        }
+
+
+        /* =========================================
+           ORGANIZATION
+        ========================================= */
+
+        .organization-box {
+            background: #eff6ff;
+
+            border:
+                1px solid #bfdbfe;
+
+            border-radius: 10px;
+
+            padding: 13px;
+
+            margin-bottom: 20px;
+
+            font-size: 12px;
+
+            color: #1e40af;
+
+            line-height: 1.5;
+        }
+
+        .organization-box strong {
+            display: block;
+
+            margin-bottom: 3px;
+
+            font-size: 13px;
+        }
+
+
+        /* =========================================
+           PASSWORD NOTE
+        ========================================= */
+
+        .password-note {
+            font-size: 11px;
+
+            color: #6b7280;
+
+            margin-top: 6px;
+
+            line-height: 1.4;
+        }
+
+
+        /* =========================================
+           BUTTON
+        ========================================= */
+
+        .register-button {
+            width: 100%;
+
+            height: 46px;
+
+            border: none;
+
+            border-radius: 9px;
+
+            background: #2563eb;
+
+            color: white;
+
+            font-size: 14px;
+
+            font-weight: 800;
+
+            cursor: pointer;
+
+            transition:
+                background .2s,
+                transform .1s;
+        }
+
+        .register-button:hover {
+            background: #1d4ed8;
+        }
+
+        .register-button:active {
+            transform: scale(.99);
+        }
+
+        .register-button:disabled {
+            opacity: .65;
+
+            cursor: not-allowed;
+        }
+
+
+        /* =========================================
+           MESSAGE
+        ========================================= */
+
+        .message {
+            display: none;
+
+            border-radius: 9px;
+
+            padding: 12px 13px;
+
+            margin-bottom: 18px;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+        }
+
+        .message.error {
+            display: block;
+
+            background: #fef2f2;
+
+            border:
+                1px solid #fecaca;
+
+            color: #991b1b;
+        }
+
+        .message.success {
+            display: block;
+
+            background: #ecfdf5;
+
+            border:
+                1px solid #a7f3d0;
+
+            color: #065f46;
+        }
+
+
+        /* =========================================
+           LOGIN
+        ========================================= */
+
+        .login-link {
+            text-align: center;
+
+            margin-top: 22px;
+
+            padding-top: 20px;
+
+            border-top:
+                1px solid #e5e7eb;
+
+            font-size: 13px;
+
+            color: #6b7280;
+        }
+
+        .login-link a {
+            color: #2563eb;
+
+            text-decoration: none;
+
+            font-weight: 800;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+
+        /* =========================================
+           FOOTER
+        ========================================= */
+
+        .footer {
+            text-align: center;
+
+            margin-top: 18px;
+
+            color: #9ca3af;
+
+            font-size: 11px;
+        }
+
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 500px) {
+
+            body {
+                padding: 20px 12px;
+            }
+
+            .card {
+                padding: 23px 18px;
+            }
+
+            .brand h1 {
+                font-size: 20px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="register-wrapper">
+
+
+    <!-- =========================================
+         BRAND
+    ========================================= -->
+
+    <div class="brand">
+
+        <div class="brand-logo">
+            V
+        </div>
+
+        <h1>
+            Virello Technologies
+        </h1>
+
+        <p>
+            Student / Parent Portal
+        </p>
+
+    </div>
+
+
+    <!-- =========================================
+         CARD
+    ========================================= -->
+
+    <div class="card">
+
+
+        <div class="card-header">
+
+            <h2>
+                Create Parent Account
+            </h2>
+
+            <p>
+                Create your Virello parent account
+                to access your children's school
+                information and attendance.
+            </p>
+
+        </div>
+
+
+        <!-- =====================================
+             MESSAGE
+        ====================================== -->
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+
+        <!-- =====================================
+             ORGANIZATION
+        ====================================== -->
+
+        <div class="organization-box">
+
+            <strong>
+                School Connection
+            </strong>
+
+            Your account will be connected to your
+            school after registration. If your school
+            provided you with an organization code,
+            enter it below.
+
+        </div>
+
+
+        <!-- =====================================
+             FORM
+        ====================================== -->
+
+        <form id="registerForm">
+
+
+            <!-- FULL NAME -->
+
+            <div class="form-group">
+
+                <label for="fullName">
+                    Parent / Guardian Full Name
+                </label>
+
+                <input
+                    type="text"
+                    id="fullName"
+                    placeholder="Enter your full name"
+                    autocomplete="name"
+                    required
+                >
+
+            </div>
+
+
+            <!-- EMAIL -->
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email Address
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Enter your email address"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+
+            <!-- PHONE -->
+
+            <div class="form-group">
+
+                <label for="phone">
+                    Phone Number
+                </label>
+
+                <input
+                    type="tel"
+                    id="phone"
+                    placeholder="Enter your phone number"
+                    autocomplete="tel"
+                >
+
+            </div>
+
+
+            <!-- ORGANIZATION ID -->
+
+            <div class="form-group">
+
+                <label for="organizationId">
+                    School Organization ID
+                </label>
+
+                <input
+                    type="text"
+                    id="organizationId"
+                    placeholder="Enter organization ID"
+                    required
+                >
+
+                <div class="password-note">
+                    Use the organization ID provided by
+                    your school administrator.
+                </div>
+
+            </div>
+
+
+            <!-- PASSWORD -->
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Create a password"
+                    autocomplete="new-password"
+                    minlength="6"
+                    required
+                >
+
+                <div class="password-note">
+                    Password must contain at least 6 characters.
+                </div>
+
+            </div>
+
+
+            <!-- CONFIRM PASSWORD -->
+
+            <div class="form-group">
+
+                <label for="confirmPassword">
+                    Confirm Password
+                </label>
+
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    placeholder="Confirm your password"
+                    autocomplete="new-password"
+                    minlength="6"
+                    required
+                >
+
+            </div>
+
+
+            <!-- BUTTON -->
+
+            <button
+                type="submit"
+                id="registerButton"
+                class="register-button"
+            >
+                Create Parent Account
+            </button>
+
+
+        </form>
+
+
+        <!-- =====================================
+             LOGIN
+        ====================================== -->
+
+        <div class="login-link">
+
+            Already have an account?
+
+            <a href="student-parent-login.html">
+                Parent Login
+            </a>
+
+        </div>
+
+
+    </div>
+
+
+    <div class="footer">
+
+        © 2026 Virello Technologies.
+        All rights reserved.
+
+    </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     FIREBASE
+===================================================== -->
+
+<script type="module">
+
+
+/* =========================================================
+   FIREBASE AUTH IMPORTS
+========================================================= */
+
+import {
+    createUserWithEmailAndPassword,
+    updateProfile
+}
+from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+/* =========================================================
+   FIRESTORE IMPORTS
+========================================================= */
+
+import {
+    doc,
+    setDoc,
+    serverTimestamp
+}
+from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+
+/* =========================================================
+   EXISTING VIRELLO FIREBASE CONFIG
+========================================================= */
+
+import {
+    auth,
+    db
+}
+from
+"./js/firebase-config.js";
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const registerForm =
+    document.getElementById(
+        "registerForm"
+    );
+
+
+const registerButton =
+    document.getElementById(
+        "registerButton"
+    );
+
+
+const message =
+    document.getElementById(
+        "message"
+    );
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(
+    text,
+    type
+) {
+
+    message.textContent =
+        text;
+
+    message.className =
+        "message " + type;
+
+}
+
+
+/* =========================================================
+   REGISTER
+========================================================= */
+
+registerForm.addEventListener(
+    "submit",
+    async event => {
+
+        event.preventDefault();
+
+
+        const fullName =
+            document
+                .getElementById(
+                    "fullName"
+                )
+                .value
+                .trim();
+
+
+        const email =
+            document
+                .getElementById(
+                    "email"
+                )
+                .value
+                .trim()
+                .toLowerCase();
+
+
+        const phone =
+            document
+                .getElementById(
+                    "phone"
+                )
+                .value
+                .trim();
+
+
+        const organizationId =
+            document
+                .getElementById(
+                    "organizationId"
+                )
+                .value
+                .trim();
+
+
+        const password =
+            document
+                .getElementById(
+                    "password"
+                )
+                .value;
+
+
+        const confirmPassword =
+            document
+                .getElementById(
+                    "confirmPassword"
+                )
+                .value;
+
+
+        /* =============================================
+           VALIDATION
+        ============================================= */
+
+        if (!fullName) {
+
+            showMessage(
+                "Please enter your full name.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (!email) {
+
+            showMessage(
+                "Please enter your email address.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (!organizationId) {
+
+            showMessage(
+                "Please enter your school organization ID.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (password.length < 6) {
+
+            showMessage(
+                "Password must contain at least 6 characters.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (
+            password !==
+            confirmPassword
+        ) {
+
+            showMessage(
+                "The passwords do not match.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        /* =============================================
+           DISABLE BUTTON
+        ============================================= */
+
+        registerButton.disabled =
+            true;
+
+        registerButton.textContent =
+            "Creating Account...";
+
+
+        showMessage(
+            "Creating your parent account...",
+            "success"
+        );
+
+
+        try {
+
+
+            /* =========================================
+               CREATE FIREBASE AUTH ACCOUNT
+            ========================================= */
+
+            const credential =
+                await createUserWithEmailAndPassword(
+                    auth,
+                    email,
+                    password
+                );
+
+
+            const user =
+                credential.user;
+
+
+            console.log(
+                "✅ Firebase parent account created:",
+                user.uid
+            );
+
+
+            /* =========================================
+               UPDATE DISPLAY NAME
+            ========================================= */
+
+            await updateProfile(
+                user,
+                {
+                    displayName:
+                        fullName
+                }
+            );
+
+
+            /* =========================================
+               CREATE PARENT DOCUMENT
+            ========================================= */
+
+            const parentRef =
+                doc(
+                    db,
+                    "parents",
+                    user.uid
+                );
+
+
+            await setDoc(
+                parentRef,
+                {
+
+                    userUid:
+                        user.uid,
+
+                    uid:
+                        user.uid,
+
+                    email:
+                        email,
+
+                    fullName:
+                        fullName,
+
+                    phone:
+                        phone,
+
+                    organizationId:
+                        organizationId,
+
+                    role:
+                        "parent",
+
+                    status:
+                        "active",
+
+                    createdAt:
+                        serverTimestamp(),
+
+                    updatedAt:
+                        serverTimestamp()
+
+                }
+            );
+
+
+            console.log(
+                "✅ Parent Firestore profile created."
+            );
+
+
+            /* =========================================
+               SUCCESS
+            ========================================= */
+
+            showMessage(
+                "Parent account created successfully. Taking you to link your child...",
+                "success"
+            );
+
+
+            registerButton.textContent =
+                "Account Created";
+
+
+            /* =========================================
+               REDIRECT TO CHILD LINKING
+            ========================================= */
+
+            setTimeout(
+                () => {
+
+                    window.location.href =
+                        "parent-student-link.html";
+
+                },
+                1200
+            );
+
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "❌ Parent registration error:",
+                error
+            );
+
+
+            let errorText =
+                "Unable to create your parent account.";
+
+
+            switch (
+                error.code
+            ) {
+
+                case "auth/email-already-in-use":
+
+                    errorText =
+                        "An account with this email already exists. Please use Parent Login.";
+
+                    break;
+
+
+                case "auth/invalid-email":
+
+                    errorText =
+                        "Please enter a valid email address.";
+
+                    break;
+
+
+                case "auth/weak-password":
+
+                    errorText =
+                        "Your password is too weak. Please use at least 6 characters.";
+
+                    break;
+
+
+                case "auth/network-request-failed":
+
+                    errorText =
+                        "Network error. Please check your internet connection and try again.";
+
+                    break;
+
+
+                case "permission-denied":
+
+                case "firestore/permission-denied":
+
+                    errorText =
+                        "Your account was created, but Virello could not create your parent profile because Firestore permissions are blocking the request.";
+
+                    break;
+
+
+                default:
+
+                    errorText =
+                        error.message ||
+                        errorText;
+
+            }
+
+
+            showMessage(
+                errorText,
+                "error"
+            );
+
+
+            registerButton.disabled =
+                false;
+
+            registerButton.textContent =
+                "Create Parent Account";
+
+        }
+
+    }
+);
+
+
+console.log(
+    "✅ Virello Parent Registration loaded."
+);
+
+</script>
+
+
+</body>
+
+</html>

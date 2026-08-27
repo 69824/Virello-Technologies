@@ -1,0 +1,943 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Virello Technologies | Student & Parent Portal</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #172033;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 1050px;
+            min-height: 650px;
+            background: #ffffff;
+            border-radius: 22px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+        }
+
+        /* LEFT */
+
+        .brand-panel {
+            background: linear-gradient(
+                145deg,
+                #111827,
+                #1e3a8a
+            );
+            color: white;
+            padding: 55px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+        }
+
+        .logo span {
+            color: #60a5fa;
+        }
+
+        .brand-content {
+            max-width: 410px;
+        }
+
+        .brand-content h1 {
+            font-size: 42px;
+            line-height: 1.08;
+            margin-bottom: 20px;
+        }
+
+        .brand-content p {
+            color: #dbeafe;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .feature-list {
+            margin-top: 30px;
+            display: grid;
+            gap: 15px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #e0ecff;
+            font-size: 14px;
+        }
+
+        .feature-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-footer {
+            color: #bfdbfe;
+            font-size: 12px;
+        }
+
+        /* RIGHT */
+
+        .login-panel {
+            padding: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 390px;
+        }
+
+        .login-box h2 {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .portal-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .portal-tab {
+            border: 0;
+            background: transparent;
+            padding: 11px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .portal-tab.active {
+            background: #ffffff;
+            color: #1d4ed8;
+            box-shadow: 0 2px 7px rgba(15,23,42,0.08);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 16px;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 48px;
+            border: 1px solid #dbe2ea;
+            border-radius: 10px;
+            padding: 0 14px 0 42px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.2s;
+            background: #ffffff;
+        }
+
+        .form-control:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .login-button {
+            width: 100%;
+            height: 50px;
+            border: 0;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+            margin-top: 8px;
+        }
+
+        .login-button:hover {
+            background: #1d4ed8;
+        }
+
+        .login-button:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .forgot {
+            text-align: right;
+            margin-top: 12px;
+        }
+
+        .forgot button {
+            border: 0;
+            background: transparent;
+            color: #2563eb;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .message {
+            display: none;
+            padding: 12px 14px;
+            border-radius: 9px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message.error {
+            display: block;
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .message.success {
+            display: block;
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .help-box {
+            margin-top: 28px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.96);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .loading-box {
+            text-align: center;
+        }
+
+        .spinner {
+            width: 38px;
+            height: 38px;
+            border: 4px solid #dbeafe;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: auto auto 15px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 800px) {
+
+            .page {
+                grid-template-columns: 1fr;
+                max-width: 520px;
+            }
+
+            .brand-panel {
+                padding: 35px;
+                min-height: 360px;
+            }
+
+            .brand-content h1 {
+                font-size: 32px;
+            }
+
+            .brand-footer {
+                margin-top: 30px;
+            }
+
+            .login-panel {
+                padding: 35px;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            body {
+                padding: 0;
+            }
+
+            .page {
+                min-height: 100vh;
+                border-radius: 0;
+            }
+
+            .brand-panel,
+            .login-panel {
+                padding: 28px 22px;
+            }
+
+            .brand-panel {
+                min-height: 330px;
+            }
+
+            .brand-content h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <!-- =====================================================
+         BRAND PANEL
+    ====================================================== -->
+
+    <section class="brand-panel">
+
+        <div>
+            <div class="logo">
+                Virello <span>Technologies</span>
+            </div>
+        </div>
+
+        <div class="brand-content">
+
+            <h1>
+                Student & Parent Portal
+            </h1>
+
+            <p>
+                Access your attendance information,
+                student records and school updates
+                securely from anywhere.
+            </p>
+
+            <div class="feature-list">
+
+                <div class="feature">
+                    <div class="feature-icon">✓</div>
+                    <span>View daily attendance</span>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">✓</div>
+                    <span>Track attendance history</span>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">✓</div>
+                    <span>Monitor attendance performance</span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="brand-footer">
+            © 2026 Virello Technologies
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         LOGIN PANEL
+    ====================================================== -->
+
+    <section class="login-panel">
+
+        <div class="login-box">
+
+            <h2>
+                Welcome back
+            </h2>
+
+            <p class="subtitle">
+                Sign in to access your Virello portal.
+            </p>
+
+
+            <!-- PORTAL TYPE -->
+
+            <div class="portal-tabs">
+
+                <button
+                    type="button"
+                    class="portal-tab active"
+                    id="studentTab"
+                >
+                    Student
+                </button>
+
+                <button
+                    type="button"
+                    class="portal-tab"
+                    id="parentTab"
+                >
+                    Parent
+                </button>
+
+            </div>
+
+
+            <!-- MESSAGE -->
+
+            <div
+                id="loginMessage"
+                class="message"
+            ></div>
+
+
+            <!-- LOGIN FORM -->
+
+            <form id="loginForm">
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Email Address
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <span class="input-icon">
+                            ✉
+                        </span>
+
+                        <input
+                            type="email"
+                            id="email"
+                            class="form-control"
+                            placeholder="Enter your email"
+                            autocomplete="email"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <span class="input-icon">
+                            🔒
+                        </span>
+
+                        <input
+                            type="password"
+                            id="password"
+                            class="form-control"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            id="togglePassword"
+                        >
+                            Show
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="login-button"
+                    id="loginButton"
+                >
+                    Sign In
+                </button>
+
+            </form>
+
+
+            <div class="forgot">
+
+                <button
+                    type="button"
+                    id="forgotPassword"
+                >
+                    Forgot password?
+                </button>
+
+            </div>
+
+
+            <div class="help-box">
+
+                <strong>Need help?</strong><br>
+
+                If you do not have your login details,
+                please contact your school administrator.
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- =====================================================
+     LOADING
+====================================================== -->
+
+<div
+    class="loading-screen"
+    id="loadingScreen"
+>
+
+    <div class="loading-box">
+
+        <div class="spinner"></div>
+
+        <strong>
+            Signing you in...
+        </strong>
+
+        <p style="color:#64748b;font-size:13px;margin-top:6px;">
+            Please wait.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+====================================================== -->
+
+<script type="module">
+
+import {
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+import {
+    auth
+} from "./js/firebase-config.js";
+
+
+/* =====================================================
+   DOM
+===================================================== */
+
+const loginForm =
+    document.getElementById("loginForm");
+
+const emailInput =
+    document.getElementById("email");
+
+const passwordInput =
+    document.getElementById("password");
+
+const loginButton =
+    document.getElementById("loginButton");
+
+const loginMessage =
+    document.getElementById("loginMessage");
+
+const loadingScreen =
+    document.getElementById("loadingScreen");
+
+const togglePassword =
+    document.getElementById("togglePassword");
+
+const forgotPassword =
+    document.getElementById("forgotPassword");
+
+const studentTab =
+    document.getElementById("studentTab");
+
+const parentTab =
+    document.getElementById("parentTab");
+
+
+let portalType = "student";
+
+
+/* =====================================================
+   PORTAL TABS
+===================================================== */
+
+studentTab.addEventListener("click", () => {
+
+    portalType = "student";
+
+    studentTab.classList.add("active");
+    parentTab.classList.remove("active");
+
+});
+
+
+parentTab.addEventListener("click", () => {
+
+    portalType = "parent";
+
+    parentTab.classList.add("active");
+    studentTab.classList.remove("active");
+
+});
+
+
+/* =====================================================
+   PASSWORD TOGGLE
+===================================================== */
+
+togglePassword.addEventListener("click", () => {
+
+    if (passwordInput.type === "password") {
+
+        passwordInput.type = "text";
+        togglePassword.textContent = "Hide";
+
+    } else {
+
+        passwordInput.type = "password";
+        togglePassword.textContent = "Show";
+
+    }
+
+});
+
+
+/* =====================================================
+   SHOW MESSAGE
+===================================================== */
+
+function showMessage(message, type = "error") {
+
+    loginMessage.textContent = message;
+
+    loginMessage.className =
+        `message ${type}`;
+
+}
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+loginForm.addEventListener("submit", async event => {
+
+    event.preventDefault();
+
+    const email =
+        emailInput.value.trim();
+
+    const password =
+        passwordInput.value;
+
+    if (!email || !password) {
+
+        showMessage(
+            "Please enter your email address and password."
+        );
+
+        return;
+
+    }
+
+    loginButton.disabled = true;
+
+    loginButton.textContent = "Signing In...";
+
+    loadingScreen.style.display = "flex";
+
+    loginMessage.style.display = "none";
+
+
+    try {
+
+        await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
+
+
+        localStorage.setItem(
+            "virelloPortalType",
+            portalType
+        );
+
+
+        showMessage(
+            "Login successful. Opening your portal...",
+            "success"
+        );
+
+
+        window.location.href =
+            "student-parent-dashboard.html";
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Student/Parent login error:",
+            error
+        );
+
+
+        let message =
+            "Unable to sign in. Please check your login details.";
+
+        if (
+            error.code ===
+            "auth/invalid-credential"
+        ) {
+
+            message =
+                "Incorrect email or password.";
+
+        }
+
+        else if (
+            error.code ===
+            "auth/user-not-found"
+        ) {
+
+            message =
+                "No account was found with this email.";
+
+        }
+
+        else if (
+            error.code ===
+            "auth/wrong-password"
+        ) {
+
+            message =
+                "Incorrect password.";
+
+        }
+
+        else if (
+            error.code ===
+            "auth/too-many-requests"
+        ) {
+
+            message =
+                "Too many login attempts. Please try again later.";
+
+        }
+
+        else if (
+            error.code ===
+            "auth/network-request-failed"
+        ) {
+
+            message =
+                "Network error. Please check your internet connection.";
+
+        }
+
+
+        loadingScreen.style.display = "none";
+
+        showMessage(message);
+
+    }
+
+    finally {
+
+        loginButton.disabled = false;
+
+        loginButton.textContent = "Sign In";
+
+    }
+
+});
+
+
+/* =====================================================
+   FORGOT PASSWORD
+===================================================== */
+
+forgotPassword.addEventListener(
+    "click",
+    async () => {
+
+        const email =
+            emailInput.value.trim();
+
+
+        if (!email) {
+
+            showMessage(
+                "Enter your email address first, then click Forgot password."
+            );
+
+            emailInput.focus();
+
+            return;
+
+        }
+
+
+        try {
+
+            await sendPasswordResetEmail(
+                auth,
+                email
+            );
+
+
+            showMessage(
+                "Password reset instructions have been sent to your email.",
+                "success"
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Password reset error:",
+                error
+            );
+
+
+            showMessage(
+                "Unable to send the password reset email. Please check the email address."
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   AUTH CHECK
+===================================================== */
+
+onAuthStateChanged(
+    auth,
+    user => {
+
+        if (user) {
+
+            /*
+             * If the user is already logged in,
+             * allow them to continue directly
+             * to the portal.
+             */
+
+            console.log(
+                "Existing Virello portal session:",
+                user.email
+            );
+
+        }
+
+    }
+);
+
+
+console.log(
+    "✅ Virello Student/Parent login loaded."
+);
+
+</script>
+
+</body>
+</html>
