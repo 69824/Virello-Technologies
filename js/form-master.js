@@ -16,6 +16,7 @@
    - Load students
    - Select class
    - Select attendance date
+   - Not Recorded
    - Mark Present
    - Mark Late
    - Mark Absent
@@ -277,7 +278,6 @@ document.addEventListener(
 
         }
 
-
         startFormMasterDashboard();
 
     }
@@ -293,7 +293,6 @@ function startFormMasterDashboard() {
     console.log(
         "🔐 Checking Form Master authentication..."
     );
-
 
     onAuthStateChanged(
         auth,
@@ -314,10 +313,8 @@ function startFormMasterDashboard() {
 
                 }
 
-
                 currentUser =
                     user;
-
 
                 console.log(
                     "✅ Form Master authenticated:",
@@ -327,40 +324,61 @@ function startFormMasterDashboard() {
 
                 await loadTeacherProfile();
 
+
                 if (!currentTeacher) {
                     return;
                 }
 
+
                 const currentRole =
-                    String(currentTeacher.role || "")
+                    String(
+                        currentTeacher.role || ""
+                    )
                         .trim()
                         .toLowerCase();
+
 
                 if (
                     currentRole !== "form_master" &&
                     currentTeacher.isFormMaster !== true
                 ) {
+
                     console.error(
                         "⛔ Account rejected from Form Master dashboard:",
                         currentTeacher
                     );
 
-                    try {
-                        await signOut(auth);
-                    } catch {}
 
-                    localStorage.removeItem("virelloFormMaster");
-                    window.location.href = "form-master-login.html";
+                    try {
+
+                        await signOut(
+                            auth
+                        );
+
+                    }
+
+                    catch {}
+
+
+                    localStorage.removeItem(
+                        "virelloFormMaster"
+                    );
+
+
+                    window.location.href =
+                        "form-master-login.html";
+
+
                     return;
+
                 }
+
 
                 await loadOrganization();
 
 
                 if (!currentOrganization) {
-
                     return;
-
                 }
 
 
@@ -467,8 +485,10 @@ async function loadTeacherProfile() {
        If still not found, try email.
     */
 
-    if (teacherSnapshot.empty &&
-        currentUser.email) {
+    if (
+        teacherSnapshot.empty &&
+        currentUser.email
+    ) {
 
         teacherSnapshot =
             await getDocs(
@@ -556,43 +576,17 @@ async function loadOrganization() {
         null;
 
 
-    /*
-       If staff has organizationId,
-       use it directly.
-    */
-
-    if (organizationId) {
-
-        const organizationRef =
-            doc(
-                db,
-                "organizations",
-                organizationId
-            );
-
-
-        /*
-           Instead of getDoc dependency,
-           query organizations by document id
-           through getDocs is avoided here.
-
-           We therefore load by owner when needed.
-        */
-
-    }
-
-
-    /*
-       Find organization through
-       current teacher organizationId.
-    */
-
     const organizationsRef =
         collection(
             db,
             "organizations"
         );
 
+
+    /*
+       Find organization through
+       current teacher organizationId.
+    */
 
     if (organizationId) {
 
@@ -613,7 +607,9 @@ async function loadOrganization() {
             );
 
 
-        if (!organizationSnapshot.empty) {
+        if (
+            !organizationSnapshot.empty
+        ) {
 
             const organizationDocument =
                 organizationSnapshot.docs[0];
@@ -635,8 +631,7 @@ async function loadOrganization() {
 
     /*
        Fallback:
-       find organization using
-       ownerUid if available.
+       find organization using ownerUid.
     */
 
     if (!currentOrganization) {
@@ -660,7 +655,9 @@ async function loadOrganization() {
                 );
 
 
-            if (!organizationSnapshot.empty) {
+            if (
+                !organizationSnapshot.empty
+            ) {
 
                 const organizationDocument =
                     organizationSnapshot.docs[0];
@@ -855,9 +852,7 @@ async function loadAssignedClasses() {
 function renderClasses() {
 
     if (!classListElement) {
-
         return;
-
     }
 
 
@@ -969,9 +964,7 @@ if (classListElement) {
 
 
             if (!button) {
-
                 return;
-
             }
 
 
@@ -988,9 +981,7 @@ if (classListElement) {
 
 
             if (!classItem) {
-
                 return;
-
             }
 
 
@@ -1208,9 +1199,7 @@ async function loadAttendanceForSelectedDate() {
 
 
     if (!date) {
-
         return;
-
     }
 
 
@@ -1276,9 +1265,7 @@ async function loadAttendanceForSelectedDate() {
 
 
             if (!studentId) {
-
                 return;
-
             }
 
 
@@ -1306,10 +1293,11 @@ async function loadAttendanceForSelectedDate() {
 
 
     /*
+       IMPORTANT:
        Students without a saved attendance
-       record are initially Present.
+       record remain NOT RECORDED.
 
-       This makes the register faster to use.
+       They are NOT automatically Present.
     */
 
     selectedStudents.forEach(
@@ -1324,7 +1312,7 @@ async function loadAttendanceForSelectedDate() {
                 attendanceMap[
                     student.id
                 ] =
-                    "present";
+                    "not_recorded";
 
             }
 
@@ -1349,9 +1337,7 @@ async function loadAttendanceForSelectedDate() {
 function renderAttendanceRegister() {
 
     if (!attendanceRegister) {
-
         return;
-
     }
 
 
@@ -1443,7 +1429,7 @@ function renderAttendanceRegister() {
                 attendanceMap[
                     student.id
                 ] ||
-                "present";
+                "not_recorded";
 
 
             const row =
@@ -1497,6 +1483,19 @@ function renderAttendanceRegister() {
                             student.id
                         )}"
                     >
+
+                        <button
+                            type="button"
+                            class="status-button not-recorded ${
+                                status === "not_recorded"
+                                    ? "active"
+                                    : ""
+                            }"
+                            data-status="not_recorded"
+                        >
+                            Not Recorded
+                        </button>
+
 
                         <button
                             type="button"
@@ -1573,9 +1572,7 @@ if (attendanceRegister) {
 
 
             if (!button) {
-
                 return;
-
             }
 
 
@@ -1586,9 +1583,7 @@ if (attendanceRegister) {
 
 
             if (!container) {
-
                 return;
-
             }
 
 
@@ -1632,6 +1627,8 @@ if (attendanceRegister) {
 
             updateToolbarInfo();
 
+            updateStatistics();
+
         }
     );
 
@@ -1649,9 +1646,7 @@ if (attendanceDateInput) {
         async () => {
 
             if (!selectedClass) {
-
                 return;
-
             }
 
 
@@ -1723,6 +1718,9 @@ if (markAllPresentButton) {
 
             renderAttendanceRegister();
 
+
+            updateStatistics();
+
         }
     );
 
@@ -1752,6 +1750,9 @@ if (markAllAbsentButton) {
 
 
             renderAttendanceRegister();
+
+
+            updateStatistics();
 
         }
     );
@@ -1806,6 +1807,42 @@ if (saveAttendanceButton) {
             }
 
 
+            /*
+               Check whether at least one student
+               has actually been marked.
+            */
+
+            const recordedStudents =
+                selectedStudents.filter(
+                    student => {
+
+                        const status =
+                            normalizeStatus(
+                                attendanceMap[
+                                    student.id
+                                ]
+                            );
+
+                        return (
+                            status !==
+                            "not_recorded"
+                        );
+
+                    }
+                );
+
+
+            if (!recordedStudents.length) {
+
+                alert(
+                    "No attendance has been recorded yet. Please mark students as Present, Late, or Absent before saving."
+                );
+
+                return;
+
+            }
+
+
             saveAttendanceButton.disabled =
                 true;
 
@@ -1820,6 +1857,10 @@ if (saveAttendanceButton) {
                     0;
 
 
+                let skipped =
+                    0;
+
+
                 for (
                     const student
                     of selectedStudents
@@ -1829,9 +1870,24 @@ if (saveAttendanceButton) {
                         normalizeStatus(
                             attendanceMap[
                                 student.id
-                            ] ||
-                            "present"
+                            ]
                         );
+
+
+                    /*
+                       DO NOT SAVE NOT RECORDED.
+                    */
+
+                    if (
+                        status ===
+                        "not_recorded"
+                    ) {
+
+                        skipped++;
+
+                        continue;
+
+                    }
 
 
                     const existing =
@@ -1912,8 +1968,8 @@ if (saveAttendanceButton) {
 
 
                     /*
-                       If the student is absent,
-                       do not create a check-in.
+                       If student is Absent,
+                       there is no check-in/out.
                     */
 
                     if (
@@ -1929,6 +1985,10 @@ if (saveAttendanceButton) {
                     }
 
 
+                    /*
+                       Update existing record.
+                    */
+
                     if (existing) {
 
                         await updateDoc(
@@ -1941,6 +2001,10 @@ if (saveAttendanceButton) {
                         );
 
                     }
+
+                    /*
+                       Create new record.
+                    */
 
                     else {
 
@@ -1981,8 +2045,20 @@ if (saveAttendanceButton) {
                 updateStatistics();
 
 
+                let message =
+                    `Attendance saved successfully for ${saved} student${saved === 1 ? "" : "s"}.`;
+
+
+                if (skipped > 0) {
+
+                    message +=
+                        ` ${skipped} student${skipped === 1 ? " was" : "s were"} left as Not Recorded.`;
+
+                }
+
+
                 alert(
-                    `Attendance saved successfully for ${saved} student${saved === 1 ? "" : "s"}.`
+                    message
                 );
 
             }
@@ -2025,9 +2101,7 @@ if (saveAttendanceButton) {
 async function loadTodayDashboardStatistics() {
 
     if (!currentOrganization) {
-
         return;
-
     }
 
 
@@ -2232,6 +2306,11 @@ function updateStatistics() {
         0;
 
 
+    /*
+       Only Present and Late are counted.
+       Not Recorded and Absent are excluded.
+    */
+
     Object.values(
         attendanceMap
     ).forEach(
@@ -2285,9 +2364,7 @@ function updateStatistics() {
 function updateToolbarInfo() {
 
     if (!toolbarInfo) {
-
         return;
-
     }
 
 
@@ -2325,8 +2402,18 @@ function updateToolbarInfo() {
         ).length;
 
 
+    const notRecorded =
+        Object.values(
+            attendanceMap
+        ).filter(
+            status =>
+                status ===
+                "not_recorded"
+        ).length;
+
+
     toolbarInfo.textContent =
-        `${total} Students • ${present} Present • ${late} Late • ${absent} Absent`;
+        `${total} Students • ${present} Present • ${late} Late • ${absent} Absent • ${notRecorded} Not Recorded`;
 
 }
 
@@ -2349,6 +2436,17 @@ function normalizeStatus(
 
 
     if (
+        value === "not_recorded" ||
+        value === "not recorded" ||
+        value === "pending"
+    ) {
+
+        return "not_recorded";
+
+    }
+
+
+    if (
         value ===
         "late"
     ) {
@@ -2368,7 +2466,22 @@ function normalizeStatus(
     }
 
 
-    return "present";
+    if (
+        value ===
+        "present"
+    ) {
+
+        return "present";
+
+    }
+
+
+    /*
+       Unknown/empty status is now
+       NOT RECORDED, not Present.
+    */
+
+    return "not_recorded";
 
 }
 
