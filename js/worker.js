@@ -1486,6 +1486,24 @@ async function handleCheckOut() {
 console.log(
     "✅ Virello Worker Check-In System loaded."
 );
+console.log(
+    "🕒 Automatic 08:00 AM late detection active."
+);
+
+
+console.log(
+    "🟢 08:00 AM or earlier = Present."
+);
+
+
+console.log(
+    "🟡 After 08:00 AM = Late."
+);
+
+
+console.log(
+    "🔴 No attendance record = Absent."
+);
 
 
 console.log(
