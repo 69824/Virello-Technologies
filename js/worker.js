@@ -5,9 +5,6 @@
    FILE:
    js/worker.js
 
-   STEP:
-   5B / HOSTING VERSION
-
    PURPOSE:
    WORKER CHECK-IN / CHECK-OUT SYSTEM
 
@@ -17,29 +14,30 @@
    - Staff ID lookup
    - Active staff verification
    - Daily attendance
+   - Automatic Present / Late detection
    - Check-in
    - Check-out
    - Firestore attendance records
+   - Hosting safe
 
-   FIRESTORE COLLECTIONS:
-   attendance
-   staff
-
-   HOSTING:
-   No IPv4 address
-   No localhost
-   No 127.0.0.1
+   ATTENDANCE RULE:
+   - BEFORE 09:00 AM = PRESENT
+   - 09:00 AM OR LATER = LATE
 ========================================================= */
 
 
 /* =========================================================
-   FIREBASE
+   FIREBASE AUTH
 ========================================================= */
 
 import {
     getAuth
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
+
+/* =========================================================
+   FIRESTORE
+========================================================= */
 
 import {
     getFirestore,
@@ -54,6 +52,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 
+/* =========================================================
+   FIREBASE CONFIG
+========================================================= */
+
 import {
     app
 } from "./firebase-config.js";
@@ -63,48 +65,52 @@ import {
    FIREBASE SERVICES
 ========================================================= */
 
-const auth =
-    getAuth(app);
+const auth = getAuth(app);
 
-
-const db =
-    getFirestore(app);
+const db = getFirestore(app);
 
 
 /* =========================================================
    GLOBAL STATE
 ========================================================= */
 
-let currentStaff =
-    null;
+let currentStaff = null;
 
-
-let currentAttendance =
-    null;
+let currentAttendance = null;
 
 
 /* =========================================================
    OFFICE QR STATE
 ========================================================= */
 
-let officeQRVerified =
-    false;
+let officeQRVerified = false;
 
+let officeQRTimestamp = null;
 
-let officeQRTimestamp =
-    null;
-
-
-let officeQRToken =
-    null;
+let officeQRToken = null;
 
 
 /* =========================================================
    QR SETTINGS
 ========================================================= */
 
-const QR_LIFETIME_SECONDS =
-    30;
+const QR_LIFETIME_SECONDS = 30;
+
+
+/* =========================================================
+   ATTENDANCE SETTINGS
+========================================================= */
+
+/*
+   Attendance cutoff time.
+
+   Before 09:00 = Present
+   09:00 or later = Late
+*/
+
+const LATE_HOUR = 9;
+
+const LATE_MINUTE = 0;
 
 
 /* =========================================================
@@ -205,6 +211,12 @@ document.addEventListener(
         console.log(
             "📄 Current worker page:",
             window.location.href
+        );
+
+
+        console.log(
+            "🕘 Attendance cutoff:",
+            "09:00 AM"
         );
 
 
@@ -309,16 +321,11 @@ function verifyOfficeQR() {
         );
 
 
-        officeQRVerified =
-            false;
+        officeQRVerified = false;
 
+        officeQRTimestamp = null;
 
-        officeQRTimestamp =
-            null;
-
-
-        officeQRToken =
-            null;
+        officeQRToken = null;
 
 
         setOfficeAccessState(
@@ -354,8 +361,7 @@ function verifyOfficeQR() {
         );
 
 
-        officeQRVerified =
-            false;
+        officeQRVerified = false;
 
 
         setOfficeAccessState(
@@ -400,16 +406,11 @@ function verifyOfficeQR() {
         );
 
 
-        officeQRVerified =
-            false;
+        officeQRVerified = false;
 
+        officeQRTimestamp = null;
 
-        officeQRTimestamp =
-            null;
-
-
-        officeQRToken =
-            null;
+        officeQRToken = null;
 
 
         setOfficeAccessState(
@@ -515,7 +516,7 @@ function setOfficeAccessState(
 
 
 /* =========================================================
-   TODAY DATE
+   TODAY DATE DISPLAY
 ========================================================= */
 
 function setTodayDate() {
@@ -533,17 +534,10 @@ function setTodayDate() {
         now.toLocaleDateString(
             "en-GB",
             {
-                weekday:
-                    "long",
-
-                year:
-                    "numeric",
-
-                month:
-                    "long",
-
-                day:
-                    "numeric"
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
             }
         );
 
@@ -582,9 +576,78 @@ function getDateKey() {
         );
 
 
-    return (
-        `${year}-${month}-${day}`
-    );
+    return `${year}-${month}-${day}`;
+
+}
+
+
+/* =========================================================
+   GET CURRENT ATTENDANCE STATUS
+=========================================================
+
+   BEFORE 09:00 AM
+   = PRESENT
+
+   09:00 AM OR LATER
+   = LATE
+========================================================= */
+
+function getAttendanceStatus() {
+
+    const now =
+        new Date();
+
+
+    const hour =
+        now.getHours();
+
+
+    const minute =
+        now.getMinutes();
+
+
+    if (
+        hour > LATE_HOUR
+    ) {
+
+        return "late";
+
+    }
+
+
+    if (
+        hour === LATE_HOUR &&
+        minute >= LATE_MINUTE
+    ) {
+
+        return "late";
+
+    }
+
+
+    return "present";
+
+}
+
+
+/* =========================================================
+   GET ATTENDANCE LABEL
+========================================================= */
+
+function getAttendanceLabel(
+    status
+) {
+
+    if (
+        status === "late"
+    ) {
+
+        return "Late";
+
+    }
+
+
+    return "Present";
 
 }
 
@@ -908,7 +971,9 @@ async function handleCheckIn() {
 
         if (
             staff.status &&
-            staff.status !== "active"
+            String(
+                staff.status
+            ).toLowerCase() !== "active"
         ) {
 
             showMessage(
@@ -979,6 +1044,47 @@ async function handleCheckIn() {
 
 
         /* =================================================
+           DETERMINE PRESENT OR LATE
+        =================================================
+
+           IMPORTANT:
+
+           This is calculated at the exact moment
+           the staff member presses Check In.
+
+           QR generation time DOES NOT determine
+           attendance status.
+        ================================================= */
+
+        const attendanceStatusValue =
+            getAttendanceStatus();
+
+
+        const attendanceLabel =
+            getAttendanceLabel(
+                attendanceStatusValue
+            );
+
+
+        const checkInTime =
+            new Date();
+
+
+        console.log(
+            "🕒 Actual check-in time:",
+            checkInTime.toLocaleTimeString(
+                "en-GB"
+            )
+        );
+
+
+        console.log(
+            "📊 Attendance status:",
+            attendanceLabel
+        );
+
+
+        /* =================================================
            CREATE ATTENDANCE
         ================================================= */
 
@@ -1007,7 +1113,7 @@ async function handleCheckIn() {
                 getDateKey(),
 
             status:
-                "present",
+                attendanceStatusValue,
 
             checkIn:
                 serverTimestamp(),
@@ -1018,8 +1124,27 @@ async function handleCheckIn() {
             createdAt:
                 serverTimestamp(),
 
+            updatedAt:
+                serverTimestamp(),
+
             /* =============================================
-               QR ACCESS RECORD
+               ACTUAL ATTENDANCE INFORMATION
+            ============================================= */
+
+            attendanceType:
+                attendanceStatusValue,
+
+            checkInHour:
+                checkInTime.getHours(),
+
+            checkInMinute:
+                checkInTime.getMinutes(),
+
+            checkInSecond:
+                checkInTime.getSeconds(),
+
+            /* =============================================
+               QR ACCESS INFORMATION
             ============================================= */
 
             attendanceAccess:
@@ -1063,13 +1188,35 @@ async function handleCheckIn() {
         );
 
 
-        showCheckedIn();
+        /* =================================================
+           SHOW CORRECT RESULT
+        ================================================= */
+
+        if (
+            attendanceStatusValue ===
+            "late"
+        ) {
+
+            showLateCheckedIn();
+
+        } else {
+
+            showCheckedIn();
+
+        }
 
 
         console.log(
-            "✅ Worker checked in:",
+            "✅ Worker attendance recorded:",
             newAttendance.id
         );
+
+
+        console.log(
+            "📊 Final attendance status:",
+            attendanceStatusValue
+        );
+
 
     } catch (error) {
 
@@ -1183,7 +1330,7 @@ function displayWorker(
 
 
 /* =========================================================
-   CHECKED IN
+   CHECKED IN — PRESENT
 ========================================================= */
 
 function showCheckedIn() {
@@ -1191,7 +1338,7 @@ function showCheckedIn() {
     if (attendanceStatus) {
 
         attendanceStatus.textContent =
-            "✓ You are checked in.";
+            "✓ You are checked in — Present.";
 
         attendanceStatus.className =
             "attendance-status status-present";
@@ -1227,7 +1374,59 @@ function showCheckedIn() {
 
 
     showMessage(
-        "Check-in recorded successfully.",
+        "Check-in recorded successfully. You are marked Present.",
+        "success"
+    );
+
+}
+
+
+/* =========================================================
+   CHECKED IN — LATE
+========================================================= */
+
+function showLateCheckedIn() {
+
+    if (attendanceStatus) {
+
+        attendanceStatus.textContent =
+            "✓ You are checked in — Late.";
+
+        attendanceStatus.className =
+            "attendance-status status-late";
+
+    }
+
+
+    if (checkOutButton) {
+
+        checkOutButton.disabled =
+            false;
+
+        checkOutButton.style.display =
+            "block";
+
+    }
+
+
+    if (staffIdInput) {
+
+        staffIdInput.disabled =
+            true;
+
+    }
+
+
+    if (checkInButton) {
+
+        checkInButton.style.display =
+            "none";
+
+    }
+
+
+    showMessage(
+        "Check-in recorded. You arrived after 9:00 AM and have been marked Late.",
         "success"
     );
 
@@ -1240,13 +1439,50 @@ function showCheckedIn() {
 
 function showAlreadyCheckedIn() {
 
-    if (attendanceStatus) {
+    const status =
+        String(
+            currentAttendance?.status ||
+            "present"
+        ).toLowerCase();
 
-        attendanceStatus.textContent =
-            "✓ You are already checked in.";
 
-        attendanceStatus.className =
-            "attendance-status status-present";
+    if (
+        status === "late"
+    ) {
+
+        if (attendanceStatus) {
+
+            attendanceStatus.textContent =
+                "✓ You are already checked in — Late.";
+
+            attendanceStatus.className =
+                "attendance-status status-late";
+
+        }
+
+
+        showMessage(
+            "You have already checked in today and are marked Late.",
+            "success"
+        );
+
+    } else {
+
+        if (attendanceStatus) {
+
+            attendanceStatus.textContent =
+                "✓ You are already checked in — Present.";
+
+            attendanceStatus.className =
+                "attendance-status status-present";
+
+        }
+
+
+        showMessage(
+            "You have already checked in today and are marked Present.",
+            "success"
+        );
 
     }
 
@@ -1276,12 +1512,6 @@ function showAlreadyCheckedIn() {
             "none";
 
     }
-
-
-    showMessage(
-        "You have already checked in today.",
-        "success"
-    );
 
 }
 
@@ -1300,8 +1530,7 @@ function showCompletedAttendance() {
 
 
     if (
-        status ===
-        "late"
+        status === "late"
     ) {
 
         if (attendanceStatus) {
@@ -1345,7 +1574,6 @@ function showCompletedAttendance() {
 
     disableStaffId();
 
-
     hideCheckInButton();
 
 
@@ -1357,6 +1585,7 @@ function showCompletedAttendance() {
     );
 
 }
+
 
 /* =========================================================
    HANDLE CHECK OUT
@@ -1388,7 +1617,6 @@ async function handleCheckOut() {
     ) {
 
         showCompletedAttendance();
-
 
         return;
 
@@ -1441,11 +1669,11 @@ async function handleCheckOut() {
                 checkOut:
                     serverTimestamp(),
 
-                status:
-                    "completed",
-
                 updatedAt:
-                    serverTimestamp()
+                    serverTimestamp(),
+
+                attendanceCompleted:
+                    true
 
             }
         );
@@ -1455,8 +1683,19 @@ async function handleCheckOut() {
             true;
 
 
-        currentAttendance.status =
-            "completed";
+        currentAttendance.attendanceCompleted =
+            true;
+
+
+        /*
+           IMPORTANT:
+
+           We DO NOT change the original
+           Present/Late status to "completed".
+
+           This means reports can still correctly
+           see whether the worker was Present or Late.
+        */
 
 
         showCompletedAttendance();
@@ -1500,29 +1739,63 @@ async function handleCheckOut() {
 
 
 /* =========================================================
-   FINAL LOG
+   DISABLE STAFF ID
+========================================================= */
+
+function disableStaffId() {
+
+    if (staffIdInput) {
+
+        staffIdInput.disabled =
+            true;
+
+    }
+
+}
+
+
+/* =========================================================
+   HIDE CHECK-IN BUTTON
+========================================================= */
+
+function hideCheckInButton() {
+
+    if (checkInButton) {
+
+        checkInButton.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   FINAL SYSTEM LOG
 ========================================================= */
 
 console.log(
     "✅ Virello Worker Check-In System loaded."
 );
+
+
 console.log(
-    "🕒 Automatic 08:00 AM late detection active."
+    "🕘 Attendance cutoff: 09:00 AM"
 );
 
 
 console.log(
-    "🟢 08:00 AM or earlier = Present."
+    "🟢 Before 09:00 AM = Present"
 );
 
 
 console.log(
-    "🟡 After 08:00 AM = Late."
+    "🟡 09:00 AM or later = Late"
 );
 
 
 console.log(
-    "🔴 No attendance record = Absent."
+    "🔴 No attendance record = Absent"
 );
 
 
