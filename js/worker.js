@@ -8,17 +8,18 @@
    PURPOSE:
    WORKER CHECK-IN / CHECK-OUT SYSTEM
 
-   FEATURES:
+   FIX:
+   - Firebase Anonymous Authentication
+   - Prevents "Missing or insufficient permissions"
+   - Keeps existing Firestore security rules
    - Office QR verification
    - 30-second QR lifetime
    - Staff ID lookup
    - Active staff verification
    - Daily attendance
    - Check-in
-   - Automatic Present / Late status
+   - Present / Late status
    - Check-out
-   - Firestore attendance records
-   - Late remains Late after checkout
    - Hosting safe
 ========================================================= */
 
@@ -28,7 +29,8 @@
 ========================================================= */
 
 import {
-    getAuth
+    getAuth,
+    signInAnonymously
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 
@@ -62,12 +64,9 @@ import {
    FIREBASE SERVICES
 ========================================================= */
 
-const auth =
-    getAuth(app);
+const auth = getAuth(app);
 
-
-const db =
-    getFirestore(app);
+const db = getFirestore(app);
 
 
 /* =========================================================
@@ -77,6 +76,8 @@ const db =
 let currentStaff = null;
 
 let currentAttendance = null;
+
+let firebaseWorkerReady = false;
 
 
 /* =========================================================
@@ -100,13 +101,6 @@ const QR_LIFETIME_SECONDS = 30;
 /* =========================================================
    ATTENDANCE SETTINGS
 ========================================================= */
-
-/*
-   Official work start time.
-
-   08:00 AM or earlier = PRESENT
-   After 08:00 AM       = LATE
-*/
 
 const WORK_START_HOUR = 8;
 
@@ -195,7 +189,7 @@ const officeAccessText =
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
         console.log(
             "🔥 Virello Worker Attendance starting..."
@@ -218,6 +212,18 @@ document.addEventListener(
 
 
         verifyOfficeQR();
+
+
+        /*
+           Authenticate the public worker page.
+
+           This uses Firebase Anonymous Authentication.
+
+           The worker does NOT need to enter
+           an email or password.
+        */
+
+        await initializeWorkerAuthentication();
 
 
         if (checkInButton) {
@@ -266,6 +272,191 @@ document.addEventListener(
 
 
 /* =========================================================
+   FIREBASE ANONYMOUS AUTHENTICATION
+========================================================= */
+
+async function initializeWorkerAuthentication() {
+
+    console.log(
+        "🔐 Starting Worker Firebase authentication..."
+    );
+
+
+    /*
+       If Firebase already has a user,
+       use that user.
+    */
+
+    if (auth.currentUser) {
+
+        firebaseWorkerReady = true;
+
+
+        console.log(
+            "✅ Existing Firebase authentication found."
+        );
+
+
+        console.log(
+            "👤 Firebase UID:",
+            auth.currentUser.uid
+        );
+
+
+        return true;
+
+    }
+
+
+    try {
+
+        /*
+           Create an anonymous Firebase user.
+
+           This is the important fix for the
+           Firestore permission problem.
+        */
+
+        const result =
+            await signInAnonymously(
+                auth
+            );
+
+
+        if (
+            result &&
+            result.user
+        ) {
+
+            firebaseWorkerReady = true;
+
+
+            console.log(
+                "✅ Worker authenticated anonymously."
+            );
+
+
+            console.log(
+                "👤 Anonymous UID:",
+                result.user.uid
+            );
+
+
+            return true;
+
+        }
+
+
+        throw new Error(
+            "Firebase authentication did not return a user."
+        );
+
+    }
+
+    catch (error) {
+
+        firebaseWorkerReady = false;
+
+
+        console.error(
+            "❌ Worker Firebase authentication failed:",
+            error
+        );
+
+
+        console.error(
+            "Firebase error code:",
+            error.code
+        );
+
+
+        console.error(
+            "Firebase error message:",
+            error.message
+        );
+
+
+        showMessage(
+            getAuthenticationErrorMessage(
+                error
+            ),
+            "error"
+        );
+
+
+        return false;
+
+    }
+
+}
+
+
+/* =========================================================
+   AUTH ERROR MESSAGE
+========================================================= */
+
+function getAuthenticationErrorMessage(
+    error
+) {
+
+    if (
+        error &&
+        error.code ===
+        "auth/operation-not-allowed"
+    ) {
+
+        return (
+            "Worker attendance authentication is not enabled. " +
+            "Please enable Anonymous sign-in in Firebase Authentication."
+        );
+
+    }
+
+
+    if (
+        error &&
+        error.code ===
+        "auth/network-request-failed"
+    ) {
+
+        return (
+            "Unable to connect to Firebase. " +
+            "Please check your internet connection and try again."
+        );
+
+    }
+
+
+    return (
+        "Unable to connect to the Virello attendance system. " +
+        "Please refresh the page and try again."
+    );
+
+}
+
+
+/* =========================================================
+   CHECK FIREBASE AUTH READY
+========================================================= */
+
+async function ensureWorkerAuthentication() {
+
+    if (
+        firebaseWorkerReady &&
+        auth.currentUser
+    ) {
+
+        return true;
+
+    }
+
+
+    return await initializeWorkerAuthentication();
+
+}
+
+
+/* =========================================================
    OFFICE QR VERIFICATION
 ========================================================= */
 
@@ -299,10 +490,6 @@ function verifyOfficeQR() {
             "token"
         );
 
-
-    /* =====================================================
-       REQUIRED PARAMETERS
-    ===================================================== */
 
     if (
         officeQR !== "1" ||
@@ -339,10 +526,6 @@ function verifyOfficeQR() {
     }
 
 
-    /* =====================================================
-       TIMESTAMP
-    ===================================================== */
-
     const qrTimestamp =
         Number(
             timestamp
@@ -375,10 +558,6 @@ function verifyOfficeQR() {
 
     }
 
-
-    /* =====================================================
-       QR AGE
-    ===================================================== */
 
     const now =
         Date.now();
@@ -429,10 +608,6 @@ function verifyOfficeQR() {
 
     }
 
-
-    /* =====================================================
-       QR VERIFIED
-    ===================================================== */
 
     officeQRTimestamp =
         qrTimestamp;
@@ -663,6 +838,24 @@ async function findStaff(
     );
 
 
+    /*
+       Make absolutely sure Firebase
+       authentication exists before Firestore.
+    */
+
+    const authenticated =
+        await ensureWorkerAuthentication();
+
+
+    if (!authenticated) {
+
+        throw new Error(
+            "Worker authentication is not available."
+        );
+
+    }
+
+
     const staffRef =
         collection(
             db,
@@ -724,6 +917,19 @@ async function findStaff(
 async function findTodayAttendance(
     staff
 ) {
+
+    const authenticated =
+        await ensureWorkerAuthentication();
+
+
+    if (!authenticated) {
+
+        throw new Error(
+            "Worker authentication is not available."
+        );
+
+    }
+
 
     const attendanceRef =
         collection(
@@ -799,11 +1005,6 @@ function isLate(
         date.getMinutes();
 
 
-    /*
-       Before 08:00
-       = PRESENT
-    */
-
     if (
         hour <
         WORK_START_HOUR
@@ -813,11 +1014,6 @@ function isLate(
 
     }
 
-
-    /*
-       Exactly 08:00
-       = PRESENT
-    */
 
     if (
         hour ===
@@ -830,11 +1026,6 @@ function isLate(
 
     }
 
-
-    /*
-       Anything after 08:00
-       = LATE
-    */
 
     return true;
 
@@ -892,6 +1083,21 @@ function getTimeString(
 async function handleCheckIn() {
 
     clearMessage();
+
+
+    /* =====================================================
+       FIREBASE AUTH
+    ===================================================== */
+
+    const authenticated =
+        await ensureWorkerAuthentication();
+
+
+    if (!authenticated) {
+
+        return;
+
+    }
 
 
     /* =====================================================
@@ -1170,12 +1376,6 @@ async function handleCheckIn() {
             date:
                 getDateKey(),
 
-            /*
-               IMPORTANT:
-               This is now automatically:
-               present OR late
-            */
-
             status:
                 attendanceStatusValue,
 
@@ -1236,10 +1436,6 @@ async function handleCheckIn() {
         );
 
 
-        /*
-           Show correct message.
-        */
-
         if (
             attendanceStatusValue ===
             "late"
@@ -1275,9 +1471,22 @@ async function handleCheckIn() {
         );
 
 
+        console.error(
+            "❌ Firebase error code:",
+            error.code
+        );
+
+
+        console.error(
+            "❌ Firebase error message:",
+            error.message
+        );
+
+
         showMessage(
-            error.message ||
-            "Unable to record check-in.",
+            getFirestoreErrorMessage(
+                error
+            ),
             "error"
         );
 
@@ -1297,6 +1506,49 @@ async function handleCheckIn() {
         }
 
     }
+
+}
+
+
+/* =========================================================
+   FIRESTORE ERROR MESSAGE
+========================================================= */
+
+function getFirestoreErrorMessage(
+    error
+) {
+
+    if (
+        error &&
+        error.code ===
+        "permission-denied"
+    ) {
+
+        return (
+            "Virello could not access attendance data. " +
+            "Please make sure Anonymous Authentication is enabled in Firebase."
+        );
+
+    }
+
+
+    if (
+        error &&
+        error.code ===
+        "failed-precondition"
+    ) {
+
+        return (
+            "Firebase needs a database index for this attendance search."
+        );
+
+    }
+
+
+    return (
+        error?.message ||
+        "Unable to record attendance."
+    );
 
 }
 
@@ -1528,13 +1780,6 @@ function showCompletedAttendance() {
         ).toLowerCase();
 
 
-    /*
-       IMPORTANT:
-
-       If worker was Late, keep showing Late
-       even after checkout.
-    */
-
     if (
         status ===
         "late"
@@ -1658,6 +1903,17 @@ async function handleCheckOut() {
     clearMessage();
 
 
+    const authenticated =
+        await ensureWorkerAuthentication();
+
+
+    if (!authenticated) {
+
+        return;
+
+    }
+
+
     if (
         !currentStaff ||
         !currentAttendance
@@ -1725,22 +1981,6 @@ async function handleCheckOut() {
             );
 
 
-        /*
-           IMPORTANT:
-
-           DO NOT change status to "completed".
-
-           The status must remain:
-
-           present
-           OR
-           late
-
-           so the administrator dashboard
-           continues to show the correct
-           attendance classification.
-        */
-
         await updateDoc(
             attendanceDocument,
             {
@@ -1758,10 +1998,6 @@ async function handleCheckOut() {
         currentAttendance.checkOut =
             true;
 
-
-        /*
-           Keep original status.
-        */
 
         showCompletedAttendance();
 
@@ -1782,9 +2018,22 @@ async function handleCheckOut() {
         );
 
 
+        console.error(
+            "❌ Firebase error code:",
+            error.code
+        );
+
+
+        console.error(
+            "❌ Firebase error message:",
+            error.message
+        );
+
+
         showMessage(
-            error.message ||
-            "Unable to record check-out.",
+            getFirestoreErrorMessage(
+                error
+            ),
             "error"
         );
 
@@ -1811,6 +2060,11 @@ async function handleCheckOut() {
 
 console.log(
     "✅ Virello Worker Attendance loaded."
+);
+
+
+console.log(
+    "🔐 Anonymous Firebase authentication enabled."
 );
 
 
