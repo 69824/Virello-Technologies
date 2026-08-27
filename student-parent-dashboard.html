@@ -14,6 +14,7 @@
         Virello Technologies | Student/Parent Portal
     </title>
 
+
     <style>
 
         * {
@@ -21,6 +22,7 @@
             margin: 0;
             padding: 0;
         }
+
 
         body {
             font-family:
@@ -33,34 +35,45 @@
             color: #1f2937;
         }
 
+
         button,
         input {
             font: inherit;
         }
 
-        /* =========================================
+
+        /* =====================================================
            LOADING
-        ========================================= */
+        ===================================================== */
 
         #loadingScreen {
+
             position: fixed;
+
             inset: 0;
 
             display: flex;
+
             align-items: center;
+
             justify-content: center;
 
             background: #ffffff;
 
             z-index: 9999;
+
         }
+
 
         .loading-box {
             text-align: center;
         }
 
+
         .loading-logo {
+
             width: 58px;
+
             height: 58px;
 
             margin: 0 auto 18px;
@@ -72,38 +85,49 @@
             color: white;
 
             display: flex;
+
             align-items: center;
+
             justify-content: center;
 
             font-size: 25px;
+
             font-weight: 800;
+
         }
+
 
         .loading-box h2 {
             margin-bottom: 8px;
         }
+
 
         .loading-box p {
             color: #6b7280;
         }
 
 
-        /* =========================================
+        /* =====================================================
            ERROR
-        ========================================= */
+        ===================================================== */
 
         #errorScreen {
+
             display: none;
 
             min-height: 100vh;
 
             align-items: center;
+
             justify-content: center;
 
             padding: 30px;
+
         }
 
+
         .error-box {
+
             max-width: 500px;
 
             background: white;
@@ -117,41 +141,52 @@
             box-shadow:
                 0 10px 35px
                 rgba(0, 0, 0, 0.08);
+
         }
 
+
         .error-icon {
+
             font-size: 45px;
 
             margin-bottom: 15px;
+
         }
+
 
         .error-box h2 {
             margin-bottom: 10px;
         }
 
+
         .error-box p {
+
             color: #6b7280;
 
             line-height: 1.6;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
            APP
-        ========================================= */
+        ===================================================== */
 
         #app {
+
             display: none;
 
             min-height: 100vh;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
            TOPBAR
-        ========================================= */
+        ===================================================== */
 
         .topbar {
+
             height: 72px;
 
             background: white;
@@ -173,18 +208,25 @@
             top: 0;
 
             z-index: 100;
+
         }
 
+
         .brand {
+
             display: flex;
 
             align-items: center;
 
             gap: 12px;
+
         }
 
+
         .brand-logo {
+
             width: 42px;
+
             height: 42px;
 
             border-radius: 10px;
@@ -202,15 +244,21 @@
             font-weight: 800;
 
             font-size: 18px;
+
         }
 
+
         .brand-text strong {
+
             display: block;
 
             font-size: 16px;
+
         }
 
+
         .brand-text span {
+
             display: block;
 
             font-size: 12px;
@@ -218,23 +266,104 @@
             color: #6b7280;
 
             margin-top: 2px;
+
         }
 
+
         .topbar-right {
+
             display: flex;
 
             align-items: center;
 
             gap: 15px;
+
         }
 
+
         .parent-name {
+
             font-size: 14px;
 
             font-weight: 700;
+
         }
 
+
+        /* =====================================================
+           NOTIFICATION BELL
+        ===================================================== */
+
+        .notification-button {
+
+            position: relative;
+
+            width: 42px;
+
+            height: 42px;
+
+            border: 1px solid #e5e7eb;
+
+            background: #ffffff;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            font-size: 20px;
+
+        }
+
+
+        .notification-button:hover {
+
+            background: #f9fafb;
+
+        }
+
+
+        .notification-count {
+
+            position: absolute;
+
+            top: -5px;
+
+            right: -5px;
+
+            min-width: 20px;
+
+            height: 20px;
+
+            padding: 0 5px;
+
+            border-radius: 20px;
+
+            background: #dc2626;
+
+            color: white;
+
+            font-size: 11px;
+
+            font-weight: 800;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border: 2px solid white;
+
+        }
+
+
+        .notification-count.hidden {
+            display: none;
+        }
+
+
         .logout-button {
+
             border: none;
 
             background: #fee2e2;
@@ -248,60 +377,76 @@
             cursor: pointer;
 
             font-weight: 700;
+
         }
+
 
         .logout-button:hover {
             background: #fecaca;
         }
 
 
-        /* =========================================
+        /* =====================================================
            MAIN
-        ========================================= */
+        ===================================================== */
 
         .container {
+
             max-width: 1200px;
 
             margin: 0 auto;
 
             padding: 30px 22px 50px;
+
         }
+
 
         .page-header {
             margin-bottom: 25px;
         }
 
+
         .page-header h1 {
+
             font-size: 28px;
 
             margin-bottom: 8px;
+
         }
 
+
         .page-header p {
+
             color: #6b7280;
 
             line-height: 1.5;
+
         }
 
+
         .organization {
+
             margin-top: 12px;
 
             font-weight: 700;
 
             color: #2563eb;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
            WELCOME
-        ========================================= */
+        ===================================================== */
 
         .welcome-card {
-            background: linear-gradient(
-                135deg,
-                #2563eb,
-                #1d4ed8
-            );
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
 
             color: white;
 
@@ -310,32 +455,357 @@
             padding: 25px;
 
             margin-bottom: 25px;
+
         }
 
+
         .welcome-card h2 {
+
             font-size: 22px;
 
             margin-bottom: 7px;
+
         }
 
+
         .welcome-card p {
+
             opacity: 0.9;
 
             line-height: 1.5;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
+           ALERT SECTION
+        ===================================================== */
+
+        .alerts-section {
+
+            background: white;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+            margin-bottom: 30px;
+
+            box-shadow:
+                0 5px 20px
+                rgba(0, 0, 0, 0.04);
+
+        }
+
+
+        .alerts-header {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            margin-bottom: 18px;
+
+            gap: 15px;
+
+        }
+
+
+        .alerts-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+        }
+
+
+        .alerts-title h2 {
+
+            font-size: 19px;
+
+        }
+
+
+        .alert-badge {
+
+            background: #fee2e2;
+
+            color: #b91c1c;
+
+            border-radius: 20px;
+
+            padding: 5px 10px;
+
+            font-size: 11px;
+
+            font-weight: 800;
+
+        }
+
+
+        .refresh-alerts {
+
+            border: 1px solid #dbeafe;
+
+            background: #eff6ff;
+
+            color: #1d4ed8;
+
+            padding: 8px 12px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+        }
+
+
+        .refresh-alerts:hover {
+
+            background: #dbeafe;
+
+        }
+
+
+        .alerts-list {
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 12px;
+
+        }
+
+
+        .alert-card {
+
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 14px;
+
+            padding: 16px;
+
+            border-radius: 12px;
+
+            border: 1px solid #e5e7eb;
+
+            background: #ffffff;
+
+        }
+
+
+        .alert-card.unread {
+
+            background: #f8fbff;
+
+            border-color: #bfdbfe;
+
+        }
+
+
+        .alert-icon {
+
+            width: 42px;
+
+            height: 42px;
+
+            min-width: 42px;
+
+            border-radius: 50%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 20px;
+
+        }
+
+
+        .alert-icon.present {
+
+            background: #dcfce7;
+
+        }
+
+
+        .alert-icon.late {
+
+            background: #fef3c7;
+
+        }
+
+
+        .alert-icon.absent {
+
+            background: #fee2e2;
+
+        }
+
+
+        .alert-content {
+
+            flex: 1;
+
+            min-width: 0;
+
+        }
+
+
+        .alert-top {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .alert-title {
+
+            font-size: 14px;
+
+            font-weight: 800;
+
+        }
+
+
+        .alert-time {
+
+            color: #9ca3af;
+
+            font-size: 11px;
+
+            white-space: nowrap;
+
+        }
+
+
+        .alert-message {
+
+            color: #4b5563;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+        }
+
+
+        .alert-student {
+
+            margin-top: 8px;
+
+            color: #6b7280;
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+        }
+
+
+        .alert-present .alert-title {
+            color: #047857;
+        }
+
+
+        .alert-late .alert-title {
+            color: #b45309;
+        }
+
+
+        .alert-absent .alert-title {
+            color: #b91c1c;
+        }
+
+
+        .no-alerts {
+
+            text-align: center;
+
+            padding: 30px 15px;
+
+            color: #6b7280;
+
+        }
+
+
+        .no-alerts-icon {
+
+            font-size: 35px;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .no-alerts strong {
+
+            display: block;
+
+            color: #374151;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .alerts-error {
+
+            padding: 15px;
+
+            background: #fef2f2;
+
+            border: 1px solid #fecaca;
+
+            color: #991b1b;
+
+            border-radius: 10px;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================================
            CHILDREN
-        ========================================= */
+        ===================================================== */
 
         .section-title {
+
             font-size: 20px;
 
             margin-bottom: 15px;
+
         }
 
+
         .children-grid {
+
             display: grid;
 
             grid-template-columns:
@@ -347,9 +817,12 @@
             gap: 18px;
 
             margin-bottom: 30px;
+
         }
 
+
         .child-card {
+
             background: white;
 
             border:
@@ -362,9 +835,12 @@
             box-shadow:
                 0 5px 20px
                 rgba(0, 0, 0, 0.04);
+
         }
 
+
         .child-top {
+
             display: flex;
 
             align-items: center;
@@ -372,10 +848,14 @@
             gap: 14px;
 
             margin-bottom: 18px;
+
         }
 
+
         .child-avatar {
+
             width: 52px;
+
             height: 52px;
 
             border-radius: 50%;
@@ -393,28 +873,36 @@
             font-weight: 800;
 
             font-size: 18px;
+
         }
 
+
         .child-name {
+
             font-weight: 800;
 
             font-size: 17px;
+
         }
 
+
         .child-class {
+
             color: #6b7280;
 
             font-size: 13px;
 
             margin-top: 4px;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
            TODAY STATUS
-        ========================================= */
+        ===================================================== */
 
         .today-status {
+
             padding: 16px;
 
             border-radius: 10px;
@@ -422,9 +910,12 @@
             margin-bottom: 15px;
 
             border: 1px solid #e5e7eb;
+
         }
 
+
         .status-label {
+
             font-size: 12px;
 
             color: #6b7280;
@@ -434,67 +925,90 @@
             text-transform: uppercase;
 
             letter-spacing: 0.5px;
+
         }
 
+
         .status-value {
+
             font-size: 21px;
 
             font-weight: 800;
+
         }
 
+
         .status-present {
+
             background: #ecfdf5;
 
             border-color: #a7f3d0;
 
             color: #047857;
+
         }
 
+
         .status-late {
+
             background: #fffbeb;
 
             border-color: #fde68a;
 
             color: #b45309;
+
         }
 
+
         .status-absent {
+
             background: #fef2f2;
 
             border-color: #fecaca;
 
             color: #b91c1c;
+
         }
 
+
         .status-not-marked {
+
             background: #f9fafb;
 
             color: #6b7280;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
            CHILD DETAILS
-        ========================================= */
+        ===================================================== */
 
         .child-details {
+
             display: grid;
 
             grid-template-columns:
                 1fr 1fr;
 
             gap: 10px;
+
         }
 
+
         .detail {
+
             padding: 11px;
 
             background: #f9fafb;
 
             border-radius: 8px;
+
         }
 
+
         .detail small {
+
             display: block;
 
             color: #6b7280;
@@ -502,18 +1016,21 @@
             font-size: 11px;
 
             margin-bottom: 4px;
+
         }
+
 
         .detail strong {
             font-size: 13px;
         }
 
 
-        /* =========================================
+        /* =====================================================
            ATTENDANCE HISTORY
-        ========================================= */
+        ===================================================== */
 
         .history-section {
+
             background: white;
 
             border:
@@ -524,9 +1041,12 @@
             padding: 22px;
 
             margin-top: 20px;
+
         }
 
+
         .history-header {
+
             display: flex;
 
             justify-content: space-between;
@@ -534,27 +1054,37 @@
             align-items: center;
 
             margin-bottom: 18px;
+
         }
+
 
         .history-header h2 {
             font-size: 19px;
         }
 
+
         .history-date {
+
             font-size: 13px;
 
             color: #6b7280;
+
         }
 
+
         .history-list {
+
             display: flex;
 
             flex-direction: column;
 
             gap: 10px;
+
         }
 
+
         .history-row {
+
             display: flex;
 
             align-items: center;
@@ -566,15 +1096,21 @@
             background: #f9fafb;
 
             border-radius: 9px;
+
         }
 
+
         .history-left strong {
+
             display: block;
 
             font-size: 14px;
+
         }
 
+
         .history-left span {
+
             display: block;
 
             color: #6b7280;
@@ -582,9 +1118,12 @@
             font-size: 12px;
 
             margin-top: 3px;
+
         }
 
+
         .history-status {
+
             font-size: 12px;
 
             font-weight: 800;
@@ -592,32 +1131,43 @@
             padding: 6px 10px;
 
             border-radius: 20px;
+
         }
 
+
         .history-present {
+
             background: #dcfce7;
 
             color: #166534;
+
         }
 
+
         .history-late {
+
             background: #fef3c7;
 
             color: #92400e;
+
         }
 
+
         .history-absent {
+
             background: #fee2e2;
 
             color: #991b1b;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
            EMPTY
-        ========================================= */
+        ===================================================== */
 
         .empty-box {
+
             background: white;
 
             border:
@@ -630,35 +1180,77 @@
             text-align: center;
 
             color: #6b7280;
+
         }
 
 
-        /* =========================================
+        /* =====================================================
            RESPONSIVE
-        ========================================= */
+        ===================================================== */
 
         @media (max-width: 700px) {
 
             .topbar {
+
                 padding: 0 15px;
+
             }
+
 
             .parent-name {
+
                 display: none;
+
             }
+
 
             .container {
+
                 padding:
                     22px 15px 40px;
+
             }
+
 
             .page-header h1 {
+
                 font-size: 23px;
+
             }
 
+
             .child-details {
+
                 grid-template-columns:
                     1fr;
+
+            }
+
+
+            .alerts-header {
+
+                align-items: flex-start;
+
+            }
+
+
+            .alert-top {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 4px;
+
+            }
+
+
+            .history-row {
+
+                align-items: flex-start;
+
+                gap: 10px;
+
             }
 
         }
@@ -757,12 +1349,31 @@
 
         <div class="topbar-right">
 
+            <button
+                id="notificationButton"
+                class="notification-button"
+                title="Attendance notifications"
+            >
+
+                🔔
+
+                <span
+                    id="notificationCount"
+                    class="notification-count hidden"
+                >
+                    0
+                </span>
+
+            </button>
+
+
             <span
                 id="parentName"
                 class="parent-name"
             >
                 Parent
             </span>
+
 
             <button
                 id="logoutButton"
@@ -819,6 +1430,69 @@
                 information recorded by your child's
                 school.
             </p>
+
+        </section>
+
+
+        <!-- =============================================
+             ATTENDANCE ALERTS
+        ============================================== -->
+
+        <section
+            id="alertsSection"
+            class="alerts-section"
+        >
+
+            <div class="alerts-header">
+
+                <div class="alerts-title">
+
+                    <h2>
+                        Attendance Alerts
+                    </h2>
+
+                    <span
+                        id="alertBadge"
+                        class="alert-badge"
+                    >
+                        0 New
+                    </span>
+
+                </div>
+
+
+                <button
+                    id="refreshAlerts"
+                    class="refresh-alerts"
+                >
+                    ↻ Refresh
+                </button>
+
+            </div>
+
+
+            <div
+                id="alertsList"
+                class="alerts-list"
+            >
+
+                <div class="no-alerts">
+
+                    <div class="no-alerts-icon">
+                        🔔
+                    </div>
+
+                    <strong>
+                        Loading attendance alerts...
+                    </strong>
+
+                    <span>
+                        Please wait.
+                    </span>
+
+                </div>
+
+            </div>
 
         </section>
 
@@ -881,13 +1555,17 @@
 
 <script type="module">
 
+
 /* =========================================================
    FIREBASE AUTH
 ========================================================= */
 
 import {
+
     onAuthStateChanged,
+
     signOut
+
 }
 from
 "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
@@ -898,10 +1576,19 @@ from
 ========================================================= */
 
 import {
+
     collection,
+
     query,
+
     where,
-    getDocs
+
+    getDocs,
+
+    orderBy,
+
+    limit
+
 }
 from
 "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
@@ -912,8 +1599,11 @@ from
 ========================================================= */
 
 import {
+
     auth,
+
     db
+
 }
 from "./js/firebase-config.js";
 
@@ -932,6 +1622,8 @@ let children = [];
 
 let attendanceRecords = [];
 
+let attendanceAlerts = [];
+
 
 /* =========================================================
    DOM
@@ -942,49 +1634,88 @@ const loadingScreen =
         "loadingScreen"
     );
 
+
 const errorScreen =
     document.getElementById(
         "errorScreen"
     );
+
 
 const errorMessage =
     document.getElementById(
         "errorMessage"
     );
 
+
 const app =
     document.getElementById(
         "app"
     );
+
 
 const parentNameElement =
     document.getElementById(
         "parentName"
     );
 
+
 const welcomeNameElement =
     document.getElementById(
         "welcomeName"
     );
+
 
 const organizationNameElement =
     document.getElementById(
         "organizationName"
     );
 
+
 const childrenGrid =
     document.getElementById(
         "childrenGrid"
     );
+
 
 const historyList =
     document.getElementById(
         "historyList"
     );
 
+
 const logoutButton =
     document.getElementById(
         "logoutButton"
+    );
+
+
+const alertsList =
+    document.getElementById(
+        "alertsList"
+    );
+
+
+const alertBadge =
+    document.getElementById(
+        "alertBadge"
+    );
+
+
+const notificationCount =
+    document.getElementById(
+        "notificationCount"
+    );
+
+
+const refreshAlertsButton =
+    document.getElementById(
+        "refreshAlerts"
+    );
+
+
+const notificationButton =
+    document.getElementById(
+        "notificationButton"
     );
 
 
@@ -998,7 +1729,9 @@ console.log(
 
 
 onAuthStateChanged(
+
     auth,
+
     async user => {
 
         try {
@@ -1006,7 +1739,7 @@ onAuthStateChanged(
             if (!user) {
 
                 window.location.href =
-                    "login.html";
+                    "student-parent-login.html";
 
                 return;
 
@@ -1023,6 +1756,11 @@ onAuthStateChanged(
             );
 
 
+            /*
+             * STEP 1
+             * Load parent profile
+             */
+
             await loadParentProfile();
 
 
@@ -1033,23 +1771,100 @@ onAuthStateChanged(
             }
 
 
+            /*
+             * STEP 2
+             * Load school
+             */
+
             await loadOrganization();
 
+
+            if (!organization) {
+
+                return;
+
+            }
+
+
+            /*
+             * STEP 3
+             * Load children
+             */
 
             await loadChildren();
 
 
+            /*
+             * STEP 4
+             * Load attendance
+             */
+
             await loadAttendance();
 
 
-            renderChildren();
+            /*
+             * STEP 5
+             * LOAD ATTENDANCE ALERTS
+             *
+             * THIS IS THE NEW CONNECTION
+             */
 
+            await loadAttendanceAlerts();
+
+
+            /*
+             * STEP 6
+             * Render everything
+             */
+
+            renderChildren();
 
             renderAttendanceHistory();
 
+            renderAttendanceAlerts();
+
+
+            /*
+             * Show application
+             */
 
             showApplication();
 
+
+            /*
+             * Refresh alerts periodically.
+             *
+             * This means if a teacher marks attendance
+             * while the parent dashboard is open,
+             * the parent dashboard will check again.
+             */
+
+            setInterval(
+
+                async () => {
+
+                    try {
+
+                        await loadAttendanceAlerts();
+
+                        renderAttendanceAlerts();
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Automatic alert refresh error:",
+                            error
+                        );
+
+                    }
+
+                },
+
+                30000
+
+            );
 
         }
 
@@ -1060,14 +1875,18 @@ onAuthStateChanged(
                 error
             );
 
+
             showError(
+
                 error.message ||
                 "Unable to load Parent Portal."
+
             );
 
         }
 
     }
+
 );
 
 
@@ -1089,45 +1908,60 @@ async function loadParentProfile() {
         );
 
 
+    /*
+     * FIRST:
+     * Search by userUid
+     */
+
     let snapshot =
         await getDocs(
+
             query(
+
                 parentsRef,
+
                 where(
                     "userUid",
                     "==",
                     currentUser.uid
                 )
+
             )
+
         );
 
 
     /*
-       Fallback:
-       uid
-    */
+     * FALLBACK:
+     * Search by uid
+     */
 
     if (snapshot.empty) {
 
         snapshot =
             await getDocs(
+
                 query(
+
                     parentsRef,
+
                     where(
                         "uid",
                         "==",
                         currentUser.uid
                     )
+
                 )
+
             );
 
     }
 
 
     /*
-       Fallback:
-       email
-    */
+     * FALLBACK:
+     * Search by email
+     */
 
     if (
         snapshot.empty &&
@@ -1136,14 +1970,19 @@ async function loadParentProfile() {
 
         snapshot =
             await getDocs(
+
                 query(
+
                     parentsRef,
+
                     where(
                         "email",
                         "==",
                         currentUser.email
                     )
+
                 )
+
             );
 
     }
@@ -1152,7 +1991,9 @@ async function loadParentProfile() {
     if (snapshot.empty) {
 
         showError(
+
             "Your parent account could not be found. Please contact your school administrator."
+
         );
 
         return;
@@ -1209,7 +2050,9 @@ async function loadOrganization() {
     if (!organizationId) {
 
         showError(
+
             "Your parent account is not connected to a school organization."
+
         );
 
         return;
@@ -1226,21 +2069,28 @@ async function loadOrganization() {
 
     const snapshot =
         await getDocs(
+
             query(
+
                 organizationsRef,
+
                 where(
                     "__name__",
                     "==",
                     organizationId
                 )
+
             )
+
         );
 
 
     if (snapshot.empty) {
 
         showError(
+
             "Your school organization could not be found."
+
         );
 
         return;
@@ -1263,8 +2113,11 @@ async function loadOrganization() {
 
 
     organizationNameElement.textContent =
+
         organization.organizationName ||
+
         organization.name ||
+
         "School";
 
 
@@ -1294,24 +2147,11 @@ async function loadChildren() {
         );
 
 
-    /*
-       IMPORTANT:
-
-       The preferred structure is:
-
-       students/{studentId}
-
-       parentUid:
-       currentUser.uid
-
-       This means the parent can only
-       access children linked to their
-       Firebase account.
-    */
-
     let snapshot =
         await getDocs(
+
             query(
+
                 studentsRef,
 
                 where(
@@ -1327,22 +2167,15 @@ async function loadChildren() {
                 )
 
             )
+
         );
-
-
-    /*
-       Support multiple children.
-
-       If your student records use
-       parentId instead of parentUid,
-       we can add that structure later.
-    */
 
 
     children = [];
 
 
     snapshot.forEach(
+
         studentDocument => {
 
             const student =
@@ -1351,8 +2184,11 @@ async function loadChildren() {
 
             const status =
                 String(
+
                     student.status ||
+
                     "active"
+
                 )
                 .toLowerCase();
 
@@ -1377,19 +2213,25 @@ async function loadChildren() {
             });
 
         }
+
     );
 
 
     children.sort(
+
         (a, b) =>
+
             String(
                 a.fullName || ""
             )
             .localeCompare(
+
                 String(
                     b.fullName || ""
                 )
+
             )
+
     );
 
 
@@ -1424,15 +2266,6 @@ async function loadAttendance() {
         );
 
 
-    /*
-       Load attendance for each
-       child separately.
-
-       This is intentional because
-       the parent should only receive
-       records belonging to their children.
-    */
-
     for (
         const child
         of children
@@ -1465,6 +2298,7 @@ async function loadAttendance() {
 
 
         snapshot.forEach(
+
             attendanceDocument => {
 
                 attendanceRecords.push({
@@ -1476,37 +2310,799 @@ async function loadAttendance() {
 
                     childName:
                         child.fullName ||
+
                         "Student"
 
                 });
 
             }
+
         );
 
     }
 
 
-    /*
-       Sort newest date first.
-    */
-
     attendanceRecords.sort(
+
         (a, b) =>
+
             String(
                 b.date || ""
             )
             .localeCompare(
+
                 String(
                     a.date || ""
                 )
+
             )
+
     );
 
 
     console.log(
+
         "📋 Attendance records loaded:",
+
         attendanceRecords.length
+
     );
+
+}
+
+
+/* =========================================================
+   LOAD ATTENDANCE ALERTS
+========================================================= */
+
+async function loadAttendanceAlerts() {
+
+    console.log(
+        "🔔 Loading parent attendance alerts..."
+    );
+
+
+    attendanceAlerts = [];
+
+
+    if (!currentUser) {
+
+        return;
+
+    }
+
+
+    const alertsRef =
+        collection(
+            db,
+            "attendanceAlerts"
+        );
+
+
+    /*
+     * IMPORTANT
+     *
+     * We search using the parent's Firebase UID.
+     *
+     * attendance-alerts.js creates:
+     *
+     * parentUid:
+     * parentUid
+     *
+     * Therefore the logged-in parent and the
+     * attendance alert are directly connected.
+     */
+
+    let snapshot;
+
+
+    try {
+
+        snapshot =
+            await getDocs(
+
+                query(
+
+                    alertsRef,
+
+                    where(
+                        "parentUid",
+                        "==",
+                        currentUser.uid
+                    ),
+
+                    limit(50)
+
+                )
+
+            );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Unable to load attendance alerts:",
+            error
+        );
+
+
+        alertsList.innerHTML = `
+
+            <div class="alerts-error">
+
+                <strong>
+                    Unable to load attendance alerts.
+                </strong>
+
+                <div style="margin-top:6px">
+
+                    ${escapeHtml(
+                        error.message ||
+                        "Missing Firestore permission."
+                    )}
+
+                </div>
+
+            </div>
+
+        `;
+
+
+        return;
+
+    }
+
+
+    snapshot.forEach(
+
+        alertDocument => {
+
+            attendanceAlerts.push({
+
+                id:
+                    alertDocument.id,
+
+                ...alertDocument.data()
+
+            });
+
+        }
+
+    );
+
+
+    /*
+     * Newest alert first.
+     */
+
+    attendanceAlerts.sort(
+
+        (a, b) => {
+
+            const aTime =
+                getAlertTime(
+                    a.createdAt
+                );
+
+            const bTime =
+                getAlertTime(
+                    b.createdAt
+                );
+
+            return bTime - aTime;
+
+        }
+
+    );
+
+
+    console.log(
+
+        "✅ Attendance alerts loaded:",
+
+        attendanceAlerts.length
+
+    );
+
+}
+
+
+/* =========================================================
+   RENDER ATTENDANCE ALERTS
+========================================================= */
+
+function renderAttendanceAlerts() {
+
+    alertsList.innerHTML = "";
+
+
+    /*
+     * No alerts
+     */
+
+    if (
+        !attendanceAlerts.length
+    ) {
+
+        alertsList.innerHTML = `
+
+            <div class="no-alerts">
+
+                <div class="no-alerts-icon">
+                    🔔
+                </div>
+
+                <strong>
+                    No attendance alerts yet
+                </strong>
+
+                <span>
+                    When your child's school records
+                    attendance, the notification will
+                    appear here.
+                </span>
+
+            </div>
+
+        `;
+
+
+        updateNotificationCount();
+
+
+        return;
+
+    }
+
+
+    /*
+     * Count unread alerts
+     */
+
+    const unreadCount =
+        attendanceAlerts.filter(
+
+            alert =>
+                alert.read !== true
+
+        ).length;
+
+
+    alertBadge.textContent =
+        `${unreadCount} New`;
+
+
+    if (unreadCount > 0) {
+
+        alertBadge.style.display =
+            "inline-block";
+
+    }
+
+    else {
+
+        alertBadge.style.display =
+            "none";
+
+    }
+
+
+    /*
+     * Render alerts
+     */
+
+    attendanceAlerts
+        .slice(0, 20)
+        .forEach(
+
+            alert => {
+
+                const type =
+                    normalizeAlertType(
+                        alert.type ||
+                        alert.attendanceStatus
+                    );
+
+
+                const card =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                card.className =
+
+                    `alert-card ` +
+
+                    `alert-${type} ` +
+
+                    (
+                        alert.read === true
+                            ? ""
+                            : "unread"
+                    );
+
+
+                const icon =
+                    alert.icon ||
+                    getAlertIcon(type);
+
+
+                const title =
+                    alert.title ||
+                    getAlertTitle(type);
+
+
+                const studentName =
+                    alert.studentName ||
+                    "Student";
+
+
+                const message =
+                    alert.message ||
+                    getDefaultAlertMessage(
+                        type,
+                        studentName
+                    );
+
+
+                const alertDate =
+                    formatAlertDate(
+                        alert
+                    );
+
+
+                card.innerHTML = `
+
+                    <div
+                        class="alert-icon ${type}"
+                    >
+
+                        ${escapeHtml(
+                            icon
+                        )}
+
+                    </div>
+
+
+                    <div class="alert-content">
+
+                        <div class="alert-top">
+
+                            <div
+                                class="alert-title"
+                            >
+
+                                ${escapeHtml(
+                                    title
+                                )}
+
+                            </div>
+
+
+                            <div
+                                class="alert-time"
+                            >
+
+                                ${escapeHtml(
+                                    alertDate
+                                )}
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            class="alert-message"
+                        >
+
+                            ${escapeHtml(
+                                message
+                            )}
+
+                        </div>
+
+
+                        <div
+                            class="alert-student"
+                        >
+
+                            👤
+
+                            ${escapeHtml(
+                                studentName
+                            )}
+
+                            ${
+                                alert.className
+                                    ? " • " +
+                                      escapeHtml(
+                                          alert.className
+                                      )
+                                    : ""
+                            }
+
+                        </div>
+
+                    </div>
+
+                `;
+
+
+                alertsList.appendChild(
+                    card
+                );
+
+            }
+
+        );
+
+
+    updateNotificationCount();
+
+}
+
+
+/* =========================================================
+   UPDATE NOTIFICATION COUNT
+========================================================= */
+
+function updateNotificationCount() {
+
+    const unreadCount =
+        attendanceAlerts.filter(
+
+            alert =>
+                alert.read !== true
+
+        ).length;
+
+
+    if (unreadCount > 0) {
+
+        notificationCount.textContent =
+            unreadCount > 99
+                ? "99+"
+                : unreadCount;
+
+
+        notificationCount.classList.remove(
+            "hidden"
+        );
+
+    }
+
+    else {
+
+        notificationCount.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ALERT TYPE
+========================================================= */
+
+function normalizeAlertType(
+    value
+) {
+
+    const type =
+        String(
+            value || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    if (
+        type === "present" ||
+        type === "p"
+    ) {
+
+        return "present";
+
+    }
+
+
+    if (
+        type === "late" ||
+        type === "l"
+    ) {
+
+        return "late";
+
+    }
+
+
+    if (
+        type === "absent" ||
+        type === "a"
+    ) {
+
+        return "absent";
+
+    }
+
+
+    return "present";
+
+}
+
+
+/* =========================================================
+   ALERT ICON
+========================================================= */
+
+function getAlertIcon(
+    type
+) {
+
+    if (
+        type === "present"
+    ) {
+
+        return "🟢";
+
+    }
+
+
+    if (
+        type === "late"
+    ) {
+
+        return "🟡";
+
+    }
+
+
+    if (
+        type === "absent"
+    ) {
+
+        return "🔴";
+
+    }
+
+
+    return "🔔";
+
+}
+
+
+/* =========================================================
+   ALERT TITLE
+========================================================= */
+
+function getAlertTitle(
+    type
+) {
+
+    if (
+        type === "present"
+    ) {
+
+        return "ATTENDANCE CONFIRMED";
+
+    }
+
+
+    if (
+        type === "late"
+    ) {
+
+        return "LATE ARRIVAL";
+
+    }
+
+
+    if (
+        type === "absent"
+    ) {
+
+        return "ABSENCE ALERT";
+
+    }
+
+
+    return "ATTENDANCE ALERT";
+
+}
+
+
+/* =========================================================
+   DEFAULT ALERT MESSAGE
+========================================================= */
+
+function getDefaultAlertMessage(
+    type,
+    studentName
+) {
+
+    if (
+        type === "present"
+    ) {
+
+        return `${studentName} was marked Present today.`;
+
+    }
+
+
+    if (
+        type === "late"
+    ) {
+
+        return `${studentName} was marked Late today.`;
+
+    }
+
+
+    if (
+        type === "absent"
+    ) {
+
+        return `${studentName} was marked Absent today.`;
+
+    }
+
+
+    return `There is a new attendance update for ${studentName}.`;
+
+}
+
+
+/* =========================================================
+   ALERT DATE
+========================================================= */
+
+function formatAlertDate(
+    alert
+) {
+
+    /*
+     * First use createdAt if Firebase timestamp exists.
+     */
+
+    if (
+        alert.createdAt
+    ) {
+
+        try {
+
+            let date;
+
+
+            if (
+                typeof alert.createdAt.toDate ===
+                "function"
+            ) {
+
+                date =
+                    alert.createdAt.toDate();
+
+            }
+
+            else if (
+                alert.createdAt.seconds
+            ) {
+
+                date =
+                    new Date(
+                        alert.createdAt.seconds *
+                        1000
+                    );
+
+            }
+
+
+            if (date) {
+
+                return date.toLocaleString(
+                    [],
+                    {
+                        day:
+                            "2-digit",
+
+                        month:
+                            "short",
+
+                        hour:
+                            "2-digit",
+
+                        minute:
+                            "2-digit"
+                    }
+                );
+
+            }
+
+        }
+
+        catch {
+
+            /* Continue below */
+
+        }
+
+    }
+
+
+    /*
+     * Fallback to attendance date.
+     */
+
+    if (
+        alert.attendanceDate
+    ) {
+
+        return formatDate(
+            alert.attendanceDate
+        );
+
+    }
+
+
+    return "Recent";
+
+}
+
+
+/* =========================================================
+   GET ALERT TIME
+========================================================= */
+
+function getAlertTime(
+    timestamp
+) {
+
+    if (!timestamp) {
+
+        return 0;
+
+    }
+
+
+    try {
+
+        if (
+            typeof timestamp.toDate ===
+            "function"
+        ) {
+
+            return timestamp
+                .toDate()
+                .getTime();
+
+        }
+
+
+        if (
+            timestamp.seconds
+        ) {
+
+            return (
+                timestamp.seconds *
+                1000
+            );
+
+        }
+
+    }
+
+    catch {
+
+        return 0;
+
+    }
+
+
+    return 0;
 
 }
 
@@ -1547,6 +3143,7 @@ function renderChildren() {
 
 
     children.forEach(
+
         child => {
 
             const card =
@@ -1561,8 +3158,11 @@ function renderChildren() {
 
             const initials =
                 getInitials(
+
                     child.fullName ||
+
                     "Student"
+
                 );
 
 
@@ -1572,19 +3172,31 @@ function renderChildren() {
 
             const todayRecord =
                 attendanceRecords.find(
+
                     record =>
-                        record.studentId ===
-                        child.id &&
-                        record.date ===
-                        today
+
+                        (
+                            record.studentId ===
+                            child.id
+                        )
+
+                        &&
+
+                        (
+                            record.date ===
+                            today
+                        )
+
                 );
 
 
             const status =
                 todayRecord
+
                     ? normalizeStatus(
                         todayRecord.status
                     )
+
                     : null;
 
 
@@ -1650,6 +3262,7 @@ function renderChildren() {
 
                     </div>
 
+
                     <div>
 
                         <div class="child-name">
@@ -1660,6 +3273,7 @@ function renderChildren() {
                             )}
 
                         </div>
+
 
                         <div class="child-class">
 
@@ -1684,6 +3298,7 @@ function renderChildren() {
                         Today's Attendance
 
                     </div>
+
 
                     <div class="status-value">
 
@@ -1725,9 +3340,11 @@ function renderChildren() {
                             ${
                                 todayRecord &&
                                 todayRecord.checkIn
+
                                     ? formatTimestamp(
                                         todayRecord.checkIn
                                     )
+
                                     : "—"
                             }
 
@@ -1745,6 +3362,7 @@ function renderChildren() {
             );
 
         }
+
     );
 
 }
@@ -1778,10 +3396,6 @@ function renderAttendanceHistory() {
     }
 
 
-    /*
-       Show only latest 10 records.
-    */
-
     const records =
         attendanceRecords.slice(
             0,
@@ -1790,6 +3404,7 @@ function renderAttendanceHistory() {
 
 
     records.forEach(
+
         record => {
 
             const status =
@@ -1800,6 +3415,7 @@ function renderAttendanceHistory() {
 
             let statusClass =
                 "history-present";
+
 
             let statusText =
                 "Present";
@@ -1857,6 +3473,7 @@ function renderAttendanceHistory() {
 
                     </strong>
 
+
                     <span>
 
                         ${escapeHtml(
@@ -1874,10 +3491,12 @@ function renderAttendanceHistory() {
 
                         ${
                             record.checkIn
+
                                 ? " • Check-in " +
                                   formatTimestamp(
                                       record.checkIn
                                   )
+
                                 : ""
                         }
 
@@ -1902,6 +3521,7 @@ function renderAttendanceHistory() {
             );
 
         }
+
     );
 
 }
@@ -1949,6 +3569,36 @@ function normalizeStatus(
     ) {
 
         return "present";
+
+    }
+
+
+    if (
+        value ===
+        "p"
+    ) {
+
+        return "present";
+
+    }
+
+
+    if (
+        value ===
+        "l"
+    ) {
+
+        return "late";
+
+    }
+
+
+    if (
+        value ===
+        "a"
+    ) {
+
+        return "absent";
 
     }
 
@@ -2020,7 +3670,10 @@ function getInitials(
     return (
 
         words[0][0] +
-        words[words.length - 1][0]
+
+        words[
+            words.length - 1
+        ][0]
 
     )
     .toUpperCase();
@@ -2039,6 +3692,7 @@ function getLocalDateString(
     const year =
         date.getFullYear();
 
+
     const month =
         String(
             date.getMonth() + 1
@@ -2047,6 +3701,7 @@ function getLocalDateString(
             2,
             "0"
         );
+
 
     const day =
         String(
@@ -2094,7 +3749,13 @@ function formatDate(
     }
 
 
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return (
+
+        `${parts[2]}/` +
+        `${parts[1]}/` +
+        `${parts[0]}`
+
+    );
 
 }
 
@@ -2151,14 +3812,19 @@ function formatTimestamp(
 
 
         return date.toLocaleTimeString(
+
             [],
+
             {
+
                 hour:
                     "2-digit",
 
                 minute:
                     "2-digit"
+
             }
+
         );
 
     }
@@ -2221,8 +3887,10 @@ function showApplication() {
     loadingScreen.style.display =
         "none";
 
+
     errorScreen.style.display =
         "none";
+
 
     app.style.display =
         "block";
@@ -2263,17 +3931,99 @@ function showError(
 
 
 /* =========================================================
+   REFRESH ALERTS BUTTON
+========================================================= */
+
+refreshAlertsButton.addEventListener(
+
+    "click",
+
+    async () => {
+
+        refreshAlertsButton.disabled =
+            true;
+
+
+        refreshAlertsButton.textContent =
+            "Loading...";
+
+
+        try {
+
+            await loadAttendanceAlerts();
+
+            renderAttendanceAlerts();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Refresh alerts error:",
+                error
+            );
+
+        }
+
+
+        refreshAlertsButton.disabled =
+            false;
+
+
+        refreshAlertsButton.textContent =
+            "↻ Refresh";
+
+    }
+
+);
+
+
+/* =========================================================
+   NOTIFICATION BUTTON
+========================================================= */
+
+notificationButton.addEventListener(
+
+    "click",
+
+    () => {
+
+        const alertsSection =
+            document.getElementById(
+                "alertsSection"
+            );
+
+
+        alertsSection.scrollIntoView({
+
+            behavior:
+                "smooth",
+
+            block:
+                "start"
+
+        });
+
+    }
+
+);
+
+
+/* =========================================================
    LOGOUT
 ========================================================= */
 
 logoutButton.addEventListener(
+
     "click",
+
     async () => {
 
         try {
 
             logoutButton.disabled =
                 true;
+
 
             logoutButton.textContent =
                 "Logging out...";
@@ -2296,8 +4046,10 @@ logoutButton.addEventListener(
                 error
             );
 
+
             logoutButton.disabled =
                 false;
+
 
             logoutButton.textContent =
                 "Logout";
@@ -2305,6 +4057,7 @@ logoutButton.addEventListener(
         }
 
     }
+
 );
 
 
