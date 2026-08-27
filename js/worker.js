@@ -1287,18 +1287,44 @@ function showAlreadyCheckedIn() {
 
 
 /* =========================================================
-   COMPLETED
+   COMPLETED ATTENDANCE
 ========================================================= */
 
 function showCompletedAttendance() {
 
-    if (attendanceStatus) {
+    const status =
+        String(
+            currentAttendance?.status ||
+            ""
+        ).toLowerCase();
 
-        attendanceStatus.textContent =
-            "✓ Attendance completed for today.";
 
-        attendanceStatus.className =
-            "attendance-status status-complete";
+    if (
+        status ===
+        "late"
+    ) {
+
+        if (attendanceStatus) {
+
+            attendanceStatus.textContent =
+                "✓ Attendance completed — Late.";
+
+            attendanceStatus.className =
+                "attendance-status status-late";
+
+        }
+
+    } else {
+
+        if (attendanceStatus) {
+
+            attendanceStatus.textContent =
+                "✓ Attendance completed — Present.";
+
+            attendanceStatus.className =
+                "attendance-status status-present";
+
+        }
 
     }
 
@@ -1311,32 +1337,26 @@ function showCompletedAttendance() {
         checkOutButton.textContent =
             "Attendance Complete";
 
-    }
-
-
-    if (staffIdInput) {
-
-        staffIdInput.disabled =
-            true;
+        checkOutButton.style.display =
+            "block";
 
     }
 
 
-    if (checkInButton) {
+    disableStaffId();
 
-        checkInButton.style.display =
-            "none";
 
-    }
+    hideCheckInButton();
 
 
     showMessage(
-        "You have already checked in and checked out today.",
+        status === "late"
+            ? "You checked in late and have completed your attendance for today."
+            : "You have completed your attendance for today.",
         "success"
     );
 
 }
-
 
 /* =========================================================
    HANDLE CHECK OUT
