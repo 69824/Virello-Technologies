@@ -5,38 +5,41 @@
    FILE:
    js/worker.js
 
+   STEP:
+   5B / HOSTING VERSION
+
    PURPOSE:
    WORKER CHECK-IN / CHECK-OUT SYSTEM
 
-   FIX:
-   - Firebase Anonymous Authentication
-   - Prevents "Missing or insufficient permissions"
-   - Keeps existing Firestore security rules
+   FEATURES:
    - Office QR verification
    - 30-second QR lifetime
    - Staff ID lookup
    - Active staff verification
    - Daily attendance
    - Check-in
-   - Present / Late status
    - Check-out
-   - Hosting safe
+   - Firestore attendance records
+
+   FIRESTORE COLLECTIONS:
+   attendance
+   staff
+
+   HOSTING:
+   No IPv4 address
+   No localhost
+   No 127.0.0.1
 ========================================================= */
 
 
 /* =========================================================
-   FIREBASE AUTH
+   FIREBASE
 ========================================================= */
 
 import {
-    getAuth,
-    signInAnonymously
+    getAuth
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-
-/* =========================================================
-   FIRESTORE
-========================================================= */
 
 import {
     getFirestore,
@@ -51,10 +54,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 
-/* =========================================================
-   FIREBASE APP
-========================================================= */
-
 import {
     app
 } from "./firebase-config.js";
@@ -64,51 +63,52 @@ import {
    FIREBASE SERVICES
 ========================================================= */
 
-const auth = getAuth(app);
+const auth =
+    getAuth(app);
 
-const db = getFirestore(app);
+
+const db =
+    getFirestore(app);
 
 
 /* =========================================================
    GLOBAL STATE
 ========================================================= */
 
-let currentStaff = null;
+let currentStaff =
+    null;
 
-let currentAttendance = null;
 
-let firebaseWorkerReady = false;
+let currentAttendance =
+    null;
 
 
 /* =========================================================
    OFFICE QR STATE
 ========================================================= */
 
-let officeQRVerified = false;
+let officeQRVerified =
+    false;
 
-let officeQRTimestamp = null;
 
-let officeQRToken = null;
+let officeQRTimestamp =
+    null;
+
+
+let officeQRToken =
+    null;
 
 
 /* =========================================================
    QR SETTINGS
 ========================================================= */
 
-const QR_LIFETIME_SECONDS = 30;
+const QR_LIFETIME_SECONDS =
+    30;
 
 
 /* =========================================================
-   ATTENDANCE SETTINGS
-========================================================= */
-
-const WORK_START_HOUR = 8;
-
-const WORK_START_MINUTE = 0;
-
-
-/* =========================================================
-   DOM ELEMENTS
+   DOM
 ========================================================= */
 
 const staffIdInput =
@@ -189,7 +189,7 @@ const officeAccessText =
 
 document.addEventListener(
     "DOMContentLoaded",
-    async () => {
+    () => {
 
         console.log(
             "🔥 Virello Worker Attendance starting..."
@@ -197,13 +197,13 @@ document.addEventListener(
 
 
         console.log(
-            "🌐 Website:",
+            "🌐 Current website:",
             window.location.origin
         );
 
 
         console.log(
-            "📄 Worker page:",
+            "📄 Current worker page:",
             window.location.href
         );
 
@@ -212,18 +212,6 @@ document.addEventListener(
 
 
         verifyOfficeQR();
-
-
-        /*
-           Authenticate the public worker page.
-
-           This uses Firebase Anonymous Authentication.
-
-           The worker does NOT need to enter
-           an email or password.
-        */
-
-        await initializeWorkerAuthentication();
 
 
         if (checkInButton) {
@@ -272,191 +260,6 @@ document.addEventListener(
 
 
 /* =========================================================
-   FIREBASE ANONYMOUS AUTHENTICATION
-========================================================= */
-
-async function initializeWorkerAuthentication() {
-
-    console.log(
-        "🔐 Starting Worker Firebase authentication..."
-    );
-
-
-    /*
-       If Firebase already has a user,
-       use that user.
-    */
-
-    if (auth.currentUser) {
-
-        firebaseWorkerReady = true;
-
-
-        console.log(
-            "✅ Existing Firebase authentication found."
-        );
-
-
-        console.log(
-            "👤 Firebase UID:",
-            auth.currentUser.uid
-        );
-
-
-        return true;
-
-    }
-
-
-    try {
-
-        /*
-           Create an anonymous Firebase user.
-
-           This is the important fix for the
-           Firestore permission problem.
-        */
-
-        const result =
-            await signInAnonymously(
-                auth
-            );
-
-
-        if (
-            result &&
-            result.user
-        ) {
-
-            firebaseWorkerReady = true;
-
-
-            console.log(
-                "✅ Worker authenticated anonymously."
-            );
-
-
-            console.log(
-                "👤 Anonymous UID:",
-                result.user.uid
-            );
-
-
-            return true;
-
-        }
-
-
-        throw new Error(
-            "Firebase authentication did not return a user."
-        );
-
-    }
-
-    catch (error) {
-
-        firebaseWorkerReady = false;
-
-
-        console.error(
-            "❌ Worker Firebase authentication failed:",
-            error
-        );
-
-
-        console.error(
-            "Firebase error code:",
-            error.code
-        );
-
-
-        console.error(
-            "Firebase error message:",
-            error.message
-        );
-
-
-        showMessage(
-            getAuthenticationErrorMessage(
-                error
-            ),
-            "error"
-        );
-
-
-        return false;
-
-    }
-
-}
-
-
-/* =========================================================
-   AUTH ERROR MESSAGE
-========================================================= */
-
-function getAuthenticationErrorMessage(
-    error
-) {
-
-    if (
-        error &&
-        error.code ===
-        "auth/operation-not-allowed"
-    ) {
-
-        return (
-            "Worker attendance authentication is not enabled. " +
-            "Please enable Anonymous sign-in in Firebase Authentication."
-        );
-
-    }
-
-
-    if (
-        error &&
-        error.code ===
-        "auth/network-request-failed"
-    ) {
-
-        return (
-            "Unable to connect to Firebase. " +
-            "Please check your internet connection and try again."
-        );
-
-    }
-
-
-    return (
-        "Unable to connect to the Virello attendance system. " +
-        "Please refresh the page and try again."
-    );
-
-}
-
-
-/* =========================================================
-   CHECK FIREBASE AUTH READY
-========================================================= */
-
-async function ensureWorkerAuthentication() {
-
-    if (
-        firebaseWorkerReady &&
-        auth.currentUser
-    ) {
-
-        return true;
-
-    }
-
-
-    return await initializeWorkerAuthentication();
-
-}
-
-
-/* =========================================================
    OFFICE QR VERIFICATION
 ========================================================= */
 
@@ -490,6 +293,10 @@ function verifyOfficeQR() {
             "token"
         );
 
+
+    /* =====================================================
+       CHECK REQUIRED QR PARAMETERS
+    ===================================================== */
 
     if (
         officeQR !== "1" ||
@@ -526,6 +333,10 @@ function verifyOfficeQR() {
     }
 
 
+    /* =====================================================
+       VALIDATE TIMESTAMP
+    ===================================================== */
+
     const qrTimestamp =
         Number(
             timestamp
@@ -558,6 +369,10 @@ function verifyOfficeQR() {
 
     }
 
+
+    /* =====================================================
+       CHECK QR AGE
+    ===================================================== */
 
     const now =
         Date.now();
@@ -600,7 +415,7 @@ function verifyOfficeQR() {
         setOfficeAccessState(
             false,
             "Office QR Expired",
-            "This QR code has expired. Please scan the current office QR code."
+            "This QR code has expired. Please scan the current QR displayed at the office."
         );
 
 
@@ -608,6 +423,10 @@ function verifyOfficeQR() {
 
     }
 
+
+    /* =====================================================
+       QR IS VALID
+    ===================================================== */
 
     officeQRTimestamp =
         qrTimestamp;
@@ -653,9 +472,7 @@ function setOfficeAccessState(
 ) {
 
     if (!officeAccess) {
-
         return;
-
     }
 
 
@@ -704,9 +521,7 @@ function setOfficeAccessState(
 function setTodayDate() {
 
     if (!todayDate) {
-
         return;
-
     }
 
 
@@ -736,7 +551,7 @@ function setTodayDate() {
 
 
 /* =========================================================
-   DATE KEY
+   FIRESTORE DATE KEY
 ========================================================= */
 
 function getDateKey() {
@@ -784,9 +599,7 @@ function showMessage(
 ) {
 
     if (!workerMessage) {
-
         return;
-
     }
 
 
@@ -801,16 +614,10 @@ function showMessage(
 }
 
 
-/* =========================================================
-   CLEAR MESSAGE
-========================================================= */
-
 function clearMessage() {
 
     if (!workerMessage) {
-
         return;
-
     }
 
 
@@ -836,24 +643,6 @@ async function findStaff(
         "🔎 Searching Staff ID:",
         staffId
     );
-
-
-    /*
-       Make absolutely sure Firebase
-       authentication exists before Firestore.
-    */
-
-    const authenticated =
-        await ensureWorkerAuthentication();
-
-
-    if (!authenticated) {
-
-        throw new Error(
-            "Worker authentication is not available."
-        );
-
-    }
 
 
     const staffRef =
@@ -918,19 +707,6 @@ async function findTodayAttendance(
     staff
 ) {
 
-    const authenticated =
-        await ensureWorkerAuthentication();
-
-
-    if (!authenticated) {
-
-        throw new Error(
-            "Worker authentication is not available."
-        );
-
-    }
-
-
     const attendanceRef =
         collection(
             db,
@@ -990,93 +766,6 @@ async function findTodayAttendance(
 
 
 /* =========================================================
-   DETERMINE IF CHECK-IN IS LATE
-========================================================= */
-
-function isLate(
-    date
-) {
-
-    const hour =
-        date.getHours();
-
-
-    const minute =
-        date.getMinutes();
-
-
-    if (
-        hour <
-        WORK_START_HOUR
-    ) {
-
-        return false;
-
-    }
-
-
-    if (
-        hour ===
-        WORK_START_HOUR &&
-        minute ===
-        WORK_START_MINUTE
-    ) {
-
-        return false;
-
-    }
-
-
-    return true;
-
-}
-
-
-/* =========================================================
-   GET ATTENDANCE STATUS
-========================================================= */
-
-function getCheckInStatus(
-    date
-) {
-
-    if (
-        isLate(date)
-    ) {
-
-        return "late";
-
-    }
-
-
-    return "present";
-
-}
-
-
-/* =========================================================
-   GET READABLE TIME
-========================================================= */
-
-function getTimeString(
-    date
-) {
-
-    return date.toLocaleTimeString(
-        [],
-        {
-            hour:
-                "2-digit",
-
-            minute:
-                "2-digit"
-        }
-    );
-
-}
-
-
-/* =========================================================
    HANDLE CHECK IN
 ========================================================= */
 
@@ -1086,22 +775,7 @@ async function handleCheckIn() {
 
 
     /* =====================================================
-       FIREBASE AUTH
-    ===================================================== */
-
-    const authenticated =
-        await ensureWorkerAuthentication();
-
-
-    if (!authenticated) {
-
-        return;
-
-    }
-
-
-    /* =====================================================
-       QR CHECK
+       QR ACCESS CHECK
     ===================================================== */
 
     if (
@@ -1127,7 +801,7 @@ async function handleCheckIn() {
 
 
     /* =====================================================
-       QR EXPIRATION CHECK
+       CHECK QR HAS NOT EXPIRED
     ===================================================== */
 
     if (
@@ -1188,7 +862,7 @@ async function handleCheckIn() {
 
 
     /* =====================================================
-       BUTTON
+       DISABLE BUTTON
     ===================================================== */
 
     if (checkInButton) {
@@ -1229,19 +903,12 @@ async function handleCheckIn() {
 
 
         /* =================================================
-           ACTIVE STAFF
+           ACTIVE STAFF ONLY
         ================================================= */
 
-        const staffStatus =
-            String(
-                staff.status ||
-                "active"
-            ).toLowerCase();
-
-
         if (
-            staffStatus !==
-            "active"
+            staff.status &&
+            staff.status !== "active"
         ) {
 
             showMessage(
@@ -1312,43 +979,7 @@ async function handleCheckIn() {
 
 
         /* =================================================
-           CURRENT TIME
-        ================================================= */
-
-        const now =
-            new Date();
-
-
-        /* =================================================
-           AUTOMATIC STATUS
-        ================================================= */
-
-        const attendanceStatusValue =
-            getCheckInStatus(
-                now
-            );
-
-
-        const readableCheckIn =
-            getTimeString(
-                now
-            );
-
-
-        console.log(
-            "🕒 Check-in time:",
-            readableCheckIn
-        );
-
-
-        console.log(
-            "📊 Attendance status:",
-            attendanceStatusValue
-        );
-
-
-        /* =================================================
-           ATTENDANCE DATA
+           CREATE ATTENDANCE
         ================================================= */
 
         const attendanceData = {
@@ -1366,7 +997,6 @@ async function handleCheckIn() {
 
             position:
                 staff.position ||
-                staff.role ||
                 "",
 
             organizationId:
@@ -1377,7 +1007,7 @@ async function handleCheckIn() {
                 getDateKey(),
 
             status:
-                attendanceStatusValue,
+                "present",
 
             checkIn:
                 serverTimestamp(),
@@ -1388,8 +1018,9 @@ async function handleCheckIn() {
             createdAt:
                 serverTimestamp(),
 
-            updatedAt:
-                serverTimestamp(),
+            /* =============================================
+               QR ACCESS RECORD
+            ============================================= */
 
             attendanceAccess:
                 "office_qr",
@@ -1402,10 +1033,6 @@ async function handleCheckIn() {
 
         };
 
-
-        /* =================================================
-           CREATE FIRESTORE RECORD
-        ================================================= */
 
         const attendanceRef =
             collection(
@@ -1436,18 +1063,7 @@ async function handleCheckIn() {
         );
 
 
-        if (
-            attendanceStatusValue ===
-            "late"
-        ) {
-
-            showLateCheckedIn();
-
-        } else {
-
-            showCheckedIn();
-
-        }
+        showCheckedIn();
 
 
         console.log(
@@ -1455,15 +1071,7 @@ async function handleCheckIn() {
             newAttendance.id
         );
 
-
-        console.log(
-            "📊 Saved status:",
-            attendanceStatusValue
-        );
-
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(
             "❌ Check-in error:",
@@ -1471,28 +1079,13 @@ async function handleCheckIn() {
         );
 
 
-        console.error(
-            "❌ Firebase error code:",
-            error.code
-        );
-
-
-        console.error(
-            "❌ Firebase error message:",
-            error.message
-        );
-
-
         showMessage(
-            getFirestoreErrorMessage(
-                error
-            ),
+            error.message ||
+            "Unable to record check-in.",
             "error"
         );
 
-    }
-
-    finally {
+    } finally {
 
         if (checkInButton) {
 
@@ -1506,49 +1099,6 @@ async function handleCheckIn() {
         }
 
     }
-
-}
-
-
-/* =========================================================
-   FIRESTORE ERROR MESSAGE
-========================================================= */
-
-function getFirestoreErrorMessage(
-    error
-) {
-
-    if (
-        error &&
-        error.code ===
-        "permission-denied"
-    ) {
-
-        return (
-            "Virello could not access attendance data. " +
-            "Please make sure Anonymous Authentication is enabled in Firebase."
-        );
-
-    }
-
-
-    if (
-        error &&
-        error.code ===
-        "failed-precondition"
-    ) {
-
-        return (
-            "Firebase needs a database index for this attendance search."
-        );
-
-    }
-
-
-    return (
-        error?.message ||
-        "Unable to record attendance."
-    );
 
 }
 
@@ -1625,7 +1175,6 @@ function displayWorker(
 
         workerPosition.textContent =
             staff.position ||
-            staff.role ||
             "Staff";
 
     }
@@ -1634,7 +1183,7 @@ function displayWorker(
 
 
 /* =========================================================
-   NORMAL PRESENT
+   CHECKED IN
 ========================================================= */
 
 function showCheckedIn() {
@@ -1642,7 +1191,7 @@ function showCheckedIn() {
     if (attendanceStatus) {
 
         attendanceStatus.textContent =
-            "✓ You are checked in — Present.";
+            "✓ You are checked in.";
 
         attendanceStatus.className =
             "attendance-status status-present";
@@ -1650,52 +1199,36 @@ function showCheckedIn() {
     }
 
 
-    showCheckOutButton();
+    if (checkOutButton) {
 
+        checkOutButton.disabled =
+            false;
 
-    disableStaffId();
-
-
-    hideCheckInButton();
-
-
-    showMessage(
-        "Check-in recorded successfully. You are marked Present.",
-        "success"
-    );
-
-}
-
-
-/* =========================================================
-   LATE
-========================================================= */
-
-function showLateCheckedIn() {
-
-    if (attendanceStatus) {
-
-        attendanceStatus.textContent =
-            "🕒 You are checked in — Late.";
-
-        attendanceStatus.className =
-            "attendance-status status-late";
+        checkOutButton.style.display =
+            "block";
 
     }
 
 
-    showCheckOutButton();
+    if (staffIdInput) {
+
+        staffIdInput.disabled =
+            true;
+
+    }
 
 
-    disableStaffId();
+    if (checkInButton) {
 
+        checkInButton.style.display =
+            "none";
 
-    hideCheckInButton();
+    }
 
 
     showMessage(
-        "Check-in recorded. You arrived after 8:00 AM and have been marked Late.",
-        "warning"
+        "Check-in recorded successfully.",
+        "success"
     );
 
 }
@@ -1707,105 +1240,65 @@ function showLateCheckedIn() {
 
 function showAlreadyCheckedIn() {
 
-    const status =
-        String(
-            currentAttendance?.status ||
-            "present"
-        ).toLowerCase();
+    if (attendanceStatus) {
 
+        attendanceStatus.textContent =
+            "✓ You are already checked in.";
 
-    if (
-        status ===
-        "late"
-    ) {
-
-        if (attendanceStatus) {
-
-            attendanceStatus.textContent =
-                "🕒 You are already checked in — Late.";
-
-            attendanceStatus.className =
-                "attendance-status status-late";
-
-        }
-
-
-        showMessage(
-            "You have already checked in today and were marked Late.",
-            "warning"
-        );
-
-    } else {
-
-        if (attendanceStatus) {
-
-            attendanceStatus.textContent =
-                "✓ You are already checked in — Present.";
-
-            attendanceStatus.className =
-                "attendance-status status-present";
-
-        }
-
-
-        showMessage(
-            "You have already checked in today.",
-            "success"
-        );
+        attendanceStatus.className =
+            "attendance-status status-present";
 
     }
 
 
-    showCheckOutButton();
+    if (checkOutButton) {
+
+        checkOutButton.disabled =
+            false;
+
+        checkOutButton.style.display =
+            "block";
+
+    }
 
 
-    disableStaffId();
+    if (staffIdInput) {
+
+        staffIdInput.disabled =
+            true;
+
+    }
 
 
-    hideCheckInButton();
+    if (checkInButton) {
+
+        checkInButton.style.display =
+            "none";
+
+    }
+
+
+    showMessage(
+        "You have already checked in today.",
+        "success"
+    );
 
 }
 
 
 /* =========================================================
-   COMPLETED ATTENDANCE
+   COMPLETED
 ========================================================= */
 
 function showCompletedAttendance() {
 
-    const status =
-        String(
-            currentAttendance?.status ||
-            ""
-        ).toLowerCase();
+    if (attendanceStatus) {
 
+        attendanceStatus.textContent =
+            "✓ Attendance completed for today.";
 
-    if (
-        status ===
-        "late"
-    ) {
-
-        if (attendanceStatus) {
-
-            attendanceStatus.textContent =
-                "✓ Attendance completed — Late.";
-
-            attendanceStatus.className =
-                "attendance-status status-late";
-
-        }
-
-    } else {
-
-        if (attendanceStatus) {
-
-            attendanceStatus.textContent =
-                "✓ Attendance completed — Present.";
-
-            attendanceStatus.className =
-                "attendance-status status-present";
-
-        }
+        attendanceStatus.className =
+            "attendance-status status-complete";
 
     }
 
@@ -1818,55 +1311,16 @@ function showCompletedAttendance() {
         checkOutButton.textContent =
             "Attendance Complete";
 
-        checkOutButton.style.display =
-            "block";
-
     }
 
 
-    disableStaffId();
+    if (staffIdInput) {
 
-
-    hideCheckInButton();
-
-
-    showMessage(
-        status === "late"
-            ? "You checked in late and have completed your attendance for today."
-            : "You have completed your attendance for today.",
-        "success"
-    );
-
-}
-
-
-/* =========================================================
-   SHOW CHECKOUT BUTTON
-========================================================= */
-
-function showCheckOutButton() {
-
-    if (checkOutButton) {
-
-        checkOutButton.disabled =
-            false;
-
-        checkOutButton.textContent =
-            "Check Out";
-
-        checkOutButton.style.display =
-            "block";
+        staffIdInput.disabled =
+            true;
 
     }
 
-}
-
-
-/* =========================================================
-   HIDE CHECK-IN BUTTON
-========================================================= */
-
-function hideCheckInButton() {
 
     if (checkInButton) {
 
@@ -1875,21 +1329,11 @@ function hideCheckInButton() {
 
     }
 
-}
 
-
-/* =========================================================
-   DISABLE STAFF ID
-========================================================= */
-
-function disableStaffId() {
-
-    if (staffIdInput) {
-
-        staffIdInput.disabled =
-            true;
-
-    }
+    showMessage(
+        "You have already checked in and checked out today.",
+        "success"
+    );
 
 }
 
@@ -1901,17 +1345,6 @@ function disableStaffId() {
 async function handleCheckOut() {
 
     clearMessage();
-
-
-    const authenticated =
-        await ensureWorkerAuthentication();
-
-
-    if (!authenticated) {
-
-        return;
-
-    }
 
 
     if (
@@ -1988,6 +1421,9 @@ async function handleCheckOut() {
                 checkOut:
                     serverTimestamp(),
 
+                status:
+                    "completed",
+
                 updatedAt:
                     serverTimestamp()
 
@@ -1999,6 +1435,10 @@ async function handleCheckOut() {
             true;
 
 
+        currentAttendance.status =
+            "completed";
+
+
         showCompletedAttendance();
 
 
@@ -2008,9 +1448,7 @@ async function handleCheckOut() {
         );
 
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(
             "❌ Check-out error:",
@@ -2018,22 +1456,9 @@ async function handleCheckOut() {
         );
 
 
-        console.error(
-            "❌ Firebase error code:",
-            error.code
-        );
-
-
-        console.error(
-            "❌ Firebase error message:",
-            error.message
-        );
-
-
         showMessage(
-            getFirestoreErrorMessage(
-                error
-            ),
+            error.message ||
+            "Unable to record check-out.",
             "error"
         );
 
@@ -2059,40 +1484,15 @@ async function handleCheckOut() {
 ========================================================= */
 
 console.log(
-    "✅ Virello Worker Attendance loaded."
-);
-
-
-console.log(
-    "🔐 Anonymous Firebase authentication enabled."
-);
-
-
-console.log(
-    "🕒 Automatic 08:00 AM late detection active."
-);
-
-
-console.log(
-    "🟢 08:00 AM or earlier = Present."
-);
-
-
-console.log(
-    "🟡 After 08:00 AM = Late."
-);
-
-
-console.log(
-    "🔴 No attendance record = Absent."
-);
-
-
-console.log(
-    "🔐 Office QR verification active."
+    "✅ Virello Worker Check-In System loaded."
 );
 
 
 console.log(
     "🌐 Hosting-safe worker system active."
+);
+
+
+console.log(
+    "🔐 Office QR verification active."
 );
