@@ -1,7 +1,9 @@
 /* =========================================================
    VIRELLO TECHNOLOGIES
    ATTENDANCE ALERT SYSTEM
-   FILE: js/attendance-alerts.js
+
+   FILE:
+   js/attendance-alerts.js
 
    PURPOSE:
    Create attendance alerts for linked parents.
@@ -22,7 +24,15 @@
    attendanceAlerts
         ↓
    PARENT DASHBOARD
+
+   IMPORTANT:
+   This version supports parent links using:
+
+   1. Student Firestore document ID
+   2. Student ID / student number
+   3. Direct parent information stored on student
 ========================================================= */
+
 
 import {
     collection,
@@ -32,6 +42,7 @@ import {
     where,
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
 
 import {
     db
@@ -48,11 +59,18 @@ export async function createAttendanceAlert(
 
     try {
 
+        /* =====================================================
+           VALIDATE INPUT
+        ===================================================== */
+
         if (!attendanceData) {
+
             return {
                 success: false,
+                alertsCreated: 0,
                 error: "Attendance data missing."
             };
+
         }
 
 
@@ -60,35 +78,40 @@ export async function createAttendanceAlert(
            BASIC ATTENDANCE INFORMATION
         ===================================================== */
 
+        const organizationId =
+            attendanceData.organizationId ||
+            "";
+
+
         const studentDocumentId =
             attendanceData.studentDocumentId ||
+            attendanceData.studentFirestoreId ||
             attendanceData.studentId ||
             "";
+
 
         const studentId =
             attendanceData.studentId ||
             attendanceData.studentNumber ||
             "";
 
+
+        const studentNumber =
+            attendanceData.studentNumber ||
+            attendanceData.studentId ||
+            "";
+
+
         const studentName =
             attendanceData.studentName ||
             "Student";
+
 
         const className =
             attendanceData.className ||
             attendanceData.grade ||
             "Class";
 
-        const organizationId =
-            attendanceData.organizationId ||
-            "";
-
-        const status =
-            String(
-                attendanceData.status || ""
-            )
-                .trim()
-                .toLowerCase();
 
         const attendanceDate =
             attendanceData.date ||
@@ -97,23 +120,18 @@ export async function createAttendanceAlert(
                 .split("T")[0];
 
 
+        const status =
+            String(
+                attendanceData.status ||
+                ""
+            )
+                .trim()
+                .toLowerCase();
+
+
         /* =====================================================
            VALIDATION
         ===================================================== */
-
-        if (!studentDocumentId) {
-
-            console.warn(
-                "⚠️ Alert skipped: missing student document ID."
-            );
-
-            return {
-                success: false,
-                error: "Missing student ID."
-            };
-
-        }
-
 
         if (!organizationId) {
 
@@ -123,6 +141,7 @@ export async function createAttendanceAlert(
 
             return {
                 success: false,
+                alertsCreated: 0,
                 error: "Missing organization ID."
             };
 
@@ -137,7 +156,23 @@ export async function createAttendanceAlert(
 
             return {
                 success: false,
+                alertsCreated: 0,
                 error: "Missing attendance status."
+            };
+
+        }
+
+
+        if (!studentDocumentId && !studentId) {
+
+            console.warn(
+                "⚠️ Alert skipped: missing student identifier."
+            );
+
+            return {
+                success: false,
+                alertsCreated: 0,
+                error: "Missing student ID."
             };
 
         }
@@ -145,9 +180,6 @@ export async function createAttendanceAlert(
 
         /* =====================================================
            FIND STUDENT
-           
-           First search using Firestore document ID.
-           Then fallback to studentId field.
         ===================================================== */
 
         const studentsRef =
@@ -156,19 +188,24 @@ export async function createAttendanceAlert(
                 "students"
             );
 
-        let studentSnapshot = null;
+
+        let studentDocument = null;
 
 
-        /*
-           Search by student document ID
-           when available.
-        */
+        /* =====================================================
+           METHOD 1
+           FIND BY FIRESTORE DOCUMENT ID
+
+           We first load organization students and compare
+           the Firestore document ID.
+        ===================================================== */
 
         try {
 
-            const documentQuery =
+            const organizationStudentsQuery =
                 query(
                     studentsRef,
+
                     where(
                         "organizationId",
                         "==",
@@ -176,23 +213,30 @@ export async function createAttendanceAlert(
                     )
                 );
 
-            const organizationStudents =
+
+            const organizationStudentsSnapshot =
                 await getDocs(
-                    documentQuery
+                    organizationStudentsQuery
                 );
 
+
             const matchingStudent =
-                organizationStudents.docs.find(
-                    studentDocument =>
-                        studentDocument.id ===
-                        studentDocumentId
+                organizationStudentsSnapshot.docs.find(
+                    studentDoc => {
+
+                        return (
+                            studentDoc.id ===
+                            studentDocumentId
+                        );
+
+                    }
                 );
+
 
             if (matchingStudent) {
 
-                studentSnapshot = [
-                    matchingStudent
-                ];
+                studentDocument =
+                    matchingStudent;
 
             }
 
@@ -201,26 +245,25 @@ export async function createAttendanceAlert(
         catch (error) {
 
             console.warn(
-                "⚠️ Student document search failed:",
+                "⚠️ Student document ID lookup failed:",
                 error
             );
 
         }
 
 
-        /*
-           Fallback to studentId field.
-        */
+        /* =====================================================
+           METHOD 2
+           FIND BY studentId FIELD
+        ===================================================== */
 
-        if (
-            !studentSnapshot ||
-            !studentSnapshot.length
-        ) {
+        if (!studentDocument && studentId) {
 
-            if (studentId) {
+            try {
 
                 const studentQuery =
                     query(
+
                         studentsRef,
 
                         where(
@@ -234,53 +277,144 @@ export async function createAttendanceAlert(
                             "==",
                             studentId
                         )
+
                     );
 
-                const result =
+
+                const snapshot =
                     await getDocs(
                         studentQuery
                     );
 
-                studentSnapshot =
-                    result.docs;
+
+                if (!snapshot.empty) {
+
+                    studentDocument =
+                        snapshot.docs[0];
+
+                }
+
+            }
+
+            catch (error) {
+
+                console.warn(
+                    "⚠️ studentId lookup failed:",
+                    error
+                );
 
             }
 
         }
 
 
+        /* =====================================================
+           METHOD 3
+           FIND BY studentNumber FIELD
+        ===================================================== */
+
         if (
-            !studentSnapshot ||
-            !studentSnapshot.length
+            !studentDocument &&
+            studentNumber
         ) {
+
+            try {
+
+                const studentNumberQuery =
+                    query(
+
+                        studentsRef,
+
+                        where(
+                            "organizationId",
+                            "==",
+                            organizationId
+                        ),
+
+                        where(
+                            "studentNumber",
+                            "==",
+                            studentNumber
+                        )
+
+                    );
+
+
+                const snapshot =
+                    await getDocs(
+                        studentNumberQuery
+                    );
+
+
+                if (!snapshot.empty) {
+
+                    studentDocument =
+                        snapshot.docs[0];
+
+                }
+
+            }
+
+            catch (error) {
+
+                console.warn(
+                    "⚠️ studentNumber lookup failed:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        /* =====================================================
+           STUDENT NOT FOUND
+        ===================================================== */
+
+        if (!studentDocument) {
 
             console.warn(
                 "⚠️ Student not found for attendance alert:",
-                studentDocumentId
+                {
+                    studentDocumentId,
+                    studentId,
+                    studentNumber,
+                    organizationId
+                }
             );
+
 
             return {
                 success: false,
+                alertsCreated: 0,
                 error: "Student not found."
             };
 
         }
 
 
-        const studentDocument =
-            studentSnapshot[0];
-
         const studentData =
             studentDocument.data();
 
 
+        console.log(
+            "✅ Student found for attendance alert:",
+            {
+                id:
+                    studentDocument.id,
+
+                studentId:
+                    studentData.studentId,
+
+                studentName:
+                    studentData.fullName ||
+                    studentName
+            }
+        );
+
+
         /* =====================================================
-           PARENT LINK INFORMATION
-           
-           Support both:
-           
-           1. parentUid directly on student
-           2. parentStudentLinks collection
+           PARENT ACCOUNTS
         ===================================================== */
 
         let parentAccounts = [];
@@ -288,20 +422,24 @@ export async function createAttendanceAlert(
 
         /* =====================================================
            METHOD 1
-           PARENT INFORMATION ON STUDENT
+           DIRECT PARENT INFORMATION ON STUDENT
         ===================================================== */
 
         const directParentUid =
             studentData.parentUid ||
+            studentData.parentUserId ||
             "";
+
 
         const directParentId =
             studentData.parentId ||
             "";
 
+
         const directParentEmail =
             studentData.parentEmail ||
             "";
+
 
         const directParentName =
             studentData.parentName ||
@@ -335,7 +473,21 @@ export async function createAttendanceAlert(
 
         /* =====================================================
            METHOD 2
-           parentStudentLinks COLLECTION
+           parentStudentLinks
+
+           IMPORTANT:
+
+           We search using BOTH:
+
+           student Firestore document ID
+
+           AND
+
+           studentId field
+
+           AND
+
+           studentNumber field
         ===================================================== */
 
         try {
@@ -346,87 +498,192 @@ export async function createAttendanceAlert(
                     "parentStudentLinks"
                 );
 
-            const linksQuery =
-                query(
 
-                    linksRef,
+            /*
+               Search using student document ID.
+            */
 
-                    where(
-                        "organizationId",
-                        "==",
-                        organizationId
-                    ),
+            if (studentDocument.id) {
 
-                    where(
-                        "studentId",
-                        "==",
-                        studentDocumentId
-                    )
+                try {
 
-                );
+                    const linksByDocumentIdQuery =
+                        query(
 
+                            linksRef,
 
-            const linksSnapshot =
-                await getDocs(
-                    linksQuery
-                );
+                            where(
+                                "organizationId",
+                                "==",
+                                organizationId
+                            ),
 
+                            where(
+                                "studentId",
+                                "==",
+                                studentDocument.id
+                            )
 
-            linksSnapshot.forEach(
-                linkDocument => {
-
-                    const link =
-                        linkDocument.data();
+                        );
 
 
-                    const parentUid =
-                        link.parentUid ||
-                        link.parentId ||
-                        link.uid ||
-                        "";
+                    const linksSnapshot =
+                        await getDocs(
+                            linksByDocumentIdQuery
+                        );
 
 
-                    const parentId =
-                        link.parentId ||
-                        "";
+                    linksSnapshot.forEach(
+                        linkDocument => {
 
+                            addParentFromLink(
+                                parentAccounts,
+                                linkDocument.data()
+                            );
 
-                    const parentEmail =
-                        link.parentEmail ||
-                        "";
-
-
-                    const parentName =
-                        link.parentName ||
-                        "Parent";
-
-
-                    if (
-                        parentUid ||
-                        parentId ||
-                        parentEmail
-                    ) {
-
-                        parentAccounts.push({
-
-                            parentUid:
-                                parentUid,
-
-                            parentId:
-                                parentId,
-
-                            parentEmail:
-                                parentEmail,
-
-                            parentName:
-                                parentName
-
-                        });
-
-                    }
+                        }
+                    );
 
                 }
-            );
+
+                catch (error) {
+
+                    console.warn(
+                        "⚠️ Parent link document-ID lookup failed:",
+                        error
+                    );
+
+                }
+
+            }
+
+
+            /*
+               Search using the student's studentId.
+            */
+
+            if (
+                studentData.studentId &&
+                studentData.studentId !==
+                studentDocument.id
+            ) {
+
+                try {
+
+                    const linksByStudentIdQuery =
+                        query(
+
+                            linksRef,
+
+                            where(
+                                "organizationId",
+                                "==",
+                                organizationId
+                            ),
+
+                            where(
+                                "studentId",
+                                "==",
+                                studentData.studentId
+                            )
+
+                        );
+
+
+                    const linksSnapshot =
+                        await getDocs(
+                            linksByStudentIdQuery
+                        );
+
+
+                    linksSnapshot.forEach(
+                        linkDocument => {
+
+                            addParentFromLink(
+                                parentAccounts,
+                                linkDocument.data()
+                            );
+
+                        }
+                    );
+
+                }
+
+                catch (error) {
+
+                    console.warn(
+                        "⚠️ Parent link studentId lookup failed:",
+                        error
+                    );
+
+                }
+
+            }
+
+
+            /*
+               Search using studentNumber.
+            */
+
+            if (
+                studentData.studentNumber &&
+                studentData.studentNumber !==
+                studentDocument.id &&
+                studentData.studentNumber !==
+                studentData.studentId
+            ) {
+
+                try {
+
+                    const linksByStudentNumberQuery =
+                        query(
+
+                            linksRef,
+
+                            where(
+                                "organizationId",
+                                "==",
+                                organizationId
+                            ),
+
+                            where(
+                                "studentNumber",
+                                "==",
+                                studentData.studentNumber
+                            )
+
+                        );
+
+
+                    const linksSnapshot =
+                        await getDocs(
+                            linksByStudentNumberQuery
+                        );
+
+
+                    linksSnapshot.forEach(
+                        linkDocument => {
+
+                            addParentFromLink(
+                                parentAccounts,
+                                linkDocument.data()
+                            );
+
+                        }
+                    );
+
+                }
+
+                catch (error) {
+
+                    console.warn(
+                        "⚠️ Parent link studentNumber lookup failed:",
+                        error
+                    );
+
+                }
+
+            }
 
         }
 
@@ -447,6 +704,7 @@ export async function createAttendanceAlert(
         const uniqueParents =
             [];
 
+
         const parentKeys =
             new Set();
 
@@ -461,17 +719,20 @@ export async function createAttendanceAlert(
                     "";
 
 
+                if (!key) {
+                    return;
+                }
+
+
                 if (
-                    !key ||
                     parentKeys.has(key)
                 ) {
-
                     return;
-
                 }
 
 
                 parentKeys.add(key);
+
 
                 uniqueParents.push(
                     parent
@@ -482,23 +743,24 @@ export async function createAttendanceAlert(
 
 
         /* =====================================================
-           NO PARENT
+           NO PARENT LINKED
         ===================================================== */
 
-        if (
-            !uniqueParents.length
-        ) {
+        if (!uniqueParents.length) {
 
             console.log(
                 "ℹ️ No parent linked to:",
                 studentName
             );
 
+
             return {
 
-                success: true,
+                success:
+                    true,
 
-                alertsCreated: 0,
+                alertsCreated:
+                    0,
 
                 message:
                     "No parent account is linked to this student."
@@ -508,6 +770,12 @@ export async function createAttendanceAlert(
         }
 
 
+        console.log(
+            "👨‍👩‍👧 Parent accounts found:",
+            uniqueParents.length
+        );
+
+
         /* =====================================================
            BUILD ALERT
         ===================================================== */
@@ -515,11 +783,14 @@ export async function createAttendanceAlert(
         let alertType =
             "";
 
+
         let title =
             "";
 
+
         let message =
             "";
+
 
         let icon =
             "";
@@ -533,11 +804,14 @@ export async function createAttendanceAlert(
             alertType =
                 "present";
 
+
             title =
                 "ATTENDANCE CONFIRMED";
 
+
             icon =
                 "🟢";
+
 
             message =
                 `Your child ${studentName}, ${className}, was marked Present today.`;
@@ -553,11 +827,14 @@ export async function createAttendanceAlert(
             alertType =
                 "late";
 
+
             title =
                 "LATE ARRIVAL";
 
+
             icon =
                 "🟡";
+
 
             message =
                 `Your child ${studentName}, ${className}, arrived at school and was marked Late today.`;
@@ -573,11 +850,14 @@ export async function createAttendanceAlert(
             alertType =
                 "absent";
 
+
             title =
                 "ABSENCE ALERT";
 
+
             icon =
                 "🔴";
+
 
             message =
                 `Your child ${studentName}, ${className}, has been marked Absent today.`;
@@ -589,9 +869,11 @@ export async function createAttendanceAlert(
 
             return {
 
-                success: true,
+                success:
+                    true,
 
-                alertsCreated: 0,
+                alertsCreated:
+                    0,
 
                 message:
                     "No alert required for this status."
@@ -602,7 +884,7 @@ export async function createAttendanceAlert(
 
 
         /* =====================================================
-           CREATE ALERT FOR EVERY PARENT
+           CREATE ALERT FOR EACH PARENT
         ===================================================== */
 
         let alertsCreated =
@@ -621,16 +903,23 @@ export async function createAttendanceAlert(
                 ========================= */
 
                 parentUid:
-                    parent.parentUid || "",
+                    parent.parentUid ||
+                    "",
+
 
                 parentId:
-                    parent.parentId || "",
+                    parent.parentId ||
+                    "",
+
 
                 parentEmail:
-                    parent.parentEmail || "",
+                    parent.parentEmail ||
+                    "",
+
 
                 parentName:
-                    parent.parentName || "Parent",
+                    parent.parentName ||
+                    "Parent",
 
 
                 /* =========================
@@ -640,11 +929,30 @@ export async function createAttendanceAlert(
                 studentDocumentId:
                     studentDocument.id,
 
+
                 studentId:
-                    studentId,
+                    studentData.studentId ||
+                    studentId ||
+                    "",
+
+
+                studentNumber:
+                    studentData.studentNumber ||
+                    studentNumber ||
+                    "",
+
 
                 studentName:
+                    studentData.fullName ||
                     studentName,
+
+
+                classId:
+                    studentData.classId ||
+                    selectedClassIdFromAttendance(
+                        attendanceData
+                    ),
+
 
                 className:
                     className,
@@ -667,8 +975,10 @@ export async function createAttendanceAlert(
                     attendanceData.id ||
                     "",
 
+
                 attendanceDate:
                     attendanceDate,
+
 
                 attendanceStatus:
                     status,
@@ -681,11 +991,14 @@ export async function createAttendanceAlert(
                 type:
                     alertType,
 
+
                 icon:
                     icon,
 
+
                 title:
                     title,
+
 
                 message:
                     message,
@@ -698,6 +1011,7 @@ export async function createAttendanceAlert(
                 read:
                     false,
 
+
                 createdAt:
                     serverTimestamp()
 
@@ -706,11 +1020,14 @@ export async function createAttendanceAlert(
 
             const alertReference =
                 await addDoc(
+
                     collection(
                         db,
                         "attendanceAlerts"
                     ),
+
                     alertData
+
                 );
 
 
@@ -719,15 +1036,28 @@ export async function createAttendanceAlert(
 
             console.log(
                 "🔔 Parent attendance alert created:",
-                alertReference.id,
-                parent.parentUid ||
-                parent.parentEmail,
-                studentName,
-                status
+                {
+                    alertId:
+                        alertReference.id,
+
+                    parent:
+                        parent.parentUid ||
+                        parent.parentEmail,
+
+                    student:
+                        studentName,
+
+                    status:
+                        status
+                }
             );
 
         }
 
+
+        /* =====================================================
+           SUCCESS
+        ===================================================== */
 
         return {
 
@@ -757,7 +1087,11 @@ export async function createAttendanceAlert(
             success:
                 false,
 
+            alertsCreated:
+                0,
+
             error:
+                error.message ||
                 error
 
         };
@@ -768,9 +1102,95 @@ export async function createAttendanceAlert(
 
 
 /* =========================================================
+   ADD PARENT FROM LINK
+========================================================= */
+
+function addParentFromLink(
+    parentAccounts,
+    link
+) {
+
+    if (!link) {
+        return;
+    }
+
+
+    const parentUid =
+        link.parentUid ||
+        link.parentUserId ||
+        link.parentUid ||
+        link.uid ||
+        "";
+
+
+    const parentId =
+        link.parentId ||
+        "";
+
+
+    const parentEmail =
+        link.parentEmail ||
+        link.email ||
+        "";
+
+
+    const parentName =
+        link.parentName ||
+        link.parentFullName ||
+        link.fullName ||
+        "Parent";
+
+
+    if (
+        !parentUid &&
+        !parentId &&
+        !parentEmail
+    ) {
+
+        return;
+
+    }
+
+
+    parentAccounts.push({
+
+        parentUid:
+            parentUid,
+
+        parentId:
+            parentId,
+
+        parentEmail:
+            parentEmail,
+
+        parentName:
+            parentName
+
+    });
+
+}
+
+
+/* =========================================================
+   GET CLASS ID FROM ATTENDANCE
+========================================================= */
+
+function selectedClassIdFromAttendance(
+    attendanceData
+) {
+
+    return (
+        attendanceData?.classId ||
+        ""
+    );
+
+}
+
+
+/* =========================================================
    FINAL
 ========================================================= */
 
 console.log(
-    "✅ Virello attendance-alerts.js loaded."
+    "✅ Virello attendance-alerts.js loaded successfully."
 );
