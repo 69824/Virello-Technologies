@@ -24,6 +24,7 @@
    - Load previously saved attendance
    - Prevent duplicate attendance records
    - Dashboard statistics
+   - Parent attendance alerts
 ========================================================= */
 
 
@@ -64,6 +65,15 @@ import {
 
 
 /* =========================================================
+   ATTENDANCE ALERT SYSTEM
+========================================================= */
+
+import {
+    createAttendanceAlert
+} from "./attendance-alerts.js";
+
+
+/* =========================================================
    GLOBAL STATE
 ========================================================= */
 
@@ -89,109 +99,67 @@ let existingAttendance = {};
 ========================================================= */
 
 const loadingScreen =
-    document.getElementById(
-        "loadingScreen"
-    );
+    document.getElementById("loadingScreen");
 
 const errorScreen =
-    document.getElementById(
-        "errorScreen"
-    );
+    document.getElementById("errorScreen");
 
 const errorMessage =
-    document.getElementById(
-        "errorMessage"
-    );
+    document.getElementById("errorMessage");
 
 const teacherNameElement =
-    document.getElementById(
-        "teacherName"
-    );
+    document.getElementById("teacherName");
 
 const welcomeNameElement =
-    document.getElementById(
-        "welcomeName"
-    );
+    document.getElementById("welcomeName");
 
 const organizationNameElement =
-    document.getElementById(
-        "organizationName"
-    );
+    document.getElementById("organizationName");
 
 const totalClassesElement =
-    document.getElementById(
-        "totalClasses"
-    );
+    document.getElementById("totalClasses");
 
 const totalStudentsElement =
-    document.getElementById(
-        "totalStudents"
-    );
+    document.getElementById("totalStudents");
 
 const presentTodayElement =
-    document.getElementById(
-        "presentToday"
-    );
+    document.getElementById("presentToday");
 
 const lateTodayElement =
-    document.getElementById(
-        "lateToday"
-    );
+    document.getElementById("lateToday");
 
 const classListElement =
-    document.getElementById(
-        "classList"
-    );
+    document.getElementById("classList");
 
 const attendanceDateInput =
-    document.getElementById(
-        "attendanceDate"
-    );
+    document.getElementById("attendanceDate");
 
 const registerClassName =
-    document.getElementById(
-        "registerClassName"
-    );
+    document.getElementById("registerClassName");
 
 const registerDescription =
-    document.getElementById(
-        "registerDescription"
-    );
+    document.getElementById("registerDescription");
 
 const attendanceRegister =
-    document.getElementById(
-        "attendanceRegister"
-    );
+    document.getElementById("attendanceRegister");
 
 const registerToolbar =
-    document.getElementById(
-        "registerToolbar"
-    );
+    document.getElementById("registerToolbar");
 
 const toolbarInfo =
-    document.getElementById(
-        "toolbarInfo"
-    );
+    document.getElementById("toolbarInfo");
 
 const saveAttendanceButton =
-    document.getElementById(
-        "saveAttendanceButton"
-    );
+    document.getElementById("saveAttendanceButton");
 
 const markAllPresentButton =
-    document.getElementById(
-        "markAllPresent"
-    );
+    document.getElementById("markAllPresent");
 
 const markAllAbsentButton =
-    document.getElementById(
-        "markAllAbsent"
-    );
+    document.getElementById("markAllAbsent");
 
 const logoutButton =
-    document.getElementById(
-        "logoutButton"
-    );
+    document.getElementById("logoutButton");
 
 
 /* =========================================================
@@ -201,9 +169,7 @@ const logoutButton =
 function addAttendanceHistoryButton() {
 
     const topbarRight =
-        document.querySelector(
-            ".topbar-right"
-        );
+        document.querySelector(".topbar-right");
 
     if (!topbarRight) {
         return;
@@ -218,9 +184,7 @@ function addAttendanceHistoryButton() {
     }
 
     const button =
-        document.createElement(
-            "a"
-        );
+        document.createElement("a");
 
     button.id =
         "attendanceHistoryButton";
@@ -244,6 +208,7 @@ function addAttendanceHistoryButton() {
         font-size:13px;
         text-decoration:none;
         white-space:nowrap;
+        margin-right:8px;
     `;
 
     topbarRight.insertBefore(
@@ -351,9 +316,7 @@ function startFormMasterDashboard() {
 
                     try {
 
-                        await signOut(
-                            auth
-                        );
+                        await signOut(auth);
 
                     }
 
@@ -442,10 +405,6 @@ async function loadTeacherProfile() {
         );
 
 
-    /*
-       First try userUid.
-    */
-
     let teacherSnapshot =
         await getDocs(
             query(
@@ -458,11 +417,6 @@ async function loadTeacherProfile() {
             )
         );
 
-
-    /*
-       If userUid is not stored,
-       try uid.
-    */
 
     if (teacherSnapshot.empty) {
 
@@ -480,10 +434,6 @@ async function loadTeacherProfile() {
 
     }
 
-
-    /*
-       If still not found, try email.
-    */
 
     if (
         teacherSnapshot.empty &&
@@ -583,11 +533,6 @@ async function loadOrganization() {
         );
 
 
-    /*
-       Find organization through
-       current teacher organizationId.
-    */
-
     if (organizationId) {
 
         const organizationQuery =
@@ -628,11 +573,6 @@ async function loadOrganization() {
 
     }
 
-
-    /*
-       Fallback:
-       find organization using ownerUid.
-    */
 
     if (!currentOrganization) {
 
@@ -726,11 +666,6 @@ async function loadAssignedClasses() {
         );
 
 
-    /*
-       Classes are assigned using
-       formMasterId = staff document ID.
-    */
-
     const classQuery =
         query(
             classesRef,
@@ -777,10 +712,6 @@ async function loadAssignedClasses() {
         }
     );
 
-
-    /*
-       Load student counts.
-    */
 
     for (
         const classItem
@@ -1292,14 +1223,6 @@ async function loadAttendanceForSelectedDate() {
     );
 
 
-    /*
-       IMPORTANT:
-       Students without a saved attendance
-       record remain NOT RECORDED.
-
-       They are NOT automatically Present.
-    */
-
     selectedStudents.forEach(
         student => {
 
@@ -1807,11 +1730,6 @@ if (saveAttendanceButton) {
             }
 
 
-            /*
-               Check whether at least one student
-               has actually been marked.
-            */
-
             const recordedStudents =
                 selectedStudents.filter(
                     student => {
@@ -1856,10 +1774,19 @@ if (saveAttendanceButton) {
                 let saved =
                     0;
 
-
                 let skipped =
                     0;
 
+                let alertsCreated =
+                    0;
+
+                let alertsSkipped =
+                    0;
+
+
+                /*
+                   SAVE EACH STUDENT
+                */
 
                 for (
                     const student
@@ -1875,7 +1802,8 @@ if (saveAttendanceButton) {
 
 
                     /*
-                       DO NOT SAVE NOT RECORDED.
+                       DO NOT SAVE
+                       NOT RECORDED
                     */
 
                     if (
@@ -1894,6 +1822,14 @@ if (saveAttendanceButton) {
                         existingAttendance[
                             student.id
                         ];
+
+
+                    const previousStatus =
+                        existing
+                            ? normalizeStatus(
+                                existing.status
+                            )
+                            : null;
 
 
                     const attendanceData = {
@@ -1945,8 +1881,8 @@ if (saveAttendanceButton) {
 
 
                     /*
-                       Create check-in time for
-                       Present / Late records.
+                       PRESENT / LATE
+                       CREATE CHECK-IN TIME
                     */
 
                     if (
@@ -1968,8 +1904,8 @@ if (saveAttendanceButton) {
 
 
                     /*
-                       If student is Absent,
-                       there is no check-in/out.
+                       ABSENT
+                       NO CHECK-IN
                     */
 
                     if (
@@ -1985,8 +1921,13 @@ if (saveAttendanceButton) {
                     }
 
 
+                    let attendanceId =
+                        existing?.id ||
+                        "";
+
+
                     /*
-                       Update existing record.
+                       UPDATE EXISTING
                     */
 
                     if (existing) {
@@ -2003,7 +1944,7 @@ if (saveAttendanceButton) {
                     }
 
                     /*
-                       Create new record.
+                       CREATE NEW
                     */
 
                     else {
@@ -2012,25 +1953,134 @@ if (saveAttendanceButton) {
                             serverTimestamp();
 
 
-                        await addDoc(
-                            collection(
-                                db,
-                                "attendance"
-                            ),
-                            attendanceData
-                        );
+                        const newAttendance =
+                            await addDoc(
+                                collection(
+                                    db,
+                                    "attendance"
+                                ),
+                                attendanceData
+                            );
+
+
+                        attendanceId =
+                            newAttendance.id;
 
                     }
 
 
                     saved++;
 
+
+                    /* =================================================
+                       PARENT ATTENDANCE ALERT
+                       =================================================
+
+                       IMPORTANT:
+
+                       Only create an alert when:
+
+                       1. A new attendance record is created
+
+                       OR
+
+                       2. The attendance status has changed.
+
+                       This prevents repeatedly creating the same
+                       notification every time the Form Master presses
+                       Save Attendance.
+                    */
+
+                    const statusChanged =
+                        !existing ||
+                        previousStatus !== status;
+
+
+                    if (statusChanged) {
+
+                        try {
+
+                            const alertResult =
+                                await createAttendanceAlert({
+
+                                    attendanceId:
+                                        attendanceId,
+
+                                    studentId:
+                                        student.id,
+
+                                    studentName:
+                                        student.fullName ||
+                                        "Student",
+
+                                    className:
+                                        selectedClass.className ||
+                                        "",
+
+                                    organizationId:
+                                        currentOrganization.id,
+
+                                    date:
+                                        date,
+
+                                    status:
+                                        status
+
+                                });
+
+
+                            if (
+                                alertResult &&
+                                alertResult.success === true
+                            ) {
+
+                                alertsCreated++;
+
+                                console.log(
+                                    "🔔 Parent attendance alert created:",
+                                    alertResult
+                                );
+
+                            }
+
+                            else {
+
+                                alertsSkipped++;
+
+                                console.log(
+                                    "ℹ️ No parent alert created for:",
+                                    student.fullName
+                                );
+
+                            }
+
+                        }
+
+                        catch (alertError) {
+
+                            /*
+                               Alert failure must NOT destroy
+                               the attendance record.
+
+                               Attendance has already been saved.
+                            */
+
+                            alertsSkipped++;
+
+                            console.error(
+                                "⚠️ Attendance saved, but parent alert could not be created:",
+                                alertError
+                            );
+
+                        }
+
+                    }
+
                 }
 
 
                 /*
-                   Reload attendance so the screen
-                   exactly matches Firestore.
+                   RELOAD ATTENDANCE
                 */
 
                 await loadAttendanceForSelectedDate();
@@ -2045,6 +2095,10 @@ if (saveAttendanceButton) {
                 updateStatistics();
 
 
+                /*
+                   SUCCESS MESSAGE
+                */
+
                 let message =
                     `Attendance saved successfully for ${saved} student${saved === 1 ? "" : "s"}.`;
 
@@ -2053,6 +2107,14 @@ if (saveAttendanceButton) {
 
                     message +=
                         ` ${skipped} student${skipped === 1 ? " was" : "s were"} left as Not Recorded.`;
+
+                }
+
+
+                if (alertsCreated > 0) {
+
+                    message +=
+                        ` ${alertsCreated} parent attendance alert${alertsCreated === 1 ? " was" : "s were"} created.`;
 
                 }
 
@@ -2109,10 +2171,6 @@ async function loadTodayDashboardStatistics() {
         getLocalDateString();
 
 
-    /*
-       Total students across assigned classes.
-    */
-
     const total =
         assignedClasses.reduce(
             (
@@ -2134,11 +2192,6 @@ async function loadTodayDashboardStatistics() {
     let late =
         0;
 
-
-    /*
-       Count today's records across
-       the Form Master's classes.
-    */
 
     for (
         const classItem
@@ -2222,10 +2275,6 @@ async function loadTodayDashboardStatistics() {
     }
 
 
-    /*
-       Store dashboard values.
-    */
-
     if (totalStudentsElement) {
 
         totalStudentsElement.textContent =
@@ -2305,11 +2354,6 @@ function updateStatistics() {
     let late =
         0;
 
-
-    /*
-       Only Present and Late are counted.
-       Not Recorded and Absent are excluded.
-    */
 
     Object.values(
         attendanceMap
@@ -2475,11 +2519,6 @@ function normalizeStatus(
 
     }
 
-
-    /*
-       Unknown/empty status is now
-       NOT RECORDED, not Present.
-    */
 
     return "not_recorded";
 
