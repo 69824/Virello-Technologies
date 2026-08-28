@@ -108,7 +108,7 @@ const QR_LIFETIME_SECONDS = 30;
    08:06 or later = Late
 */
 
-const LATE_HOUR = 9;
+const LATE_HOUR = 8;
 
 const LATE_MINUTE = 0;
 
@@ -1426,7 +1426,7 @@ function showLateCheckedIn() {
 
 
     showMessage(
-        "Check-in recorded. You arrived after 9:00 AM and have been marked Late.",
+        "Check-in recorded. You arrived after 8:05 AM and have been marked Late.",
         "success"
     );
 
