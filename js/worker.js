@@ -21,8 +21,8 @@
    - Hosting safe
 
    ATTENDANCE RULE:
-   - BEFORE 09:00 AM = PRESENT
-   - 09:00 AM OR LATER = LATE
+   - BEFORE 08:05 AM = PRESENT
+   - 08:06 AM OR LATER = LATE
 ========================================================= */
 
 
@@ -1780,17 +1780,17 @@ console.log(
 
 
 console.log(
-    "🕘 Attendance cutoff: 09:00 AM"
+    "🕘 Attendance cutoff: 08:06 AM"
 );
 
 
 console.log(
-    "🟢 Before 09:00 AM = Present"
+    "🟢 Before 08:05 AM = Present"
 );
 
 
 console.log(
-    "🟡 09:00 AM or later = Late"
+    "🟡 08:06 AM or later = Late"
 );
 
 
