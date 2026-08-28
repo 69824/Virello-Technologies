@@ -104,8 +104,8 @@ const QR_LIFETIME_SECONDS = 30;
 /*
    Attendance cutoff time.
 
-   Before 09:00 = Present
-   09:00 or later = Late
+   Before 08:05 = Present
+   08:06 or later = Late
 */
 
 const LATE_HOUR = 9;
@@ -216,7 +216,7 @@ document.addEventListener(
 
         console.log(
             "🕘 Attendance cutoff:",
-            "09:00 AM"
+            "08:05 AM"
         );
 
 
@@ -585,10 +585,10 @@ function getDateKey() {
    GET CURRENT ATTENDANCE STATUS
 =========================================================
 
-   BEFORE 09:00 AM
+   BEFORE 08:05 AM
    = PRESENT
 
-   09:00 AM OR LATER
+   08:06 AM OR LATER
    = LATE
 ========================================================= */
 
