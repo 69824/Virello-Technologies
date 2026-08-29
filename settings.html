@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Organization Settings | Virello Technologies</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+
+    .topbar {
+        background: #0f172a;
+        color: white;
+        padding: 18px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .brand {
+        font-size: 21px;
+        font-weight: 800;
+    }
+
+    .brand span {
+        color: #38bdf8;
+    }
+
+    .back-button {
+        color: white;
+        text-decoration: none;
+        background: #1e293b;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .back-button:hover {
+        background: #334155;
+    }
+
+    .container {
+        max-width: 1050px;
+        margin: 35px auto;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        margin-bottom: 25px;
+    }
+
+    .page-header h1 {
+        font-size: 30px;
+        margin-bottom: 8px;
+    }
+
+    .page-header p {
+        color: #64748b;
+    }
+
+    .card {
+        background: white;
+        border-radius: 14px;
+        padding: 28px;
+        margin-bottom: 22px;
+        box-shadow: 0 4px 15px rgba(15, 23, 42, 0.07);
+    }
+
+    .card h2 {
+        font-size: 19px;
+        margin-bottom: 6px;
+    }
+
+    .card-description {
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 25px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group.full {
+        grid-column: 1 / -1;
+    }
+
+    label {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #334155;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        padding: 13px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 15px;
+        outline: none;
+        background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+    }
+
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    button {
+        border: none;
+        cursor: pointer;
+        border-radius: 8px;
+        padding: 13px 22px;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .save-button {
+        background: #2563eb;
+        color: white;
+    }
+
+    .save-button:hover {
+        background: #1d4ed8;
+    }
+
+    .save-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .cancel-button {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    .status-box {
+        display: none;
+        padding: 13px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .status-success {
+        display: block;
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-error {
+        display: block;
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 60px 20px;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    .subscription-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 18px;
+        border-radius: 10px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+    }
+
+    .subscription-item small {
+        display: block;
+        color: #64748b;
+        margin-bottom: 5px;
+    }
+
+    .subscription-item strong {
+        font-size: 15px;
+    }
+
+    @media (max-width: 700px) {
+
+        .topbar {
+            padding: 15px 18px;
+        }
+
+        .container {
+            margin: 25px auto;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group.full {
+            grid-column: auto;
+        }
+
+        .subscription-box {
+            grid-template-columns: 1fr;
+        }
+
+        .actions {
+            flex-direction: column;
+        }
+
+        .actions button {
+            width: 100%;
+        }
+    }
+</style>
+```
+
+</head>
+
+<body>
+
+```
+<header class="topbar">
+
+    <div class="brand">
+        Virello <span>Technologies</span>
+    </div>
+
+    <a
+        href="dashboard.html"
+        class="back-button"
+    >
+        ← Back to Dashboard
+    </a>
+
+</header>
+
+
+<main class="container">
+
+    <div class="page-header">
+
+        <h1>Organization Settings</h1>
+
+        <p>
+            Manage your organization's information and account details.
+        </p>
+
+    </div>
+
+
+    <div id="statusBox" class="status-box"></div>
+
+
+    <div id="loadingScreen" class="loading">
+
+        Loading organization settings...
+
+    </div>
+
+
+    <div id="settingsContent" style="display:none;">
+
+
+        <!-- ORGANIZATION INFORMATION -->
+
+        <section class="card">
+
+            <h2>Organization Information</h2>
+
+            <p class="card-description">
+                Update the basic information used throughout the Virello platform.
+            </p>
+
+
+            <form id="organizationForm">
+
+                <div class="form-grid">
+
+
+                    <div class="form-group">
+
+                        <label for="organizationName">
+                            Organization Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="organizationName"
+                            required
+                            placeholder="Enter organization name"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="organizationType">
+                            Organization Type
+                        </label>
+
+                        <select id="organizationType">
+
+                            <option value="">
+                                Select organization type
+                            </option>
+
+                            <option value="School">
+                                School
+                            </option>
+
+                            <option value="Company">
+                                Company
+                            </option>
+
+                            <option value="NGO">
+                                NGO
+                            </option>
+
+                            <option value="Government">
+                                Government
+                            </option>
+
+                            <option value="Other">
+                                Other
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="country">
+                            Country
+                        </label>
+
+                        <input
+                            type="text"
+                            id="country"
+                            placeholder="Enter country"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="phone">
+                            Phone Number
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="phone"
+                            placeholder="Enter phone number"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="email">
+                            Organization Email
+                        </label>
+
+                        <input
+                            type="email"
+                            id="email"
+                            placeholder="Enter organization email"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="adminName">
+                            Administrator Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="adminName"
+                            placeholder="Enter administrator name"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full">
+
+                        <label for="address">
+                            Organization Address
+                        </label>
+
+                        <textarea
+                            id="address"
+                            placeholder="Enter organization address"
+                        ></textarea>
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="actions">
+
+                    <button
+                        type="button"
+                        class="cancel-button"
+                        id="cancelButton"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="save-button"
+                        id="saveButton"
+                    >
+                        Save Changes
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- SUBSCRIPTION INFORMATION -->
+
+        <section class="card">
+
+            <h2>Subscription Information</h2>
+
+            <p class="card-description">
+                Your current Virello organization subscription.
+            </p>
+
+
+            <div class="subscription-box">
+
+                <div class="subscription-item">
+
+                    <small>Plan</small>
+
+                    <strong id="subscriptionPlan">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="subscription-item">
+
+                    <small>Status</small>
+
+                    <strong id="subscriptionStatus">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="subscription-item">
+
+                    <small>Organization ID</small>
+
+                    <strong id="organizationId">
+                        —
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </div>
+
+</main>
+
+
+<script
+    type="module"
+    src="js/settings.js"
+></script>
+
+</body>
+</html>
