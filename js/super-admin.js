@@ -1,18 +1,12 @@
 /* =========================================================
    VIRELLO TECHNOLOGIES
-   DIGITAL ATTENDANCE PLATFORM
+   SUPER ADMIN SYSTEM
 
    FILE:
-   js/register.js
+   js/super-admin.js
 
-   PURPOSE:
-   Register organization administrator
-   Create Firebase Authentication account
-   Create organization record in Firestore
-
-   NEW:
-   Organizations begin as PENDING until
-   Super Admin verifies subscription/payment.
+   SUPER ADMIN:
+   abdulrahmanjuniorsesay4@gmail.com
 ========================================================= */
 
 
@@ -27,439 +21,1645 @@ import {
 
 
 import {
-    createUserWithEmailAndPassword,
-    updateProfile
+    onAuthStateChanged,
+    signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 
 import {
     collection,
-    addDoc,
+    getDocs,
+    doc,
+    updateDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 
 /* =========================================================
-   FORM
+   SUPER ADMIN EMAIL
 ========================================================= */
 
-const registerForm =
-    document.getElementById(
-        "registerForm"
-    );
+const SUPER_ADMIN_EMAIL =
+    "abdulrahmanjuniorsesay4@gmail.com";
 
 
 /* =========================================================
-   MESSAGE
+   ELEMENTS
 ========================================================= */
 
-const message =
-    document.getElementById(
-        "message"
-    );
+const adminEmail =
+    document.getElementById("adminEmail");
 
 
-const registerButton =
-    document.getElementById(
-        "registerButton"
-    );
+const logoutButton =
+    document.getElementById("logoutButton");
+
+
+const adminMessage =
+    document.getElementById("adminMessage");
+
+
+const organizationsTable =
+    document.getElementById("organizationsTable");
+
+
+const organizationCount =
+    document.getElementById("organizationCount");
+
+
+const searchInput =
+    document.getElementById("searchInput");
+
+
+const statusFilter =
+    document.getElementById("statusFilter");
+
+
+const organizationModal =
+    document.getElementById("organizationModal");
+
+
+const organizationDetails =
+    document.getElementById("organizationDetails");
+
+
+const closeModal =
+    document.getElementById("closeModal");
+
+
+const cancelButton =
+    document.getElementById("cancelButton");
+
+
+const saveButton =
+    document.getElementById("saveButton");
+
+
+const editPlan =
+    document.getElementById("editPlan");
+
+
+const editStatus =
+    document.getElementById("editStatus");
+
+
+const editExpiry =
+    document.getElementById("editExpiry");
+
+
+const editPaymentMethod =
+    document.getElementById("editPaymentMethod");
+
+
+const editPaymentReference =
+    document.getElementById("editPaymentReference");
 
 
 /* =========================================================
-   REGISTRATION
+   STATISTICS
 ========================================================= */
 
-registerForm.addEventListener(
-    "submit",
-    async function (event) {
-
-        event.preventDefault();
+const totalOrganizations =
+    document.getElementById("totalOrganizations");
 
 
-        /* =========================================
-           GET VALUES
-        ========================================= */
-
-        const organizationName =
-            document
-                .getElementById(
-                    "organizationName"
-                )
-                .value
-                .trim();
+const activeOrganizations =
+    document.getElementById("activeOrganizations");
 
 
-        const organizationType =
-            document
-                .getElementById(
-                    "organizationType"
-                )
-                .value;
+const pendingOrganizations =
+    document.getElementById("pendingOrganizations");
 
 
-        const country =
-            document
-                .getElementById(
-                    "country"
-                )
-                .value;
+const expiredOrganizations =
+    document.getElementById("expiredOrganizations");
 
 
-        const adminName =
-            document
-                .getElementById(
-                    "adminName"
-                )
-                .value
-                .trim();
+const suspendedOrganizations =
+    document.getElementById("suspendedOrganizations");
+
+
+/* =========================================================
+   DATA
+========================================================= */
+
+let organizations = [];
+
+let selectedOrganization = null;
+
+
+/* =========================================================
+   AUTHENTICATION
+========================================================= */
+
+onAuthStateChanged(
+    auth,
+    async (user) => {
+
+        if (!user) {
+
+            window.location.href =
+                "login.html";
+
+            return;
+
+        }
 
 
         const email =
-            document
-                .getElementById(
-                    "email"
-                )
-                .value
+            (user.email || "")
+                .toLowerCase()
                 .trim();
 
 
-        const password =
-            document
-                .getElementById(
-                    "password"
+        if (
+            email !==
+            SUPER_ADMIN_EMAIL.toLowerCase()
+        ) {
+
+            showMessage(
+                "You are not authorized to access the Virello Technologies Super Admin Panel.",
+                "error"
+            );
+
+
+            setTimeout(() => {
+
+                window.location.href =
+                    "index.html";
+
+            }, 2500);
+
+            return;
+
+        }
+
+
+        adminEmail.textContent =
+            user.email;
+
+
+        await loadOrganizations();
+
+    }
+);
+
+
+/* =========================================================
+   LOAD ORGANIZATIONS
+========================================================= */
+
+async function loadOrganizations() {
+
+    organizationsTable.innerHTML = `
+
+        <tr>
+
+            <td
+                colspan="7"
+                class="loading"
+            >
+                Loading organizations...
+            </td>
+
+        </tr>
+
+    `;
+
+
+    try {
+
+        const snapshot =
+            await getDocs(
+                collection(
+                    db,
+                    "organizations"
                 )
-                .value;
+            );
 
 
-        const confirmPassword =
-            document
-                .getElementById(
-                    "confirmPassword"
+        organizations = [];
+
+
+        snapshot.forEach(
+            (organizationDocument) => {
+
+                organizations.push({
+
+                    id:
+                        organizationDocument.id,
+
+                    ...organizationDocument.data()
+
+                });
+
+            }
+        );
+
+
+        /*
+         =====================================================
+         AUTOMATIC EXPIRY DETECTION
+         =====================================================
+        */
+
+        await updateExpiredOrganizations();
+
+
+        calculateStatistics();
+
+        renderOrganizations();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "SUPER ADMIN LOAD ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to load organizations. " +
+            "Please check your Firestore security rules.",
+            "error"
+        );
+
+
+        organizationsTable.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="7"
+                    class="empty"
+                >
+                    Unable to load organizations.
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   AUTOMATIC EXPIRY
+========================================================= */
+
+async function updateExpiredOrganizations() {
+
+    const today =
+        new Date();
+
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+
+    for (
+        const organization
+        of organizations
+    ) {
+
+        if (
+            organization.status ===
+            "active"
+            &&
+            organization.subscriptionExpiresAt
+        ) {
+
+            const expiryDate =
+                convertFirestoreDate(
+                    organization.subscriptionExpiresAt
+                );
+
+
+            if (
+                expiryDate
+                &&
+                expiryDate < today
+            ) {
+
+                try {
+
+                    await updateDoc(
+
+                        doc(
+                            db,
+                            "organizations",
+                            organization.id
+                        ),
+
+                        {
+
+                            status:
+                                "expired",
+
+                            updatedAt:
+                                serverTimestamp()
+
+                        }
+
+                    );
+
+
+                    organization.status =
+                        "expired";
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "EXPIRY UPDATE ERROR:",
+                        error
+                    );
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+function calculateStatistics() {
+
+    let active = 0;
+
+    let pending = 0;
+
+    let expired = 0;
+
+    let suspended = 0;
+
+
+    organizations.forEach(
+        organization => {
+
+            switch (
+                normalizeStatus(
+                    organization.status
                 )
-                .value;
+            ) {
 
+                case "active":
+                    active++;
+                    break;
 
-        /* =========================================
-           VALIDATION
-        ========================================= */
+                case "pending":
+                    pending++;
+                    break;
 
-        if (
-            !organizationName ||
-            !organizationType ||
-            !country ||
-            !adminName ||
-            !email ||
-            !password ||
-            !confirmPassword
-        ) {
+                case "expired":
+                    expired++;
+                    break;
 
-            showMessage(
-                "Please complete all required fields.",
-                "error"
-            );
+                case "suspended":
+                    suspended++;
+                    break;
 
-            return;
+            }
 
         }
+    );
 
 
-        /* =========================================
-           PASSWORD MATCH
-        ========================================= */
+    totalOrganizations.textContent =
+        organizations.length;
 
-        if (
-            password !==
-            confirmPassword
-        ) {
 
-            showMessage(
-                "Passwords do not match.",
-                "error"
+    activeOrganizations.textContent =
+        active;
+
+
+    pendingOrganizations.textContent =
+        pending;
+
+
+    expiredOrganizations.textContent =
+        expired;
+
+
+    suspendedOrganizations.textContent =
+        suspended;
+
+}
+
+
+/* =========================================================
+   RENDER ORGANIZATIONS
+========================================================= */
+
+function renderOrganizations() {
+
+    const search =
+        searchInput.value
+            .toLowerCase()
+            .trim();
+
+
+    const filter =
+        statusFilter.value;
+
+
+    const filtered =
+        organizations.filter(
+            organization => {
+
+                const name =
+                    String(
+                        organization.organizationName || ""
+                    ).toLowerCase();
+
+
+                const admin =
+                    String(
+                        organization.adminName || ""
+                    ).toLowerCase();
+
+
+                const email =
+                    String(
+                        organization.adminEmail || ""
+                    ).toLowerCase();
+
+
+                const country =
+                    String(
+                        organization.country || ""
+                    ).toLowerCase();
+
+
+                const matchesSearch =
+                    !search
+                    ||
+                    name.includes(search)
+                    ||
+                    admin.includes(search)
+                    ||
+                    email.includes(search)
+                    ||
+                    country.includes(search);
+
+
+                const organizationStatus =
+                    normalizeStatus(
+                        organization.status
+                    );
+
+
+                const matchesFilter =
+                    filter === "all"
+                    ||
+                    organizationStatus === filter;
+
+
+                return (
+                    matchesSearch
+                    &&
+                    matchesFilter
+                );
+
+            }
+        );
+
+
+    organizationCount.textContent =
+        `${filtered.length} organization(s)`;
+
+
+    if (!filtered.length) {
+
+        organizationsTable.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="7"
+                    class="empty"
+                >
+                    No organizations found.
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+
+    }
+
+
+    organizationsTable.innerHTML =
+        filtered.map(
+            organization =>
+                createOrganizationRow(
+                    organization
+                )
+        ).join("");
+
+
+    /*
+     =====================================================
+     ATTACH BUTTON EVENTS
+     =====================================================
+    */
+
+    document
+        .querySelectorAll(
+            "[data-view-id]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    openOrganization(
+                        button.dataset.viewId
+                    );
+
+                }
             );
 
-            return;
-
-        }
+        });
 
 
-        /* =========================================
-           PASSWORD LENGTH
-        ========================================= */
+    document
+        .querySelectorAll(
+            "[data-approve-id]"
+        )
+        .forEach(button => {
 
-        if (
-            password.length < 6
-        ) {
+            button.addEventListener(
+                "click",
+                () => {
 
-            showMessage(
-                "Password must contain at least 6 characters.",
-                "error"
+                    approveOrganization(
+                        button.dataset.approveId
+                    );
+
+                }
             );
 
-            return;
-
-        }
+        });
 
 
-        /* =========================================
-           DISABLE BUTTON
-        ========================================= */
+    document
+        .querySelectorAll(
+            "[data-suspend-id]"
+        )
+        .forEach(button => {
 
-        registerButton.disabled =
+            button.addEventListener(
+                "click",
+                () => {
+
+                    suspendOrganization(
+                        button.dataset.suspendId
+                    );
+
+                }
+            );
+
+        });
+
+
+    document
+        .querySelectorAll(
+            "[data-activate-id]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    activateOrganization(
+                        button.dataset.activateId
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+
+/* =========================================================
+   CREATE TABLE ROW
+========================================================= */
+
+function createOrganizationRow(
+    organization
+) {
+
+    const status =
+        normalizeStatus(
+            organization.status
+        );
+
+
+    const statusClass =
+        `status-${status || "none"}`;
+
+
+    const statusText =
+        capitalize(
+            status || "none"
+        );
+
+
+    const plan =
+        organization.subscriptionPlan
+        ||
+        "None";
+
+
+    const expiry =
+        formatDate(
+            organization.subscriptionExpiresAt
+        );
+
+
+    let actionButtons = `
+
+        <button
+            class="action-button view-button"
+            data-view-id="${organization.id}"
+        >
+            Manage
+        </button>
+
+    `;
+
+
+    if (
+        status === "pending"
+        ||
+        status === "expired"
+    ) {
+
+        actionButtons += `
+
+            <button
+                class="action-button approve-button"
+                data-approve-id="${organization.id}"
+            >
+                Verify
+            </button>
+
+        `;
+
+    }
+
+
+    if (
+        status === "active"
+    ) {
+
+        actionButtons += `
+
+            <button
+                class="action-button suspend-button"
+                data-suspend-id="${organization.id}"
+            >
+                Suspend
+            </button>
+
+        `;
+
+    }
+
+
+    if (
+        status === "suspended"
+    ) {
+
+        actionButtons += `
+
+            <button
+                class="action-button activate-button"
+                data-activate-id="${organization.id}"
+            >
+                Reactivate
+            </button>
+
+        `;
+
+    }
+
+
+    return `
+
+        <tr>
+
+            <td>
+
+                <div class="organization-name">
+
+                    ${escapeHtml(
+                        organization.organizationName
+                        ||
+                        "Unnamed Organization"
+                    )}
+
+                </div>
+
+                <div class="organization-type">
+
+                    ${escapeHtml(
+                        organization.organizationType
+                        ||
+                        "Organization"
+                    )}
+
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <strong>
+
+                    ${escapeHtml(
+                        organization.adminName
+                        ||
+                        "Not provided"
+                    )}
+
+                </strong>
+
+                <div class="organization-type">
+
+                    ${escapeHtml(
+                        organization.adminEmail
+                        ||
+                        ""
+                    )}
+
+                </div>
+
+            </td>
+
+
+            <td>
+
+                ${escapeHtml(
+                    organization.country
+                    ||
+                    "Not provided"
+                )}
+
+            </td>
+
+
+            <td>
+
+                <span class="plan-badge">
+
+                    ${escapeHtml(
+                        plan
+                    )}
+
+                </span>
+
+            </td>
+
+
+            <td>
+
+                <span
+                    class="status ${statusClass}"
+                >
+
+                    ${statusText}
+
+                </span>
+
+            </td>
+
+
+            <td>
+
+                ${expiry}
+
+            </td>
+
+
+            <td>
+
+                <div class="action-buttons">
+
+                    ${actionButtons}
+
+                </div>
+
+            </td>
+
+        </tr>
+
+    `;
+
+}
+
+
+/* =========================================================
+   OPEN ORGANIZATION
+========================================================= */
+
+function openOrganization(
+    organizationId
+) {
+
+    const organization =
+        organizations.find(
+            item =>
+                item.id === organizationId
+        );
+
+
+    if (!organization) {
+
+        return;
+
+    }
+
+
+    selectedOrganization =
+        organization;
+
+
+    const status =
+        normalizeStatus(
+            organization.status
+        );
+
+
+    organizationDetails.innerHTML = `
+
+        <div class="detail-grid">
+
+
+            <div class="detail full">
+
+                <div class="detail-label">
+                    Organization
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.organizationName
+                        ||
+                        "Not provided"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Organization Type
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.organizationType
+                        ||
+                        "Not provided"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Country
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.country
+                        ||
+                        "Not provided"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Administrator
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.adminName
+                        ||
+                        "Not provided"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Administrator Email
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.adminEmail
+                        ||
+                        "Not provided"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Current Plan
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.subscriptionPlan
+                        ||
+                        "None"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Current Status
+                </div>
+
+                <div class="detail-value">
+                    ${capitalize(
+                        status || "none"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Payment Method
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.paymentMethod
+                        ||
+                        "Not recorded"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail full">
+
+                <div class="detail-label">
+                    Payment Reference
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.paymentReference
+                        ||
+                        "Not recorded"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Subscription Expiry
+                </div>
+
+                <div class="detail-value">
+                    ${formatDate(
+                        organization.subscriptionExpiresAt
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail">
+
+                <div class="detail-label">
+                    Organization ID
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        organization.id
+                    )}
+                </div>
+
+            </div>
+
+
+        </div>
+
+    `;
+
+
+    editPlan.value =
+        organization.subscriptionPlan
+        ||
+        "none";
+
+
+    editStatus.value =
+        status
+        ||
+        "pending";
+
+
+    editExpiry.value =
+        getDateInputValue(
+            organization.subscriptionExpiresAt
+        );
+
+
+    editPaymentMethod.value =
+        organization.paymentMethod
+        ||
+        "";
+
+
+    editPaymentReference.value =
+        organization.paymentReference
+        ||
+        "";
+
+
+    organizationModal.classList.add(
+        "show"
+    );
+
+}
+
+
+/* =========================================================
+   APPROVE PAYMENT
+========================================================= */
+
+async function approveOrganization(
+    organizationId
+) {
+
+    const organization =
+        organizations.find(
+            item =>
+                item.id === organizationId
+        );
+
+
+    if (!organization) {
+
+        return;
+
+    }
+
+
+    const plan =
+        organization.subscriptionPlan
+        &&
+        organization.subscriptionPlan !== "none"
+            ? organization.subscriptionPlan
+            : "Professional";
+
+
+    const confirmed =
+        confirm(
+            `Approve/activate ${organization.organizationName}?\n\n` +
+            `Plan: ${plan}\n\n` +
+            `This will change the organization status to ACTIVE.`
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        await updateDoc(
+
+            doc(
+                db,
+                "organizations",
+                organizationId
+            ),
+
+            {
+
+                status:
+                    "active",
+
+                subscriptionPlan:
+                    plan,
+
+                paymentStatus:
+                    "verified",
+
+                paymentVerified:
+                    true,
+
+                paymentVerifiedBy:
+                    SUPER_ADMIN_EMAIL,
+
+                paymentVerifiedAt:
+                    serverTimestamp(),
+
+                updatedAt:
+                    serverTimestamp()
+
+            }
+
+        );
+
+
+        organization.status =
+            "active";
+
+
+        organization.subscriptionPlan =
+            plan;
+
+
+        organization.paymentStatus =
+            "verified";
+
+
+        organization.paymentVerified =
             true;
 
 
-        registerButton.textContent =
-            "Creating Organization...";
+        calculateStatistics();
+
+        renderOrganizations();
+
+
+        showMessage(
+            "Payment verified and organization activated successfully.",
+            "success"
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "APPROVAL ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to activate organization. Please check your Firestore rules.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SUSPEND
+========================================================= */
+
+async function suspendOrganization(
+    organizationId
+) {
+
+    const organization =
+        organizations.find(
+            item =>
+                item.id === organizationId
+        );
+
+
+    if (!organization) {
+
+        return;
+
+    }
+
+
+    const confirmed =
+        confirm(
+            `Suspend ${organization.organizationName}?\n\n` +
+            `The organization will no longer have active subscription status.`
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        await updateDoc(
+
+            doc(
+                db,
+                "organizations",
+                organizationId
+            ),
+
+            {
+
+                status:
+                    "suspended",
+
+                suspendedBy:
+                    SUPER_ADMIN_EMAIL,
+
+                suspendedAt:
+                    serverTimestamp(),
+
+                updatedAt:
+                    serverTimestamp()
+
+            }
+
+        );
+
+
+        organization.status =
+            "suspended";
+
+
+        calculateStatistics();
+
+        renderOrganizations();
+
+
+        showMessage(
+            "Organization suspended successfully.",
+            "success"
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "SUSPEND ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to suspend organization.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   REACTIVATE
+========================================================= */
+
+async function activateOrganization(
+    organizationId
+) {
+
+    const organization =
+        organizations.find(
+            item =>
+                item.id === organizationId
+        );
+
+
+    if (!organization) {
+
+        return;
+
+    }
+
+
+    const confirmed =
+        confirm(
+            `Reactivate ${organization.organizationName}?`
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        await updateDoc(
+
+            doc(
+                db,
+                "organizations",
+                organizationId
+            ),
+
+            {
+
+                status:
+                    "active",
+
+                paymentStatus:
+                    "verified",
+
+                paymentVerified:
+                    true,
+
+                paymentVerifiedBy:
+                    SUPER_ADMIN_EMAIL,
+
+                paymentVerifiedAt:
+                    serverTimestamp(),
+
+                updatedAt:
+                    serverTimestamp()
+
+            }
+
+        );
+
+
+        organization.status =
+            "active";
+
+
+        organization.paymentStatus =
+            "verified";
+
+
+        calculateStatistics();
+
+        renderOrganizations();
+
+
+        showMessage(
+            "Organization reactivated successfully.",
+            "success"
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "REACTIVATE ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to reactivate organization.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SAVE ORGANIZATION
+========================================================= */
+
+saveButton.addEventListener(
+    "click",
+    async () => {
+
+        if (
+            !selectedOrganization
+        ) {
+
+            return;
+
+        }
+
+
+        saveButton.disabled =
+            true;
+
+
+        saveButton.textContent =
+            "Saving...";
 
 
         try {
 
-            /* =========================================
-               CREATE AUTH USER
-            ========================================= */
-
-            const userCredential =
-                await createUserWithEmailAndPassword(
-                    auth,
-                    email,
-                    password
-                );
+            const expiryValue =
+                editExpiry.value;
 
 
-            const user =
-                userCredential.user;
+            let expiryTimestamp =
+                null;
 
 
-            console.log(
-                "Firebase user created:",
-                user.uid
-            );
+            if (expiryValue) {
+
+                const expiryDate =
+                    new Date(
+                        expiryValue +
+                        "T23:59:59"
+                    );
 
 
-            /* =========================================
-               ADMIN PROFILE
-            ========================================= */
+                expiryTimestamp =
+                    expiryDate;
 
-            await updateProfile(
-                user,
-                {
-                    displayName:
-                        adminName
-                }
-            );
+            }
 
 
-            /* =========================================
-               CREATE ORGANIZATION
-            ========================================= */
+            const changes = {
 
-            const organizationRef =
-                await addDoc(
+                subscriptionPlan:
+                    editPlan.value,
 
-                    collection(
-                        db,
-                        "organizations"
-                    ),
+                status:
+                    editStatus.value,
 
-                    {
+                paymentMethod:
+                    editPaymentMethod.value
+                    ||
+                    null,
 
-                        organizationName:
-                            organizationName,
+                paymentReference:
+                    editPaymentReference.value
+                        .trim()
+                    ||
+                    null,
 
-                        organizationType:
-                            organizationType,
+                subscriptionExpiresAt:
+                    expiryTimestamp,
 
-                        country:
-                            country,
+                updatedAt:
+                    serverTimestamp()
 
-                        adminName:
-                            adminName,
-
-                        adminEmail:
-                            email,
-
-                        ownerUid:
-                            user.uid,
+            };
 
 
-                        /*
-                         =====================================
-                         SUBSCRIPTION
-                         =====================================
-                        */
+            /*
+             =================================================
+             IF ADMIN SELECTS ACTIVE
+             =================================================
+            */
 
-                        status:
-                            "pending",
+            if (
+                editStatus.value ===
+                "active"
+            ) {
 
-                        subscriptionPlan:
-                            "none",
+                changes.paymentStatus =
+                    "verified";
 
-                        subscriptionExpiresAt:
-                            null,
+                changes.paymentVerified =
+                    true;
 
+                changes.paymentVerifiedBy =
+                    SUPER_ADMIN_EMAIL;
 
-                        /*
-                         =====================================
-                         PAYMENT
-                         =====================================
-                        */
+                changes.paymentVerifiedAt =
+                    serverTimestamp();
 
-                        paymentStatus:
-                            "pending",
-
-                        paymentVerified:
-                            false,
-
-                        paymentMethod:
-                            null,
-
-                        paymentReference:
-                            null,
-
-                        paymentVerifiedBy:
-                            null,
-
-                        paymentVerifiedAt:
-                            null,
+            }
 
 
-                        /*
-                         =====================================
-                         ACCOUNT CONTROL
-                         =====================================
-                        */
+            await updateDoc(
 
-                        suspendedBy:
-                            null,
+                doc(
+                    db,
+                    "organizations",
+                    selectedOrganization.id
+                ),
 
-                        suspendedAt:
-                            null,
+                changes
 
-
-                        /*
-                         =====================================
-                         TIMESTAMPS
-                         =====================================
-                        */
-
-                        createdAt:
-                            serverTimestamp(),
-
-                        updatedAt:
-                            serverTimestamp()
-
-                    }
-
-                );
-
-
-            console.log(
-                "Organization created:",
-                organizationRef.id
-            );
-
-
-            /* =========================================
-               SUCCESS
-            ========================================= */
-
-            showMessage(
-                "Organization registered successfully. Your account is pending subscription verification.",
-                "success"
             );
 
 
             /*
              =================================================
-             TEMPORARY REDIRECT
-
-             The organization can log in, but your dashboard
-             should check subscription status before granting
-             paid access.
+             UPDATE LOCAL DATA
              =================================================
             */
 
-            setTimeout(
-                function () {
+            selectedOrganization.subscriptionPlan =
+                editPlan.value;
 
-                    window.location.href =
-                        "dashboard.html";
 
-                },
-                1800
+            selectedOrganization.status =
+                editStatus.value;
+
+
+            selectedOrganization.paymentMethod =
+                editPaymentMethod.value;
+
+
+            selectedOrganization.paymentReference =
+                editPaymentReference.value;
+
+
+            selectedOrganization.subscriptionExpiresAt =
+                expiryTimestamp;
+
+
+            calculateStatistics();
+
+            renderOrganizations();
+
+
+            closeOrganizationModal();
+
+
+            showMessage(
+                "Organization subscription and access settings updated successfully.",
+                "success"
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "SAVE ERROR:",
+                error
+            );
+
+
+            showMessage(
+                "Unable to save changes. Please check your Firestore rules.",
+                "error"
             );
 
         }
 
 
-        catch (error) {
+        finally {
 
-            console.error(
-                "REGISTRATION ERROR:",
-                error
-            );
-
-
-            let errorMessage =
-                "Registration failed. Please try again.";
-
-
-            if (
-                error.code ===
-                "auth/email-already-in-use"
-            ) {
-
-                errorMessage =
-                    "This email address is already registered.";
-
-            }
-
-
-            else if (
-                error.code ===
-                "auth/invalid-email"
-            ) {
-
-                errorMessage =
-                    "Please enter a valid email address.";
-
-            }
-
-
-            else if (
-                error.code ===
-                "auth/weak-password"
-            ) {
-
-                errorMessage =
-                    "The password is too weak.";
-
-            }
-
-
-            else if (
-                error.code ===
-                "permission-denied"
-            ) {
-
-                errorMessage =
-                    "Firestore permission denied. Check your Firestore security rules.";
-
-            }
-
-
-            showMessage(
-                errorMessage,
-                "error"
-            );
-
-
-            registerButton.disabled =
+            saveButton.disabled =
                 false;
 
-
-            registerButton.textContent =
-                "Create Organization";
+            saveButton.textContent =
+                "Save Changes";
 
         }
 
@@ -468,7 +1668,98 @@ registerForm.addEventListener(
 
 
 /* =========================================================
-   MESSAGE FUNCTION
+   CLOSE MODAL
+========================================================= */
+
+function closeOrganizationModal() {
+
+    organizationModal.classList.remove(
+        "show"
+    );
+
+    selectedOrganization =
+        null;
+
+}
+
+
+closeModal.addEventListener(
+    "click",
+    closeOrganizationModal
+);
+
+
+cancelButton.addEventListener(
+    "click",
+    closeOrganizationModal
+);
+
+
+organizationModal.addEventListener(
+    "click",
+    event => {
+
+        if (
+            event.target ===
+            organizationModal
+        ) {
+
+            closeOrganizationModal();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+searchInput.addEventListener(
+    "input",
+    renderOrganizations
+);
+
+
+statusFilter.addEventListener(
+    "change",
+    renderOrganizations
+);
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+logoutButton.addEventListener(
+    "click",
+    async () => {
+
+        try {
+
+            await signOut(auth);
+
+            window.location.href =
+                "login.html";
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "LOGOUT ERROR:",
+                error
+            );
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   MESSAGE
 ========================================================= */
 
 function showMessage(
@@ -476,12 +1767,247 @@ function showMessage(
     type
 ) {
 
-    message.textContent =
+    adminMessage.textContent =
         text;
 
-
-    message.className =
-        "message " +
+    adminMessage.className =
         type;
 
+
+    setTimeout(
+        () => {
+
+            adminMessage.style.display =
+                "none";
+
+        },
+        5000
+    );
+
 }
+
+
+/* =========================================================
+   STATUS NORMALIZER
+========================================================= */
+
+function normalizeStatus(
+    status
+) {
+
+    return String(
+        status || ""
+    )
+        .toLowerCase()
+        .trim();
+
+}
+
+
+/* =========================================================
+   CAPITALIZE
+========================================================= */
+
+function capitalize(
+    text
+) {
+
+    if (!text) {
+
+        return "";
+
+    }
+
+
+    return text
+        .charAt(0)
+        .toUpperCase()
+        +
+        text.slice(1);
+
+}
+
+
+/* =========================================================
+   FIRESTORE DATE CONVERSION
+========================================================= */
+
+function convertFirestoreDate(
+    value
+) {
+
+    if (!value) {
+
+        return null;
+
+    }
+
+
+    if (
+        typeof value.toDate ===
+        "function"
+    ) {
+
+        return value.toDate();
+
+    }
+
+
+    if (
+        value instanceof Date
+    ) {
+
+        return value;
+
+    }
+
+
+    if (
+        typeof value === "string"
+    ) {
+
+        const date =
+            new Date(value);
+
+
+        if (
+            !isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return date;
+
+        }
+
+    }
+
+
+    return null;
+
+}
+
+
+/* =========================================================
+   FORMAT DATE
+========================================================= */
+
+function formatDate(
+    value
+) {
+
+    const date =
+        convertFirestoreDate(
+            value
+        );
+
+
+    if (!date) {
+
+        return "Not set";
+
+    }
+
+
+    return date.toLocaleDateString(
+        undefined,
+        {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        }
+    );
+
+}
+
+
+/* =========================================================
+   DATE INPUT
+========================================================= */
+
+function getDateInputValue(
+    value
+) {
+
+    const date =
+        convertFirestoreDate(
+            value
+        );
+
+
+    if (!date) {
+
+        return "";
+
+    }
+
+
+    const year =
+        date.getFullYear();
+
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    return `${year}-${month}-${day}`;
+
+}
+
+
+/* =========================================================
+   HTML ESCAPE
+========================================================= */
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value || ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================================
+   CONSOLE
+========================================================= */
+
+console.log(
+    "🔥 Virello Super Admin initialized."
+);
