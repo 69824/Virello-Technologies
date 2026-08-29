@@ -9,6 +9,10 @@
    Register organization administrator
    Create Firebase Authentication account
    Create organization record in Firestore
+
+   NEW:
+   Organizations begin as PENDING until
+   Super Admin verifies subscription/payment.
 ========================================================= */
 
 
@@ -21,10 +25,12 @@ import {
     db
 } from "./firebase-config.js";
 
+
 import {
     createUserWithEmailAndPassword,
     updateProfile
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
 
 import {
     collection,
@@ -38,339 +44,444 @@ import {
 ========================================================= */
 
 const registerForm =
-    document.getElementById("registerForm");
+    document.getElementById(
+        "registerForm"
+    );
 
 
 /* =========================================================
-   MESSAGE ELEMENTS
+   MESSAGE
 ========================================================= */
 
 const message =
-    document.getElementById("message");
+    document.getElementById(
+        "message"
+    );
 
 
 const registerButton =
-    document.getElementById("registerButton");
+    document.getElementById(
+        "registerButton"
+    );
 
 
 /* =========================================================
    REGISTRATION
 ========================================================= */
 
-registerForm.addEventListener("submit", async function (event) {
+registerForm.addEventListener(
+    "submit",
+    async function (event) {
 
-    event.preventDefault();
+        event.preventDefault();
 
-
-    /* =========================================
-       GET FORM VALUES
-    ========================================= */
-
-    const organizationName =
-        document
-            .getElementById("organizationName")
-            .value
-            .trim();
-
-
-    const organizationType =
-        document
-            .getElementById("organizationType")
-            .value;
-
-
-    const country =
-        document
-            .getElementById("country")
-            .value;
-
-
-    const adminName =
-        document
-            .getElementById("adminName")
-            .value
-            .trim();
-
-
-    const email =
-        document
-            .getElementById("email")
-            .value
-            .trim();
-
-
-    const password =
-        document
-            .getElementById("password")
-            .value;
-
-
-    const confirmPassword =
-        document
-            .getElementById("confirmPassword")
-            .value;
-
-
-    /* =========================================
-       VALIDATION
-    ========================================= */
-
-    if (
-        !organizationName ||
-        !organizationType ||
-        !country ||
-        !adminName ||
-        !email ||
-        !password ||
-        !confirmPassword
-    ) {
-
-        showMessage(
-            "Please complete all required fields.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    /* =========================================
-       PASSWORD MATCH
-    ========================================= */
-
-    if (password !== confirmPassword) {
-
-        showMessage(
-            "Passwords do not match.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    /* =========================================
-       PASSWORD LENGTH
-    ========================================= */
-
-    if (password.length < 6) {
-
-        showMessage(
-            "Password must contain at least 6 characters.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    /* =========================================
-       DISABLE BUTTON
-    ========================================= */
-
-    registerButton.disabled = true;
-
-    registerButton.textContent =
-        "Creating Organization...";
-
-
-    try {
 
         /* =========================================
-           CREATE FIREBASE USER
+           GET VALUES
         ========================================= */
 
-        const userCredential =
-            await createUserWithEmailAndPassword(
-                auth,
-                email,
-                password
+        const organizationName =
+            document
+                .getElementById(
+                    "organizationName"
+                )
+                .value
+                .trim();
+
+
+        const organizationType =
+            document
+                .getElementById(
+                    "organizationType"
+                )
+                .value;
+
+
+        const country =
+            document
+                .getElementById(
+                    "country"
+                )
+                .value;
+
+
+        const adminName =
+            document
+                .getElementById(
+                    "adminName"
+                )
+                .value
+                .trim();
+
+
+        const email =
+            document
+                .getElementById(
+                    "email"
+                )
+                .value
+                .trim();
+
+
+        const password =
+            document
+                .getElementById(
+                    "password"
+                )
+                .value;
+
+
+        const confirmPassword =
+            document
+                .getElementById(
+                    "confirmPassword"
+                )
+                .value;
+
+
+        /* =========================================
+           VALIDATION
+        ========================================= */
+
+        if (
+            !organizationName ||
+            !organizationType ||
+            !country ||
+            !adminName ||
+            !email ||
+            !password ||
+            !confirmPassword
+        ) {
+
+            showMessage(
+                "Please complete all required fields.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        /* =========================================
+           PASSWORD MATCH
+        ========================================= */
+
+        if (
+            password !==
+            confirmPassword
+        ) {
+
+            showMessage(
+                "Passwords do not match.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        /* =========================================
+           PASSWORD LENGTH
+        ========================================= */
+
+        if (
+            password.length < 6
+        ) {
+
+            showMessage(
+                "Password must contain at least 6 characters.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        /* =========================================
+           DISABLE BUTTON
+        ========================================= */
+
+        registerButton.disabled =
+            true;
+
+
+        registerButton.textContent =
+            "Creating Organization...";
+
+
+        try {
+
+            /* =========================================
+               CREATE AUTH USER
+            ========================================= */
+
+            const userCredential =
+                await createUserWithEmailAndPassword(
+                    auth,
+                    email,
+                    password
+                );
+
+
+            const user =
+                userCredential.user;
+
+
+            console.log(
+                "Firebase user created:",
+                user.uid
             );
 
 
-        const user =
-            userCredential.user;
+            /* =========================================
+               ADMIN PROFILE
+            ========================================= */
 
-
-        console.log(
-            "Firebase user created:",
-            user.uid
-        );
-
-
-        /* =========================================
-           UPDATE ADMINISTRATOR PROFILE
-        ========================================= */
-
-        await updateProfile(
-            user,
-            {
-                displayName: adminName
-            }
-        );
-
-
-        /* =========================================
-           CREATE ORGANIZATION
-        ========================================= */
-
-        const organizationRef =
-            await addDoc(
-                collection(db, "organizations"),
+            await updateProfile(
+                user,
                 {
-
-                    organizationName:
-                        organizationName,
-
-                    organizationType:
-                        organizationType,
-
-                    country:
-                        country,
-
-                    adminName:
-                        adminName,
-
-                    adminEmail:
-                        email,
-
-                    ownerUid:
-                        user.uid,
-
-                    status:
-                        "active",
-
-                    subscriptionPlan:
-                        "none",
-
-                    createdAt:
-                        serverTimestamp()
-
+                    displayName:
+                        adminName
                 }
             );
 
 
-        console.log(
-            "Organization created:",
-            organizationRef.id
-        );
+            /* =========================================
+               CREATE ORGANIZATION
+            ========================================= */
+
+            const organizationRef =
+                await addDoc(
+
+                    collection(
+                        db,
+                        "organizations"
+                    ),
+
+                    {
+
+                        organizationName:
+                            organizationName,
+
+                        organizationType:
+                            organizationType,
+
+                        country:
+                            country,
+
+                        adminName:
+                            adminName,
+
+                        adminEmail:
+                            email,
+
+                        ownerUid:
+                            user.uid,
 
 
-        /* =========================================
-           SUCCESS
-        ========================================= */
+                        /*
+                         =====================================
+                         SUBSCRIPTION
+                         =====================================
+                        */
 
-        showMessage(
-            "Organization registered successfully.",
-            "success"
-        );
+                        status:
+                            "pending",
 
+                        subscriptionPlan:
+                            "none",
 
-        /*
-        =============================================
-        TEMPORARY REDIRECT
-
-        Dashboard will be created in a later step.
-        =============================================
-        */
-
-        setTimeout(function () {
-
-            window.location.href =
-                "dashboard.html";
-
-        }, 1500);
+                        subscriptionExpiresAt:
+                            null,
 
 
-    } catch (error) {
+                        /*
+                         =====================================
+                         PAYMENT
+                         =====================================
+                        */
 
-        console.error(
-            "REGISTRATION ERROR:",
-            error
-        );
+                        paymentStatus:
+                            "pending",
+
+                        paymentVerified:
+                            false,
+
+                        paymentMethod:
+                            null,
+
+                        paymentReference:
+                            null,
+
+                        paymentVerifiedBy:
+                            null,
+
+                        paymentVerifiedAt:
+                            null,
 
 
-        /* =========================================
-           FIREBASE ERROR HANDLING
-        ========================================= */
+                        /*
+                         =====================================
+                         ACCOUNT CONTROL
+                         =====================================
+                        */
 
-        let errorMessage =
-            "Registration failed. Please try again.";
+                        suspendedBy:
+                            null,
+
+                        suspendedAt:
+                            null,
 
 
-        if (
-            error.code ===
-            "auth/email-already-in-use"
-        ) {
+                        /*
+                         =====================================
+                         TIMESTAMPS
+                         =====================================
+                        */
 
-            errorMessage =
-                "This email address is already registered.";
+                        createdAt:
+                            serverTimestamp(),
+
+                        updatedAt:
+                            serverTimestamp()
+
+                    }
+
+                );
+
+
+            console.log(
+                "Organization created:",
+                organizationRef.id
+            );
+
+
+            /* =========================================
+               SUCCESS
+            ========================================= */
+
+            showMessage(
+                "Organization registered successfully. Your account is pending subscription verification.",
+                "success"
+            );
+
+
+            /*
+             =================================================
+             TEMPORARY REDIRECT
+
+             The organization can log in, but your dashboard
+             should check subscription status before granting
+             paid access.
+             =================================================
+            */
+
+            setTimeout(
+                function () {
+
+                    window.location.href =
+                        "dashboard.html";
+
+                },
+                1800
+            );
 
         }
 
 
-        else if (
-            error.code ===
-            "auth/invalid-email"
-        ) {
+        catch (error) {
 
-            errorMessage =
-                "Please enter a valid email address.";
+            console.error(
+                "REGISTRATION ERROR:",
+                error
+            );
+
+
+            let errorMessage =
+                "Registration failed. Please try again.";
+
+
+            if (
+                error.code ===
+                "auth/email-already-in-use"
+            ) {
+
+                errorMessage =
+                    "This email address is already registered.";
+
+            }
+
+
+            else if (
+                error.code ===
+                "auth/invalid-email"
+            ) {
+
+                errorMessage =
+                    "Please enter a valid email address.";
+
+            }
+
+
+            else if (
+                error.code ===
+                "auth/weak-password"
+            ) {
+
+                errorMessage =
+                    "The password is too weak.";
+
+            }
+
+
+            else if (
+                error.code ===
+                "permission-denied"
+            ) {
+
+                errorMessage =
+                    "Firestore permission denied. Check your Firestore security rules.";
+
+            }
+
+
+            showMessage(
+                errorMessage,
+                "error"
+            );
+
+
+            registerButton.disabled =
+                false;
+
+
+            registerButton.textContent =
+                "Create Organization";
 
         }
-
-
-        else if (
-            error.code ===
-            "auth/weak-password"
-        ) {
-
-            errorMessage =
-                "The password is too weak.";
-
-        }
-
-
-        else if (
-            error.code ===
-            "permission-denied"
-        ) {
-
-            errorMessage =
-                "Firestore permission denied. Check your Firestore security rules.";
-
-        }
-
-
-        showMessage(
-            errorMessage,
-            "error"
-        );
-
-
-        /* =========================================
-           ENABLE BUTTON AGAIN
-        ========================================= */
-
-        registerButton.disabled = false;
-
-        registerButton.textContent =
-            "Create Organization";
 
     }
-
-});
+);
 
 
 /* =========================================================
    MESSAGE FUNCTION
 ========================================================= */
 
-function showMessage(text, type) {
+function showMessage(
+    text,
+    type
+) {
 
-    message.textContent = text;
+    message.textContent =
+        text;
+
 
     message.className =
-        "message " + type;
+        "message " +
+        type;
 
 }
