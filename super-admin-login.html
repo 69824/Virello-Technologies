@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Super Admin Login | Virello Technologies
+    </title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #172033;
+
+            min-height: 100vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+        /* =========================================
+           HEADER
+        ========================================= */
+
+        header {
+
+            background: #ffffff;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            padding: 17px 6%;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+        }
+
+
+        /* =========================================
+           LOGO
+        ========================================= */
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 44px;
+
+            height: 44px;
+
+            background: #111827;
+
+            color: #ffffff;
+
+            border-radius: 11px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-size: 22px;
+
+            font-weight: 800;
+
+        }
+
+
+        .logo-text h2 {
+
+            font-size: 20px;
+
+            color: #111827;
+
+        }
+
+
+        .logo-text p {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            margin-top: 3px;
+
+        }
+
+
+        .back-home {
+
+            text-decoration: none;
+
+            color: #2563eb;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+        }
+
+
+        .back-home:hover {
+
+            text-decoration: underline;
+
+        }
+
+
+        /* =========================================
+           MAIN
+        ========================================= */
+
+        main {
+
+            flex: 1;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 50px 20px;
+
+        }
+
+
+        /* =========================================
+           LOGIN CARD
+        ========================================= */
+
+        .login-card {
+
+            width: 100%;
+
+            max-width: 450px;
+
+            background: #ffffff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 18px;
+
+            padding: 40px;
+
+            box-shadow:
+                0 10px 30px
+                rgba(15, 23, 42, 0.07);
+
+        }
+
+
+        /* =========================================
+           ICON
+        ========================================= */
+
+        .admin-icon {
+
+            width: 70px;
+
+            height: 70px;
+
+            margin: 0 auto 20px;
+
+            background: #111827;
+
+            color: white;
+
+            border-radius: 18px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 32px;
+
+        }
+
+
+        /* =========================================
+           TITLE
+        ========================================= */
+
+        .login-title {
+
+            text-align: center;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .login-title h1 {
+
+            font-size: 29px;
+
+            color: #111827;
+
+            margin-bottom: 9px;
+
+        }
+
+
+        .login-title p {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+        }
+
+
+        .admin-badge {
+
+            display: inline-block;
+
+            background: #f1f5f9;
+
+            color: #334155;
+
+            padding: 7px 14px;
+
+            border-radius: 20px;
+
+            font-size: 11px;
+
+            font-weight: bold;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        /* =========================================
+           MESSAGE
+        ========================================= */
+
+        .message {
+
+            display: none;
+
+            padding: 13px 15px;
+
+            border-radius: 9px;
+
+            margin-bottom: 20px;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+        }
+
+
+        .message.error {
+
+            display: block;
+
+            background: #fef2f2;
+
+            color: #b91c1c;
+
+            border:
+                1px solid #fecaca;
+
+        }
+
+
+        .message.success {
+
+            display: block;
+
+            background: #f0fdf4;
+
+            color: #15803d;
+
+            border:
+                1px solid #bbf7d0;
+
+        }
+
+
+        /* =========================================
+           FORM
+        ========================================= */
+
+        .form-group {
+
+            margin-bottom: 20px;
+
+        }
+
+
+        label {
+
+            display: block;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            color: #334155;
+
+            margin-bottom: 7px;
+
+        }
+
+
+        input {
+
+            width: 100%;
+
+            padding: 14px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 9px;
+
+            outline: none;
+
+            font-size: 14px;
+
+        }
+
+
+        input:focus {
+
+            border-color: #111827;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(17, 24, 39, 0.08);
+
+        }
+
+
+        /* =========================================
+           LOGIN BUTTON
+        ========================================= */
+
+        .login-button {
+
+            width: 100%;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 9px;
+
+            background: #111827;
+
+            color: #ffffff;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+
+        }
+
+
+        .login-button:hover {
+
+            background: #2563eb;
+
+        }
+
+
+        .login-button:disabled {
+
+            background: #94a3b8;
+
+            cursor: not-allowed;
+
+        }
+
+
+        /* =========================================
+           SECURITY
+        ========================================= */
+
+        .security-note {
+
+            margin-top: 22px;
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 10px;
+
+            padding: 15px;
+
+            text-align: center;
+
+            color: #64748b;
+
+            font-size: 12px;
+
+            line-height: 1.6;
+
+        }
+
+
+        /* =========================================
+           FOOTER
+        ========================================= */
+
+        footer {
+
+            background: #0b1120;
+
+            color: white;
+
+            text-align: center;
+
+            padding: 25px 20px;
+
+        }
+
+
+        footer h3 {
+
+            font-size: 16px;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        footer p {
+
+            color: #94a3b8;
+
+            font-size: 12px;
+
+        }
+
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 600px) {
+
+            header {
+
+                padding: 15px 18px;
+
+            }
+
+            .logo-text h2 {
+
+                font-size: 17px;
+
+            }
+
+            .logo-text p {
+
+                display: none;
+
+            }
+
+            .back-home {
+
+                font-size: 12px;
+
+            }
+
+            .login-card {
+
+                padding: 28px 20px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================================
+         HEADER
+    ========================================= -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Digital Organization Solutions
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="index.html"
+            class="back-home"
+        >
+            ← Back to Home
+        </a>
+
+    </header>
+
+
+
+    <!-- =========================================
+         MAIN
+    ========================================= -->
+
+    <main>
+
+        <div class="login-card">
+
+
+            <div class="admin-icon">
+                🔐
+            </div>
+
+
+            <div class="login-title">
+
+                <div class="admin-badge">
+                    VIRELLO TECHNOLOGIES
+                </div>
+
+                <h1>
+                    Super Admin Login
+                </h1>
+
+                <p>
+                    Authorized Virello Technologies administrators
+                    can access the Super Admin Panel from here.
+                </p>
+
+            </div>
+
+
+            <!-- MESSAGE -->
+
+            <div
+                id="message"
+                class="message"
+            ></div>
+
+
+            <!-- LOGIN FORM -->
+
+            <form id="superAdminLoginForm">
+
+
+                <!-- EMAIL -->
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Super Admin Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter Super Admin email"
+                        autocomplete="email"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- PASSWORD -->
+
+                <div class="form-group">
+
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- BUTTON -->
+
+                <button
+                    type="submit"
+                    id="loginButton"
+                    class="login-button"
+                >
+                    Login to Super Admin Panel
+                </button>
+
+
+            </form>
+
+
+            <!-- SECURITY -->
+
+            <div class="security-note">
+
+                🔒 <strong>Restricted Access</strong><br>
+
+                This area is only for authorized
+                Virello Technologies Super Administrators.
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+
+    <!-- =========================================
+         FOOTER
+    ========================================= -->
+
+    <footer>
+
+        <h3>
+            Virello Technologies
+        </h3>
+
+        <p>
+            Building digital solutions for modern organizations.
+        </p>
+
+    </footer>
+
+
+
+    <!-- =========================================
+         FIREBASE LOGIN
+    ========================================= -->
+
+    <script type="module">
+
+        import {
+            auth
+        } from "./js/firebase-config.js";
+
+
+        import {
+            signInWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+        /* =========================================
+           SUPER ADMIN EMAIL
+        ========================================= */
+
+        const SUPER_ADMIN_EMAIL =
+            "abdulrahmanjuniorsesay4@gmail.com";
+
+
+        /* =========================================
+           ELEMENTS
+        ========================================= */
+
+        const form =
+            document.getElementById(
+                "superAdminLoginForm"
+            );
+
+
+        const emailInput =
+            document.getElementById(
+                "email"
+            );
+
+
+        const passwordInput =
+            document.getElementById(
+                "password"
+            );
+
+
+        const loginButton =
+            document.getElementById(
+                "loginButton"
+            );
+
+
+        const message =
+            document.getElementById(
+                "message"
+            );
+
+
+        /* =========================================
+           SHOW MESSAGE
+        ========================================= */
+
+        function showMessage(
+            text,
+            type
+        ) {
+
+            message.textContent = text;
+
+            message.className =
+                "message " + type;
+
+        }
+
+
+        /* =========================================
+           LOGIN
+        ========================================= */
+
+        form.addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+
+                const email =
+                    emailInput.value
+                        .trim()
+                        .toLowerCase();
+
+
+                const password =
+                    passwordInput.value;
+
+
+                /* =================================
+                   CHECK EMAIL
+                ================================= */
+
+                if (
+                    email !==
+                    SUPER_ADMIN_EMAIL.toLowerCase()
+                ) {
+
+                    showMessage(
+                        "This account is not authorized to access the Virello Technologies Super Admin Panel.",
+                        "error"
+                    );
+
+                    return;
+
+                }
+
+
+                /* =================================
+                   DISABLE BUTTON
+                ================================= */
+
+                loginButton.disabled =
+                    true;
+
+                loginButton.textContent =
+                    "Signing in...";
+
+
+                try {
+
+
+                    /* =============================
+                       FIREBASE AUTHENTICATION
+                    ============================= */
+
+                    const userCredential =
+                        await signInWithEmailAndPassword(
+                            auth,
+                            email,
+                            password
+                        );
+
+
+                    const user =
+                        userCredential.user;
+
+
+                    /* =============================
+                       FINAL EMAIL CHECK
+                    ============================= */
+
+                    if (
+                        user.email.toLowerCase() !==
+                        SUPER_ADMIN_EMAIL.toLowerCase()
+                    ) {
+
+                        throw new Error(
+                            "Unauthorized Super Admin account."
+                        );
+
+                    }
+
+
+                    /* =============================
+                       SUCCESS
+                    ============================= */
+
+                    showMessage(
+                        "Login successful. Opening Super Admin Panel...",
+                        "success"
+                    );
+
+
+                    setTimeout(
+                        function() {
+
+                            window.location.href =
+                                "super-admin.html";
+
+                        },
+                        800
+                    );
+
+
+                }
+
+                catch(error) {
+
+                    console.error(
+                        "SUPER ADMIN LOGIN ERROR:",
+                        error
+                    );
+
+
+                    let errorMessage =
+                        "Unable to login. Please check your email and password.";
+
+
+                    if (
+                        error.code ===
+                        "auth/invalid-credential"
+                    ) {
+
+                        errorMessage =
+                            "Incorrect Super Admin email or password.";
+
+                    }
+
+
+                    else if (
+                        error.code ===
+                        "auth/wrong-password"
+                    ) {
+
+                        errorMessage =
+                            "Incorrect password.";
+
+                    }
+
+
+                    else if (
+                        error.code ===
+                        "auth/user-not-found"
+                    ) {
+
+                        errorMessage =
+                            "This Super Admin account does not exist in Firebase Authentication.";
+
+                    }
+
+
+                    else if (
+                        error.code ===
+                        "auth/invalid-email"
+                    ) {
+
+                        errorMessage =
+                            "Please enter a valid email address.";
+
+                    }
+
+
+                    showMessage(
+                        errorMessage,
+                        "error"
+                    );
+
+
+                    loginButton.disabled =
+                        false;
+
+                    loginButton.textContent =
+                        "Login to Super Admin Panel";
+
+                }
+
+            }
+        );
+
+    </script>
+
+
+</body>
+
+</html>

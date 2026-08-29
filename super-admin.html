@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Super Admin | Virello Technologies
+    </title>
+
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #172033;
+
+            min-height: 100vh;
+
+        }
+
+
+        /* =========================================
+           HEADER
+        ========================================= */
+
+        header {
+
+            background: #ffffff;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            padding: 16px 5%;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+        }
+
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 44px;
+
+            height: 44px;
+
+            background: #2563eb;
+
+            color: #ffffff;
+
+            border-radius: 11px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-size: 22px;
+
+            font-weight: 800;
+
+        }
+
+
+        .logo-text h2 {
+
+            font-size: 19px;
+
+            color: #111827;
+
+        }
+
+
+        .logo-text p {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            margin-top: 3px;
+
+        }
+
+
+        .header-right {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 15px;
+
+        }
+
+
+        .admin-email {
+
+            font-size: 12px;
+
+            color: #64748b;
+
+        }
+
+
+        .logout-button {
+
+            border: none;
+
+            background: #111827;
+
+            color: white;
+
+            padding: 10px 16px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+        }
+
+
+        .logout-button:hover {
+
+            background: #dc2626;
+
+        }
+
+
+        /* =========================================
+           PAGE
+        ========================================= */
+
+        .page {
+
+            max-width: 1400px;
+
+            margin: auto;
+
+            padding: 35px 25px 70px;
+
+        }
+
+
+        .page-heading {
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .page-heading h1 {
+
+            font-size: 32px;
+
+            color: #111827;
+
+            margin-bottom: 7px;
+
+        }
+
+
+        .page-heading p {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+        }
+
+
+        .admin-badge {
+
+            display: inline-block;
+
+            background: #dbeafe;
+
+            color: #1d4ed8;
+
+            padding: 7px 13px;
+
+            border-radius: 20px;
+
+            font-size: 11px;
+
+            font-weight: bold;
+
+            margin-bottom: 12px;
+
+        }
+
+
+        /* =========================================
+           MESSAGE
+        ========================================= */
+
+        #adminMessage {
+
+            display: none;
+
+            padding: 14px 16px;
+
+            border-radius: 9px;
+
+            margin-bottom: 22px;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+        }
+
+
+        #adminMessage.success {
+
+            display: block;
+
+            background: #f0fdf4;
+
+            color: #15803d;
+
+            border: 1px solid #bbf7d0;
+
+        }
+
+
+        #adminMessage.error {
+
+            display: block;
+
+            background: #fef2f2;
+
+            color: #b91c1c;
+
+            border: 1px solid #fecaca;
+
+        }
+
+
+        /* =========================================
+           STATISTICS
+        ========================================= */
+
+        .stats-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(5, 1fr);
+
+            gap: 16px;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .stat-card {
+
+            background: white;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+            box-shadow:
+                0 5px 18px
+                rgba(15,23,42,.04);
+
+        }
+
+
+        .stat-card .stat-icon {
+
+            font-size: 24px;
+
+            margin-bottom: 12px;
+
+        }
+
+
+        .stat-card h3 {
+
+            font-size: 28px;
+
+            color: #111827;
+
+            margin-bottom: 5px;
+
+        }
+
+
+        .stat-card p {
+
+            color: #64748b;
+
+            font-size: 12px;
+
+        }
+
+
+        .stat-active {
+
+            border-top: 4px solid #16a34a;
+
+        }
+
+
+        .stat-pending {
+
+            border-top: 4px solid #f59e0b;
+
+        }
+
+
+        .stat-expired {
+
+            border-top: 4px solid #dc2626;
+
+        }
+
+
+        .stat-suspended {
+
+            border-top: 4px solid #7c3aed;
+
+        }
+
+
+        /* =========================================
+           CONTROL BAR
+        ========================================= */
+
+        .control-card {
+
+            background: white;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 14px;
+
+            padding: 20px;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .controls {
+
+            display: grid;
+
+            grid-template-columns:
+                2fr 1fr;
+
+            gap: 12px;
+
+        }
+
+
+        .search-input,
+        .filter-select {
+
+            width: 100%;
+
+            padding: 13px 14px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 8px;
+
+            font-size: 13px;
+
+            outline: none;
+
+            background: white;
+
+        }
+
+
+        .search-input:focus,
+        .filter-select:focus {
+
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,.1);
+
+        }
+
+
+        /* =========================================
+           ORGANIZATIONS TABLE
+        ========================================= */
+
+        .organizations-card {
+
+            background: white;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 16px;
+
+            overflow: hidden;
+
+            box-shadow:
+                0 6px 20px
+                rgba(15,23,42,.04);
+
+        }
+
+
+        .table-header {
+
+            padding: 20px;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+        }
+
+
+        .table-header h2 {
+
+            font-size: 19px;
+
+            color: #111827;
+
+        }
+
+
+        .organization-count {
+
+            color: #64748b;
+
+            font-size: 12px;
+
+        }
+
+
+        .table-wrapper {
+
+            width: 100%;
+
+            overflow-x: auto;
+
+        }
+
+
+        table {
+
+            width: 100%;
+
+            border-collapse:
+                collapse;
+
+            min-width: 1050px;
+
+        }
+
+
+        th {
+
+            text-align: left;
+
+            background: #f8fafc;
+
+            color: #475569;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: .04em;
+
+            padding: 14px 16px;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+        }
+
+
+        td {
+
+            padding: 15px 16px;
+
+            border-bottom:
+                1px solid #f1f5f9;
+
+            font-size: 13px;
+
+            vertical-align: middle;
+
+        }
+
+
+        tr:hover td {
+
+            background: #f8fafc;
+
+        }
+
+
+        .organization-name {
+
+            font-weight: bold;
+
+            color: #111827;
+
+        }
+
+
+        .organization-type {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            margin-top: 4px;
+
+        }
+
+
+        .status {
+
+            display: inline-block;
+
+            padding: 5px 9px;
+
+            border-radius: 20px;
+
+            font-size: 10px;
+
+            font-weight: bold;
+
+        }
+
+
+        .status-active {
+
+            background: #dcfce7;
+
+            color: #15803d;
+
+        }
+
+
+        .status-pending {
+
+            background: #fef3c7;
+
+            color: #b45309;
+
+        }
+
+
+        .status-expired {
+
+            background: #fee2e2;
+
+            color: #b91c1c;
+
+        }
+
+
+        .status-suspended {
+
+            background: #ede9fe;
+
+            color: #6d28d9;
+
+        }
+
+
+        .status-none {
+
+            background: #f1f5f9;
+
+            color: #475569;
+
+        }
+
+
+        .plan-badge {
+
+            display: inline-block;
+
+            background: #eff6ff;
+
+            color: #1d4ed8;
+
+            padding: 5px 9px;
+
+            border-radius: 6px;
+
+            font-size: 10px;
+
+            font-weight: bold;
+
+        }
+
+
+        .action-buttons {
+
+            display: flex;
+
+            gap: 6px;
+
+            flex-wrap: wrap;
+
+        }
+
+
+        .action-button {
+
+            border: none;
+
+            padding: 7px 10px;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+
+            font-size: 10px;
+
+            font-weight: bold;
+
+        }
+
+
+        .view-button {
+
+            background: #eff6ff;
+
+            color: #2563eb;
+
+        }
+
+
+        .approve-button {
+
+            background: #dcfce7;
+
+            color: #15803d;
+
+        }
+
+
+        .suspend-button {
+
+            background: #fee2e2;
+
+            color: #b91c1c;
+
+        }
+
+
+        .activate-button {
+
+            background: #dcfce7;
+
+            color: #15803d;
+
+        }
+
+
+        .action-button:hover {
+
+            opacity: .8;
+
+        }
+
+
+        /* =========================================
+           MODAL
+        ========================================= */
+
+        .modal {
+
+            display: none;
+
+            position: fixed;
+
+            inset: 0;
+
+            background:
+                rgba(15,23,42,.60);
+
+            z-index: 3000;
+
+            padding: 25px;
+
+            overflow-y: auto;
+
+        }
+
+
+        .modal.show {
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+        }
+
+
+        .modal-card {
+
+            background: white;
+
+            width: 100%;
+
+            max-width: 650px;
+
+            border-radius: 18px;
+
+            padding: 30px;
+
+            box-shadow:
+                0 20px 60px
+                rgba(0,0,0,.20);
+
+        }
+
+
+        .modal-header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .modal-header h2 {
+
+            font-size: 21px;
+
+            color: #111827;
+
+        }
+
+
+        .close-modal {
+
+            border: none;
+
+            background: #f1f5f9;
+
+            width: 35px;
+
+            height: 35px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-size: 18px;
+
+        }
+
+
+        .detail-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 15px;
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .detail {
+
+            background: #f8fafc;
+
+            border-radius: 9px;
+
+            padding: 13px;
+
+        }
+
+
+        .detail.full {
+
+            grid-column: 1 / -1;
+
+        }
+
+
+        .detail-label {
+
+            color: #64748b;
+
+            font-size: 10px;
+
+            text-transform: uppercase;
+
+            margin-bottom: 5px;
+
+        }
+
+
+        .detail-value {
+
+            color: #111827;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            word-break: break-word;
+
+        }
+
+
+        .edit-section {
+
+            border-top:
+                1px solid #e5e7eb;
+
+            padding-top: 22px;
+
+        }
+
+
+        .edit-section h3 {
+
+            font-size: 16px;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .edit-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 15px;
+
+        }
+
+
+        .edit-group {
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+        .edit-group.full {
+
+            grid-column: 1 / -1;
+
+        }
+
+
+        .edit-group label {
+
+            font-size: 11px;
+
+            font-weight: bold;
+
+            color: #475569;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .edit-group input,
+        .edit-group select {
+
+            padding: 11px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 7px;
+
+            outline: none;
+
+            font-size: 13px;
+
+        }
+
+
+        .edit-actions {
+
+            display: flex;
+
+            gap: 10px;
+
+            margin-top: 20px;
+
+        }
+
+
+        .save-button {
+
+            flex: 1;
+
+            border: none;
+
+            background: #2563eb;
+
+            color: white;
+
+            padding: 13px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-weight: bold;
+
+        }
+
+
+        .save-button:hover {
+
+            background: #1d4ed8;
+
+        }
+
+
+        .cancel-button {
+
+            padding: 13px 20px;
+
+            border:
+                1px solid #cbd5e1;
+
+            background: white;
+
+            color: #475569;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-weight: bold;
+
+        }
+
+
+        /* =========================================
+           LOADING
+        ========================================= */
+
+        .loading {
+
+            text-align: center;
+
+            padding: 50px;
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        .empty {
+
+            text-align: center;
+
+            padding: 50px;
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (max-width: 1100px) {
+
+            .stats-grid {
+
+                grid-template-columns:
+                    repeat(3, 1fr);
+
+            }
+
+        }
+
+
+        @media (max-width: 700px) {
+
+            header {
+
+                padding: 14px 18px;
+
+            }
+
+            .header-right {
+
+                gap: 7px;
+
+            }
+
+            .admin-email {
+
+                display: none;
+
+            }
+
+            .logo-text h2 {
+
+                font-size: 16px;
+
+            }
+
+            .logo-text p {
+
+                display: none;
+
+            }
+
+            .stats-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+            .controls {
+
+                grid-template-columns: 1fr;
+
+            }
+
+            .detail-grid,
+            .edit-grid {
+
+                grid-template-columns: 1fr;
+
+            }
+
+            .detail.full,
+            .edit-group.full {
+
+                grid-column: auto;
+
+            }
+
+        }
+
+
+        @media (max-width: 450px) {
+
+            .page {
+
+                padding:
+                    25px 14px 50px;
+
+            }
+
+            .stats-grid {
+
+                grid-template-columns: 1fr;
+
+            }
+
+            .page-heading h1 {
+
+                font-size: 27px;
+
+            }
+
+            .modal {
+
+                padding: 12px;
+
+            }
+
+            .modal-card {
+
+                padding: 22px 17px;
+
+            }
+
+            .edit-actions {
+
+                flex-direction: column;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================================
+         HEADER
+    ========================================= -->
+
+    <header>
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                V
+            </div>
+
+            <div class="logo-text">
+
+                <h2>
+                    Virello Technologies
+                </h2>
+
+                <p>
+                    Super Administration
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="header-right">
+
+            <span
+                id="adminEmail"
+                class="admin-email"
+            >
+                Checking administrator...
+            </span>
+
+            <button
+                id="logoutButton"
+                class="logout-button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================================
+         MAIN PAGE
+    ========================================= -->
+
+    <main class="page">
+
+
+        <div class="page-heading">
+
+            <div class="admin-badge">
+                🔐 VIRELLO SUPER ADMIN
+            </div>
+
+            <h1>
+                Platform Administration
+            </h1>
+
+            <p>
+                Manage registered organizations,
+                subscriptions, payments and platform access.
+            </p>
+
+        </div>
+
+
+        <div id="adminMessage"></div>
+
+
+        <!-- =====================================
+             STATISTICS
+        ====================================== -->
+
+        <section class="stats-grid">
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🏢
+                </div>
+
+                <h3 id="totalOrganizations">
+                    0
+                </h3>
+
+                <p>
+                    Total Organizations
+                </p>
+
+            </div>
+
+
+            <div class="stat-card stat-active">
+
+                <div class="stat-icon">
+                    🟢
+                </div>
+
+                <h3 id="activeOrganizations">
+                    0
+                </h3>
+
+                <p>
+                    Active Organizations
+                </p>
+
+            </div>
+
+
+            <div class="stat-card stat-pending">
+
+                <div class="stat-icon">
+                    ⏳
+                </div>
+
+                <h3 id="pendingOrganizations">
+                    0
+                </h3>
+
+                <p>
+                    Pending Verification
+                </p>
+
+            </div>
+
+
+            <div class="stat-card stat-expired">
+
+                <div class="stat-icon">
+                    🔴
+                </div>
+
+                <h3 id="expiredOrganizations">
+                    0
+                </h3>
+
+                <p>
+                    Expired Organizations
+                </p>
+
+            </div>
+
+
+            <div class="stat-card stat-suspended">
+
+                <div class="stat-icon">
+                    🚫
+                </div>
+
+                <h3 id="suspendedOrganizations">
+                    0
+                </h3>
+
+                <p>
+                    Suspended Organizations
+                </p>
+
+            </div>
+
+
+        </section>
+
+
+        <!-- =====================================
+             SEARCH / FILTER
+        ====================================== -->
+
+        <section class="control-card">
+
+            <div class="controls">
+
+                <input
+                    type="search"
+                    id="searchInput"
+                    class="search-input"
+                    placeholder="Search organization, administrator or email..."
+                >
+
+
+                <select
+                    id="statusFilter"
+                    class="filter-select"
+                >
+
+                    <option value="all">
+                        All Organizations
+                    </option>
+
+                    <option value="active">
+                        Active
+                    </option>
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="expired">
+                        Expired
+                    </option>
+
+                    <option value="suspended">
+                        Suspended
+                    </option>
+
+                </select>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             ORGANIZATION TABLE
+        ====================================== -->
+
+        <section class="organizations-card">
+
+
+            <div class="table-header">
+
+                <h2>
+                    Registered Organizations
+                </h2>
+
+                <span
+                    id="organizationCount"
+                    class="organization-count"
+                >
+                    Loading...
+                </span>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Organization
+                            </th>
+
+                            <th>
+                                Administrator
+                            </th>
+
+                            <th>
+                                Country
+                            </th>
+
+                            <th>
+                                Plan
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Expiry
+                            </th>
+
+                            <th>
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody
+                        id="organizationsTable"
+                    >
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="loading"
+                            >
+                                Loading organizations...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+    <!-- =========================================
+         ORGANIZATION MODAL
+    ========================================= -->
+
+    <div
+        id="organizationModal"
+        class="modal"
+    >
+
+        <div class="modal-card">
+
+
+            <div class="modal-header">
+
+                <h2>
+                    Organization Details
+                </h2>
+
+                <button
+                    id="closeModal"
+                    class="close-modal"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <div
+                id="organizationDetails"
+            ></div>
+
+
+            <div class="edit-section">
+
+                <h3>
+                    Subscription & Access Control
+                </h3>
+
+
+                <div class="edit-grid">
+
+
+                    <div class="edit-group">
+
+                        <label>
+                            Subscription Plan
+                        </label>
+
+                        <select
+                            id="editPlan"
+                        >
+
+                            <option value="none">
+                                None
+                            </option>
+
+                            <option value="Starter">
+                                Starter
+                            </option>
+
+                            <option value="Professional">
+                                Professional
+                            </option>
+
+                            <option value="Enterprise">
+                                Enterprise
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="edit-group">
+
+                        <label>
+                            Account Status
+                        </label>
+
+                        <select
+                            id="editStatus"
+                        >
+
+                            <option value="pending">
+                                Pending
+                            </option>
+
+                            <option value="active">
+                                Active
+                            </option>
+
+                            <option value="expired">
+                                Expired
+                            </option>
+
+                            <option value="suspended">
+                                Suspended
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="edit-group">
+
+                        <label>
+                            Subscription Expiry
+                        </label>
+
+                        <input
+                            type="date"
+                            id="editExpiry"
+                        >
+
+                    </div>
+
+
+                    <div class="edit-group">
+
+                        <label>
+                            Payment Method
+                        </label>
+
+                        <select
+                            id="editPaymentMethod"
+                        >
+
+                            <option value="">
+                                Not Recorded
+                            </option>
+
+                            <option value="Wave">
+                                Wave
+                            </option>
+
+                            <option value="Orange Money">
+                                Orange Money
+                            </option>
+
+                            <option value="Afrimoney">
+                                Afrimoney
+                            </option>
+
+                            <option value="Mastercard / Visa">
+                                Mastercard / Visa
+                            </option>
+
+                            <option value="Bank Transfer">
+                                Bank Transfer
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="edit-group full">
+
+                        <label>
+                            Payment Reference
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editPaymentReference"
+                            placeholder="Enter payment transaction/reference number"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="edit-actions">
+
+                    <button
+                        id="cancelButton"
+                        class="cancel-button"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        id="saveButton"
+                        class="save-button"
+                    >
+                        Save Changes
+                    </button>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================
+         JAVASCRIPT
+    ========================================= -->
+
+    <script
+        type="module"
+        src="js/super-admin.js"
+    ></script>
+
+
+</body>
+
+</html>
