@@ -6,17 +6,39 @@
    js/login.js
 
    PURPOSE:
-   Authenticate organization administrators.
+   Organization administrator login.
+
+   SECURITY:
+   - Authenticates administrator
+   - Finds organization owned by the account
+   - Checks organization status
+   - Blocks suspended organizations
+   - Blocks pending organizations
+   - Blocks inactive organizations
+   - Blocks expired organizations
 ========================================================= */
 
 
 /* =========================================================
-   FIREBASE IMPORT
+   FIREBASE AUTH IMPORT
 ========================================================= */
 
 import {
-    signInWithEmailAndPassword
+    signInWithEmailAndPassword,
+    signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+/* =========================================================
+   FIRESTORE IMPORT
+========================================================= */
+
+import {
+    collection,
+    query,
+    where,
+    getDocs
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 
 /* =========================================================
@@ -24,7 +46,8 @@ import {
 ========================================================= */
 
 import {
-    auth
+    auth,
+    db
 } from "./firebase-config.js";
 
 
@@ -57,6 +80,10 @@ function showMessage(
     type
 ) {
 
+    if (!loginMessage) {
+        return;
+    }
+
     loginMessage.textContent =
         message;
 
@@ -67,185 +94,445 @@ function showMessage(
 
 
 /* =========================================================
-   LOGIN
+   CHECK ORGANIZATION STATUS
 ========================================================= */
 
-loginForm.addEventListener(
-    "submit",
-    async (event) => {
+async function checkOrganizationStatus(
+    user
+) {
 
-        event.preventDefault();
-
-
-        const email =
-            emailInput.value.trim();
-
-        const password =
-            passwordInput.value;
+    console.log(
+        "🏢 Checking organization status..."
+    );
 
 
-        /* =========================================
-           BASIC VALIDATION
-        ========================================= */
-
-        if (!email || !password) {
-
-            showMessage(
-                "Please enter your email and password.",
-                "error"
-            );
-
-            return;
-        }
+    const organizationsRef =
+        collection(
+            db,
+            "organizations"
+        );
 
 
-        /* =========================================
-           DISABLE BUTTON
-        ========================================= */
-
-        loginButton.disabled =
-            true;
-
-        loginButton.textContent =
-            "Signing In...";
-
-
-        loginMessage.className =
-            "";
+    const organizationQuery =
+        query(
+            organizationsRef,
+            where(
+                "ownerUid",
+                "==",
+                user.uid
+            )
+        );
 
 
-        try {
+    const snapshot =
+        await getDocs(
+            organizationQuery
+        );
 
 
-            /* =====================================
-               FIREBASE LOGIN
-            ===================================== */
+    /* =========================================
+       NO ORGANIZATION
+    ========================================= */
 
-            const userCredential =
-                await signInWithEmailAndPassword(
-                    auth,
-                    email,
-                    password
+    if (snapshot.empty) {
+
+        return {
+            allowed: false,
+            message:
+                "No organization was found for this administrator account."
+        };
+
+    }
+
+
+    /* =========================================
+       GET ORGANIZATION
+    ========================================= */
+
+    const organization =
+        snapshot.docs[0].data();
+
+
+    const status =
+        String(
+            organization.status ||
+            "pending"
+        ).toLowerCase();
+
+
+    console.log(
+        "🏢 Organization status:",
+        status
+    );
+
+
+    /* =========================================
+       SUSPENDED
+    ========================================= */
+
+    if (status === "suspended") {
+
+        return {
+            allowed: false,
+            message:
+                "Your organization account has been suspended by Virello Technologies. Please contact the administrator."
+        };
+
+    }
+
+
+    /* =========================================
+       PENDING
+    ========================================= */
+
+    if (status === "pending") {
+
+        return {
+            allowed: false,
+            message:
+                "Your organization is still pending verification. Please wait for subscription/payment approval."
+        };
+
+    }
+
+
+    /* =========================================
+       INACTIVE
+    ========================================= */
+
+    if (status === "inactive") {
+
+        return {
+            allowed: false,
+            message:
+                "Your organization account is inactive. Please contact Virello Technologies."
+        };
+
+    }
+
+
+    /* =========================================
+       EXPIRED
+    ========================================= */
+
+    if (status === "expired") {
+
+        return {
+            allowed: false,
+            message:
+                "Your organization subscription has expired. Please renew your subscription."
+        };
+
+    }
+
+
+    /* =========================================
+       ACTIVE
+    ========================================= */
+
+    if (status === "active") {
+
+        return {
+            allowed: true,
+            organization
+        };
+
+    }
+
+
+    /* =========================================
+       UNKNOWN STATUS
+    ========================================= */
+
+    return {
+        allowed: false,
+        message:
+            "Your organization account is not currently authorized to access the platform."
+    };
+
+}
+
+
+/* =========================================================
+   LOGIN FORM
+========================================================= */
+
+if (!loginForm) {
+
+    console.error(
+        "❌ loginForm was not found."
+    );
+
+} else {
+
+    loginForm.addEventListener(
+        "submit",
+        async (event) => {
+
+            event.preventDefault();
+
+
+            /* =========================================
+               GET VALUES
+            ========================================= */
+
+            const email =
+                emailInput.value.trim();
+
+            const password =
+                passwordInput.value;
+
+
+            /* =========================================
+               VALIDATION
+            ========================================= */
+
+            if (!email || !password) {
+
+                showMessage(
+                    "Please enter your email and password.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            /* =========================================
+               DISABLE BUTTON
+            ========================================= */
+
+            if (loginButton) {
+
+                loginButton.disabled =
+                    true;
+
+                loginButton.textContent =
+                    "Checking Account...";
+
+            }
+
+
+            if (loginMessage) {
+
+                loginMessage.className =
+                    "";
+
+            }
+
+
+            try {
+
+                /* =====================================
+                   FIREBASE LOGIN
+                ===================================== */
+
+                const userCredential =
+                    await signInWithEmailAndPassword(
+                        auth,
+                        email,
+                        password
+                    );
+
+
+                const user =
+                    userCredential.user;
+
+
+                console.log(
+                    "✅ Firebase login successful:",
+                    user.uid
                 );
 
 
-            const user =
-                userCredential.user;
+                /* =====================================
+                   CHECK ORGANIZATION
+                ===================================== */
+
+                const access =
+                    await checkOrganizationStatus(
+                        user
+                    );
 
 
-            console.log(
-                "✅ Login successful:",
-                user.uid
-            );
+                /* =====================================
+                   ACCESS DENIED
+                ===================================== */
+
+                if (!access.allowed) {
+
+                    console.warn(
+                        "🚫 Organization access denied:",
+                        access.message
+                    );
 
 
-            showMessage(
-                "Login successful. Opening your dashboard...",
-                "success"
-            );
+                    await signOut(
+                        auth
+                    );
 
 
-            /* =====================================
-               DASHBOARD
-            ===================================== */
+                    showMessage(
+                        access.message,
+                        "error"
+                    );
 
-            setTimeout(
-                () => {
 
-                    window.location.href =
-                        "dashboard.html";
+                    if (loginButton) {
 
-                },
-                700
-            );
+                        loginButton.disabled =
+                            false;
 
+                        loginButton.textContent =
+                            "Sign In";
+
+                    }
+
+
+                    return;
+
+                }
+
+
+                /* =====================================
+                   ACCESS GRANTED
+                ===================================== */
+
+                console.log(
+                    "✅ Organization access granted."
+                );
+
+
+                showMessage(
+                    "Login successful. Opening your dashboard...",
+                    "success"
+                );
+
+
+                setTimeout(
+                    () => {
+
+                        window.location.href =
+                            "dashboard.html";
+
+                    },
+                    700
+                );
+
+            }
+
+
+            catch (error) {
+
+                console.error(
+                    "❌ Login error:",
+                    error
+                );
+
+
+                let message =
+                    "Unable to sign in. Please check your details and try again.";
+
+
+                /* =====================================
+                   FIREBASE ERRORS
+                ===================================== */
+
+                if (
+                    error.code ===
+                    "auth/invalid-credential"
+                ) {
+
+                    message =
+                        "Incorrect email or password.";
+
+                }
+
+
+                else if (
+                    error.code ===
+                    "auth/user-not-found"
+                ) {
+
+                    message =
+                        "No account was found with this email.";
+
+                }
+
+
+                else if (
+                    error.code ===
+                    "auth/wrong-password"
+                ) {
+
+                    message =
+                        "Incorrect password.";
+
+                }
+
+
+                else if (
+                    error.code ===
+                    "auth/invalid-email"
+                ) {
+
+                    message =
+                        "Please enter a valid email address.";
+
+                }
+
+
+                else if (
+                    error.code ===
+                    "auth/too-many-requests"
+                ) {
+
+                    message =
+                        "Too many login attempts. Please wait and try again.";
+
+                }
+
+
+                else if (
+                    error.code ===
+                    "permission-denied"
+                ) {
+
+                    message =
+                        "Unable to verify your organization status because Firestore permission was denied.";
+
+                }
+
+
+                showMessage(
+                    message,
+                    "error"
+                );
+
+
+                if (loginButton) {
+
+                    loginButton.disabled =
+                        false;
+
+                    loginButton.textContent =
+                        "Sign In";
+
+                }
+
+            }
 
         }
+    );
 
-        catch (error) {
-
-            console.error(
-                "❌ Login error:",
-                error
-            );
+}
 
 
-            let message =
-                "Unable to sign in. Please check your details and try again.";
+/* =========================================================
+   FINAL LOG
+========================================================= */
 
-
-            /* =====================================
-               FIREBASE ERROR HANDLING
-            ===================================== */
-
-            if (
-                error.code ===
-                "auth/invalid-credential"
-            ) {
-
-                message =
-                    "Incorrect email or password.";
-
-            }
-
-
-            else if (
-                error.code ===
-                "auth/user-not-found"
-            ) {
-
-                message =
-                    "No account was found with this email.";
-
-            }
-
-
-            else if (
-                error.code ===
-                "auth/wrong-password"
-            ) {
-
-                message =
-                    "Incorrect password.";
-
-            }
-
-
-            else if (
-                error.code ===
-                "auth/invalid-email"
-            ) {
-
-                message =
-                    "Please enter a valid email address.";
-
-            }
-
-
-            else if (
-                error.code ===
-                "auth/too-many-requests"
-            ) {
-
-                message =
-                    "Too many login attempts. Please wait and try again.";
-
-            }
-
-
-            showMessage(
-                message,
-                "error"
-            );
-
-
-            loginButton.disabled =
-                false;
-
-            loginButton.textContent =
-                "Sign In";
-
-        }
-
-    }
+console.log(
+    "✅ Virello secure login.js loaded."
 );
