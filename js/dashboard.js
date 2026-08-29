@@ -8,34 +8,16 @@
    PURPOSE:
    Complete Organization Dashboard
 
-   LOADS:
-   - Logged-in administrator
-   - Organization
-   - Total active staff
-   - Present today
-   - Late today
-   - Absent today
-   - Attendance records
-
-   FIREBASE STRUCTURE:
-
-   organizations
-      └── organization document
-          ownerUid
-
-   staff
-      └── staff document
-          organizationId
-
-   attendance
-      └── attendance document
-          organizationId
-          staffDocumentId
-          date
-          status
-          checkIn
-          checkOut
-
+   SECURITY:
+   - Requires Firebase authentication
+   - Loads organization owned by current user
+   - Checks organization status
+   - Blocks suspended organizations
+   - Blocks pending organizations
+   - Blocks inactive organizations
+   - Blocks expired organizations
+   - Real-time monitoring of organization status
+   - Automatically signs out suspended accounts
 ========================================================= */
 
 
@@ -57,7 +39,9 @@ import {
     collection,
     query,
     where,
-    getDocs
+    getDocs,
+    doc,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 
@@ -83,49 +67,79 @@ let staffMembers = [];
 
 let attendanceRecords = [];
 
+let organizationListener = null;
+
+let accessBlocked = false;
+
 
 /* =========================================================
    HTML ELEMENTS
 ========================================================= */
 
 const loadingScreen =
-    document.getElementById("loadingScreen");
+    document.getElementById(
+        "loadingScreen"
+    );
 
 const errorScreen =
-    document.getElementById("errorScreen");
+    document.getElementById(
+        "errorScreen"
+    );
 
 const errorMessage =
-    document.getElementById("errorMessage");
+    document.getElementById(
+        "errorMessage"
+    );
 
 const organizationName =
-    document.getElementById("organizationName");
+    document.getElementById(
+        "organizationName"
+    );
 
 const organizationType =
-    document.getElementById("organizationType");
+    document.getElementById(
+        "organizationType"
+    );
 
 const organizationCountry =
-    document.getElementById("organizationCountry");
+    document.getElementById(
+        "organizationCountry"
+    );
 
 const subscriptionStatus =
-    document.getElementById("subscriptionStatus");
+    document.getElementById(
+        "subscriptionStatus"
+    );
 
 const adminName =
-    document.getElementById("adminName");
+    document.getElementById(
+        "adminName"
+    );
 
 const logoutButton =
-    document.getElementById("logoutButton");
+    document.getElementById(
+        "logoutButton"
+    );
 
 const totalStaffElement =
-    document.getElementById("totalStaff");
+    document.getElementById(
+        "totalStaff"
+    );
 
 const presentTodayElement =
-    document.getElementById("presentToday");
+    document.getElementById(
+        "presentToday"
+    );
 
 const lateTodayElement =
-    document.getElementById("lateToday");
+    document.getElementById(
+        "lateToday"
+    );
 
 const absentTodayElement =
-    document.getElementById("absentToday");
+    document.getElementById(
+        "absentToday"
+    );
 
 
 /* =========================================================
@@ -139,6 +153,7 @@ document.addEventListener(
         console.log(
             "🔥 Virello Dashboard starting..."
         );
+
 
         initializeDashboard();
 
@@ -173,8 +188,8 @@ function initializeDashboard() {
                         "⚠️ No authenticated administrator."
                     );
 
-                    window.location.href =
-                        "login.html";
+
+                    redirectToLogin();
 
                     return;
 
@@ -182,7 +197,7 @@ function initializeDashboard() {
 
 
                 /* =========================================
-                   SAVE CURRENT USER
+                   SAVE USER
                 ========================================= */
 
                 currentUser =
@@ -202,11 +217,21 @@ function initializeDashboard() {
                 await loadOrganization();
 
 
-                if (!currentOrganization) {
+                if (
+                    !currentOrganization ||
+                    accessBlocked
+                ) {
 
                     return;
 
                 }
+
+
+                /* =========================================
+                   START REAL-TIME STATUS MONITOR
+                ========================================= */
+
+                startOrganizationStatusListener();
 
 
                 /* =========================================
@@ -216,11 +241,21 @@ function initializeDashboard() {
                 await loadStaff();
 
 
+                if (accessBlocked) {
+                    return;
+                }
+
+
                 /* =========================================
                    LOAD TODAY ATTENDANCE
                 ========================================= */
 
                 await loadTodayAttendance();
+
+
+                if (accessBlocked) {
+                    return;
+                }
 
 
                 /* =========================================
@@ -243,6 +278,7 @@ function initializeDashboard() {
 
             }
 
+
             catch (error) {
 
                 console.error(
@@ -251,10 +287,14 @@ function initializeDashboard() {
                 );
 
 
-                showError(
-                    error.message ||
-                    "Unable to load your dashboard."
-                );
+                if (!accessBlocked) {
+
+                    showError(
+                        error.message ||
+                        "Unable to load your dashboard."
+                    );
+
+                }
 
             }
 
@@ -319,7 +359,7 @@ async function loadOrganization() {
 
 
     /* =========================================
-       GET FIRST ORGANIZATION
+       GET ORGANIZATION
     ========================================= */
 
     const organizationDocument =
@@ -342,7 +382,430 @@ async function loadOrganization() {
     );
 
 
+    /* =========================================
+       CHECK STATUS BEFORE LOADING DASHBOARD
+    ========================================= */
+
+    const allowed =
+        await enforceOrganizationStatus(
+            currentOrganization
+        );
+
+
+    if (!allowed) {
+
+        return;
+
+    }
+
+
     displayOrganization();
+
+}
+
+
+/* =========================================================
+   ENFORCE ORGANIZATION STATUS
+========================================================= */
+
+async function enforceOrganizationStatus(
+    organization
+) {
+
+    if (!organization) {
+
+        return false;
+
+    }
+
+
+    const status =
+        String(
+            organization.status ||
+            "pending"
+        ).toLowerCase();
+
+
+    console.log(
+        "🔐 Organization access status:",
+        status
+    );
+
+
+    /* =========================================
+       ACTIVE
+    ========================================= */
+
+    if (status === "active") {
+
+        return true;
+
+    }
+
+
+    /* =========================================
+       SUSPENDED
+    ========================================= */
+
+    if (status === "suspended") {
+
+        await blockOrganizationAccess(
+            "Your organization account has been suspended by Virello Technologies."
+        );
+
+        return false;
+
+    }
+
+
+    /* =========================================
+       PENDING
+    ========================================= */
+
+    if (status === "pending") {
+
+        await blockOrganizationAccess(
+            "Your organization is pending subscription/payment verification."
+        );
+
+        return false;
+
+    }
+
+
+    /* =========================================
+       INACTIVE
+    ========================================= */
+
+    if (status === "inactive") {
+
+        await blockOrganizationAccess(
+            "Your organization account is inactive."
+        );
+
+        return false;
+
+    }
+
+
+    /* =========================================
+       EXPIRED
+    ========================================= */
+
+    if (status === "expired") {
+
+        await blockOrganizationAccess(
+            "Your organization subscription has expired."
+        );
+
+        return false;
+
+    }
+
+
+    /* =========================================
+       UNKNOWN
+    ========================================= */
+
+    await blockOrganizationAccess(
+        "Your organization is not authorized to access the platform."
+    );
+
+
+    return false;
+
+}
+
+
+/* =========================================================
+   REAL-TIME ORGANIZATION STATUS LISTENER
+========================================================= */
+
+function startOrganizationStatusListener() {
+
+    if (!currentOrganization) {
+
+        return;
+
+    }
+
+
+    if (organizationListener) {
+
+        organizationListener();
+
+        organizationListener =
+            null;
+
+    }
+
+
+    console.log(
+        "👁️ Starting real-time organization status monitoring..."
+    );
+
+
+    const organizationRef =
+        doc(
+            db,
+            "organizations",
+            currentOrganization.id
+        );
+
+
+    organizationListener =
+        onSnapshot(
+
+            organizationRef,
+
+            async snapshot => {
+
+                try {
+
+                    if (!snapshot.exists()) {
+
+                        console.warn(
+                            "⚠️ Organization document no longer exists."
+                        );
+
+
+                        await blockOrganizationAccess(
+                            "Your organization account could not be found."
+                        );
+
+
+                        return;
+
+                    }
+
+
+                    const updatedOrganization =
+                        snapshot.data();
+
+
+                    const oldStatus =
+                        String(
+                            currentOrganization.status ||
+                            ""
+                        ).toLowerCase();
+
+
+                    const newStatus =
+                        String(
+                            updatedOrganization.status ||
+                            "pending"
+                        ).toLowerCase();
+
+
+                    console.log(
+                        "🔄 Organization status changed:",
+                        oldStatus,
+                        "→",
+                        newStatus
+                    );
+
+
+                    currentOrganization = {
+
+                        id:
+                            snapshot.id,
+
+                        ...updatedOrganization
+
+                    };
+
+
+                    /* =====================================
+                       ACTIVE
+                    ===================================== */
+
+                    if (
+                        newStatus ===
+                        "active"
+                    ) {
+
+                        displayOrganization();
+
+                        return;
+
+                    }
+
+
+                    /* =====================================
+                       ANY BLOCKED STATUS
+                    ===================================== */
+
+                    await blockOrganizationAccess(
+                        getStatusMessage(
+                            newStatus
+                        )
+                    );
+
+                }
+
+
+                catch (error) {
+
+                    console.error(
+                        "❌ Organization status listener error:",
+                        error
+                    );
+
+                }
+
+            },
+
+            error => {
+
+                console.error(
+                    "❌ Organization real-time listener error:",
+                    error
+                );
+
+            }
+
+        );
+
+}
+
+
+/* =========================================================
+   STATUS MESSAGE
+========================================================= */
+
+function getStatusMessage(
+    status
+) {
+
+    switch (status) {
+
+        case "suspended":
+
+            return (
+                "Your organization account has been suspended by Virello Technologies."
+            );
+
+
+        case "pending":
+
+            return (
+                "Your organization account is pending subscription/payment verification."
+            );
+
+
+        case "inactive":
+
+            return (
+                "Your organization account is inactive."
+            );
+
+
+        case "expired":
+
+            return (
+                "Your organization subscription has expired."
+            );
+
+
+        default:
+
+            return (
+                "Your organization is no longer authorized to access the platform."
+            );
+
+    }
+
+}
+
+
+/* =========================================================
+   BLOCK ORGANIZATION ACCESS
+========================================================= */
+
+async function blockOrganizationAccess(
+    message
+) {
+
+    /* =========================================
+       PREVENT DUPLICATE EXECUTION
+    ========================================= */
+
+    if (accessBlocked) {
+
+        return;
+
+    }
+
+
+    accessBlocked =
+        true;
+
+
+    console.warn(
+        "🚫 ORGANIZATION ACCESS BLOCKED:",
+        message
+    );
+
+
+    /* =========================================
+       STOP REAL-TIME LISTENER
+    ========================================= */
+
+    if (organizationListener) {
+
+        organizationListener();
+
+        organizationListener =
+            null;
+
+    }
+
+
+    /* =========================================
+       SHOW MESSAGE
+    ========================================= */
+
+    showError(
+        message +
+        " You will be signed out."
+    );
+
+
+    /* =========================================
+       SIGN OUT
+    ========================================= */
+
+    try {
+
+        await signOut(
+            auth
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Sign out after access block failed:",
+            error
+        );
+
+    }
+
+
+    /* =========================================
+       REDIRECT
+    ========================================= */
+
+    setTimeout(
+        () => {
+
+            window.location.href =
+                "login.html";
+
+        },
+        1800
+    );
 
 }
 
@@ -491,14 +954,28 @@ function formatSubscription(
     }
 
 
-    if (value === "none") {
+    if (value === "suspended") {
 
-        return "Active";
+        return "Suspended";
 
     }
 
 
-    return status || "Active";
+    if (value === "pending") {
+
+        return "Pending Verification";
+
+    }
+
+
+    if (value === "none") {
+
+        return "Inactive";
+
+    }
+
+
+    return status || "Unknown";
 
 }
 
@@ -508,6 +985,11 @@ function formatSubscription(
 ========================================================= */
 
 async function loadStaff() {
+
+    if (accessBlocked) {
+        return;
+    }
+
 
     console.log(
         "👥 Loading staff for organization:",
@@ -539,6 +1021,11 @@ async function loadStaff() {
         await getDocs(
             staffQuery
         );
+
+
+    if (accessBlocked) {
+        return;
+    }
 
 
     staffMembers = [];
@@ -579,6 +1066,11 @@ async function loadStaff() {
 ========================================================= */
 
 async function loadTodayAttendance() {
+
+    if (accessBlocked) {
+        return;
+    }
+
 
     const today =
         getLocalDateString();
@@ -629,6 +1121,11 @@ async function loadTodayAttendance() {
         );
 
 
+    if (accessBlocked) {
+        return;
+    }
+
+
     attendanceRecords = [];
 
 
@@ -668,6 +1165,11 @@ async function loadTodayAttendance() {
 
 function updateDashboardStatistics() {
 
+    if (accessBlocked) {
+        return;
+    }
+
+
     console.log(
         "📊 Updating dashboard statistics..."
     );
@@ -687,7 +1189,9 @@ function updateDashboardStatistics() {
                         "active"
                     ).toLowerCase();
 
-                return status !== "inactive";
+
+                return status !==
+                    "inactive";
 
             }
         );
@@ -711,7 +1215,9 @@ function updateDashboardStatistics() {
                         ""
                     ).toLowerCase();
 
-                return status === "present";
+
+                return status ===
+                    "present";
 
             }
         ).length;
@@ -731,7 +1237,9 @@ function updateDashboardStatistics() {
                         ""
                     ).toLowerCase();
 
-                return status === "late";
+
+                return status ===
+                    "late";
 
             }
         ).length;
@@ -762,7 +1270,7 @@ function updateDashboardStatistics() {
 
 
     /* =========================================
-       DISPLAY TOTAL STAFF
+       DISPLAY TOTAL
     ========================================= */
 
     if (totalStaffElement) {
@@ -841,7 +1349,9 @@ function getLocalDateString(
         );
 
 
-    return `${year}-${month}-${day}`;
+    return (
+        `${year}-${month}-${day}`
+    );
 
 }
 
@@ -871,6 +1381,16 @@ if (logoutButton) {
                     "Logging out...";
 
 
+                if (organizationListener) {
+
+                    organizationListener();
+
+                    organizationListener =
+                        null;
+
+                }
+
+
                 await signOut(
                     auth
                 );
@@ -880,6 +1400,7 @@ if (logoutButton) {
                     "login.html";
 
             }
+
 
             catch (error) {
 
@@ -970,9 +1491,21 @@ function showError(
 
 
 /* =========================================================
+   REDIRECT TO LOGIN
+========================================================= */
+
+function redirectToLogin() {
+
+    window.location.href =
+        "login.html";
+
+}
+
+
+/* =========================================================
    FINAL LOG
 ========================================================= */
 
 console.log(
-    "✅ Virello complete dashboard.js loaded."
+    "✅ Virello secure dashboard.js loaded."
 );
