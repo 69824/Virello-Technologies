@@ -18,11 +18,18 @@
    - Check-in
    - Check-out
    - Firestore attendance records
+   - SAME DEVICE / SAME PHONE DAILY LOCK
+   - Worker can only use the device that checked them in
    - Hosting safe
 
    ATTENDANCE RULE:
-   - BEFORE 08:05 AM = PRESENT
+   - 08:05 AM OR EARLIER = PRESENT
    - 08:06 AM OR LATER = LATE
+
+   DEVICE RULE:
+   - One device can check in ONE staff member per day.
+   - The same staff member can check out from that same device.
+   - Another staff member cannot use that device for attendance.
 ========================================================= */
 
 
@@ -48,6 +55,9 @@ import {
     addDoc,
     updateDoc,
     doc,
+    getDoc,
+    setDoc,
+    deleteDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
@@ -65,9 +75,12 @@ import {
    FIREBASE SERVICES
 ========================================================= */
 
-const auth = getAuth(app);
+const auth =
+    getAuth(app);
 
-const db = getFirestore(app);
+
+const db =
+    getFirestore(app);
 
 
 /* =========================================================
@@ -91,10 +104,31 @@ let officeQRToken = null;
 
 
 /* =========================================================
+   DEVICE STATE
+========================================================= */
+
+let currentDeviceId = null;
+
+
+/*
+   IMPORTANT:
+
+   This ID is stored in the browser on the phone.
+
+   It remains the same for that browser until
+   the browser storage is cleared.
+*/
+
+const DEVICE_STORAGE_KEY =
+    "virello_attendance_device_id";
+
+
+/* =========================================================
    QR SETTINGS
 ========================================================= */
 
-const QR_LIFETIME_SECONDS = 30;
+const QR_LIFETIME_SECONDS =
+    30;
 
 
 /* =========================================================
@@ -102,15 +136,15 @@ const QR_LIFETIME_SECONDS = 30;
 ========================================================= */
 
 /*
-   Attendance cutoff time.
-
-   Before 08:05 = Present
-   08:06 or later = Late
+   08:05 AM = PRESENT
+   08:06 AM = LATE
 */
 
-const LATE_HOUR = 8;
+const PRESENT_CUTOFF_HOUR =
+    8;
 
-const LATE_MINUTE = 0;
+const PRESENT_CUTOFF_MINUTE =
+    5;
 
 
 /* =========================================================
@@ -223,6 +257,20 @@ document.addEventListener(
         setTodayDate();
 
 
+        /*
+           Create/retrieve device identity.
+        */
+
+        currentDeviceId =
+            getOrCreateDeviceId();
+
+
+        console.log(
+            "📱 Device ID:",
+            currentDeviceId
+        );
+
+
         verifyOfficeQR();
 
 
@@ -272,6 +320,405 @@ document.addEventListener(
 
 
 /* =========================================================
+   DEVICE ID
+========================================================= */
+
+function getOrCreateDeviceId() {
+
+    try {
+
+        let existingId =
+            localStorage.getItem(
+                DEVICE_STORAGE_KEY
+            );
+
+
+        if (
+            existingId &&
+            String(existingId).trim()
+        ) {
+
+            return existingId;
+
+        }
+
+
+        /*
+           Generate a strong random browser/device ID.
+        */
+
+        let newId = "";
+
+
+        if (
+            window.crypto &&
+            typeof window.crypto.randomUUID ===
+                "function"
+        ) {
+
+            newId =
+                window.crypto.randomUUID();
+
+        } else {
+
+            newId =
+                "VIRELLO-" +
+                Date.now().toString(36) +
+                "-" +
+                Math.random()
+                    .toString(36)
+                    .substring(2, 15) +
+                "-" +
+                Math.random()
+                    .toString(36)
+                    .substring(2, 15);
+
+        }
+
+
+        localStorage.setItem(
+            DEVICE_STORAGE_KEY,
+            newId
+        );
+
+
+        return newId;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Unable to create device ID:",
+            error
+        );
+
+
+        /*
+           Fallback for unusual browsers.
+        */
+
+        return (
+            "VIRELLO-FALLBACK-" +
+            Date.now() +
+            "-" +
+            Math.random()
+                .toString(36)
+                .substring(2, 12)
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   DEVICE LOCK DOCUMENT ID
+========================================================= */
+
+function getDeviceLockDocumentId() {
+
+    /*
+       Firestore document IDs cannot contain "/".
+
+       UUID does not contain "/", but replacing it
+       makes this safe for all possible fallback IDs.
+    */
+
+    const safeDeviceId =
+        String(
+            currentDeviceId || ""
+        )
+        .replace(
+            /\//g,
+            "_"
+        );
+
+
+    return (
+        getDateKey() +
+        "_" +
+        safeDeviceId
+    );
+
+}
+
+
+/* =========================================================
+   CHECK WHETHER DEVICE IS ALREADY LOCKED TODAY
+========================================================= */
+
+async function getTodayDeviceLock() {
+
+    if (!currentDeviceId) {
+
+        throw new Error(
+            "This device could not be identified."
+        );
+
+    }
+
+
+    const lockId =
+        getDeviceLockDocumentId();
+
+
+    const lockReference =
+        doc(
+            db,
+            "deviceLocks",
+            lockId
+        );
+
+
+    const lockSnapshot =
+        await getDoc(
+            lockReference
+        );
+
+
+    if (
+        !lockSnapshot.exists()
+    ) {
+
+        return null;
+
+    }
+
+
+    return {
+
+        id:
+            lockSnapshot.id,
+
+        ...lockSnapshot.data()
+
+    };
+
+}
+
+
+/* =========================================================
+   RESERVE DEVICE FOR STAFF
+========================================================= */
+
+async function reserveDeviceForStaff(
+    staff
+) {
+
+    if (!currentDeviceId) {
+
+        throw new Error(
+            "This device could not be identified."
+        );
+
+    }
+
+
+    const lockId =
+        getDeviceLockDocumentId();
+
+
+    const lockReference =
+        doc(
+            db,
+            "deviceLocks",
+            lockId
+        );
+
+
+    const existingLock =
+        await getDoc(
+            lockReference
+        );
+
+
+    /*
+       Device has already been used today.
+    */
+
+    if (
+        existingLock.exists()
+    ) {
+
+        const lockData =
+            existingLock.data();
+
+
+        const lockedStaffId =
+            String(
+                lockData.staffId ||
+                ""
+            );
+
+
+        /*
+           Same staff member is allowed to
+           continue using their own device.
+        */
+
+        if (
+            lockedStaffId ===
+            String(
+                staff.staffId ||
+                ""
+            )
+        ) {
+
+            return {
+
+                allowed:
+                    true,
+
+                sameStaff:
+                    true,
+
+                lock:
+                    lockData
+
+            };
+
+        }
+
+
+        /*
+           Different staff member = BLOCK.
+        */
+
+        return {
+
+            allowed:
+                false,
+
+            sameStaff:
+                false,
+
+            lock:
+                lockData
+
+        };
+
+    }
+
+
+    /*
+       Device has not been used today.
+
+       Reserve it for this staff member.
+    */
+
+    const lockData = {
+
+        deviceId:
+            currentDeviceId,
+
+        staffDocumentId:
+            staff.id,
+
+        staffId:
+            staff.staffId,
+
+        staffName:
+            staff.fullName ||
+            staff.name ||
+            "Staff Member",
+
+        organizationId:
+            staff.organizationId ||
+            null,
+
+        date:
+            getDateKey(),
+
+        createdAt:
+            serverTimestamp(),
+
+        updatedAt:
+            serverTimestamp(),
+
+        lockType:
+            "daily_staff_attendance"
+
+    };
+
+
+    await setDoc(
+        lockReference,
+        lockData
+    );
+
+
+    console.log(
+        "🔐 Device reserved for:",
+        staff.fullName ||
+        staff.name ||
+        staff.staffId
+    );
+
+
+    return {
+
+        allowed:
+            true,
+
+        sameStaff:
+            true,
+
+        lock:
+            lockData
+
+    };
+
+}
+
+
+/* =========================================================
+   DELETE DEVICE LOCK
+========================================================= */
+
+async function removeDeviceLock() {
+
+    if (!currentDeviceId) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const lockId =
+            getDeviceLockDocumentId();
+
+
+        await deleteDoc(
+            doc(
+                db,
+                "deviceLocks",
+                lockId
+            )
+        );
+
+
+        console.log(
+            "🧹 Device lock removed because attendance creation failed."
+        );
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "⚠️ Could not remove temporary device lock:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
    OFFICE QR VERIFICATION
 ========================================================= */
 
@@ -307,7 +754,7 @@ function verifyOfficeQR() {
 
 
     /* =====================================================
-       CHECK REQUIRED QR PARAMETERS
+       REQUIRED PARAMETERS
     ===================================================== */
 
     if (
@@ -321,11 +768,16 @@ function verifyOfficeQR() {
         );
 
 
-        officeQRVerified = false;
+        officeQRVerified =
+            false;
 
-        officeQRTimestamp = null;
 
-        officeQRToken = null;
+        officeQRTimestamp =
+            null;
+
+
+        officeQRToken =
+            null;
 
 
         setOfficeAccessState(
@@ -341,7 +793,7 @@ function verifyOfficeQR() {
 
 
     /* =====================================================
-       VALIDATE TIMESTAMP
+       TIMESTAMP
     ===================================================== */
 
     const qrTimestamp =
@@ -361,7 +813,8 @@ function verifyOfficeQR() {
         );
 
 
-        officeQRVerified = false;
+        officeQRVerified =
+            false;
 
 
         setOfficeAccessState(
@@ -377,7 +830,7 @@ function verifyOfficeQR() {
 
 
     /* =====================================================
-       CHECK QR AGE
+       QR AGE
     ===================================================== */
 
     const now =
@@ -406,17 +859,22 @@ function verifyOfficeQR() {
         );
 
 
-        officeQRVerified = false;
+        officeQRVerified =
+            false;
 
-        officeQRTimestamp = null;
 
-        officeQRToken = null;
+        officeQRTimestamp =
+            null;
+
+
+        officeQRToken =
+            null;
 
 
         setOfficeAccessState(
             false,
             "Office QR Expired",
-            "This QR code has expired. Please scan the current QR displayed at the office."
+            "This QR code has expired. Please scan the current office QR code."
         );
 
 
@@ -426,7 +884,7 @@ function verifyOfficeQR() {
 
 
     /* =====================================================
-       QR IS VALID
+       QR VERIFIED
     ===================================================== */
 
     officeQRTimestamp =
@@ -473,7 +931,9 @@ function setOfficeAccessState(
 ) {
 
     if (!officeAccess) {
+
         return;
+
     }
 
 
@@ -516,13 +976,15 @@ function setOfficeAccessState(
 
 
 /* =========================================================
-   TODAY DATE DISPLAY
+   TODAY DATE
 ========================================================= */
 
 function setTodayDate() {
 
     if (!todayDate) {
+
         return;
+
     }
 
 
@@ -534,10 +996,17 @@ function setTodayDate() {
         now.toLocaleDateString(
             "en-GB",
             {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric"
+                weekday:
+                    "long",
+
+                year:
+                    "numeric",
+
+                month:
+                    "long",
+
+                day:
+                    "numeric"
             }
         );
 
@@ -545,7 +1014,7 @@ function setTodayDate() {
 
 
 /* =========================================================
-   FIRESTORE DATE KEY
+   DATE KEY
 ========================================================= */
 
 function getDateKey() {
@@ -576,20 +1045,15 @@ function getDateKey() {
         );
 
 
-    return `${year}-${month}-${day}`;
+    return (
+        `${year}-${month}-${day}`
+    );
 
 }
 
 
 /* =========================================================
-   GET CURRENT ATTENDANCE STATUS
-=========================================================
-
-   BEFORE 08:05 AM
-   = PRESENT
-
-   08:06 AM OR LATER
-   = LATE
+   ATTENDANCE STATUS
 ========================================================= */
 
 function getAttendanceStatus() {
@@ -606,48 +1070,45 @@ function getAttendanceStatus() {
         now.getMinutes();
 
 
+    /*
+       Before 08:00
+       = PRESENT
+    */
+
     if (
-        hour > LATE_HOUR
+        hour <
+        PRESENT_CUTOFF_HOUR
     ) {
 
-        return "late";
+        return "present";
 
     }
 
 
+    /*
+       After 08:00 but before 08:06
+       = PRESENT
+    */
+
     if (
-        hour === LATE_HOUR &&
-        minute >= LATE_MINUTE
+        hour ===
+        PRESENT_CUTOFF_HOUR
+        &&
+        minute <=
+        PRESENT_CUTOFF_MINUTE
     ) {
 
-        return "late";
+        return "present";
 
     }
 
 
-    return "present";
+    /*
+       08:06 or later
+       = LATE
+    */
 
-}
-
-
-/* =========================================================
-   GET ATTENDANCE LABEL
-========================================================= */
-
-function getAttendanceLabel(
-    status
-) {
-
-    if (
-        status === "late"
-    ) {
-
-        return "Late";
-
-    }
-
-
-    return "Present";
+    return "late";
 
 }
 
@@ -662,7 +1123,9 @@ function showMessage(
 ) {
 
     if (!workerMessage) {
+
         return;
+
     }
 
 
@@ -677,10 +1140,16 @@ function showMessage(
 }
 
 
+/* =========================================================
+   CLEAR MESSAGE
+========================================================= */
+
 function clearMessage() {
 
     if (!workerMessage) {
+
         return;
+
     }
 
 
@@ -829,6 +1298,49 @@ async function findTodayAttendance(
 
 
 /* =========================================================
+   DEVICE OWNERSHIP CHECK
+========================================================= */
+
+function attendanceBelongsToCurrentDevice(
+    attendance
+) {
+
+    if (!attendance) {
+
+        return true;
+
+    }
+
+
+    /*
+       Older attendance records may not have
+       deviceId because this feature is new.
+
+       Do not break old records.
+    */
+
+    if (
+        !attendance.deviceId
+    ) {
+
+        return true;
+
+    }
+
+
+    return (
+        String(
+            attendance.deviceId
+        ) ===
+        String(
+            currentDeviceId
+        )
+    );
+
+}
+
+
+/* =========================================================
    HANDLE CHECK IN
 ========================================================= */
 
@@ -838,7 +1350,7 @@ async function handleCheckIn() {
 
 
     /* =====================================================
-       QR ACCESS CHECK
+       QR CHECK
     ===================================================== */
 
     if (
@@ -864,7 +1376,7 @@ async function handleCheckIn() {
 
 
     /* =====================================================
-       CHECK QR HAS NOT EXPIRED
+       QR EXPIRATION
     ===================================================== */
 
     if (
@@ -925,7 +1437,7 @@ async function handleCheckIn() {
 
 
     /* =====================================================
-       DISABLE BUTTON
+       BUTTON
     ===================================================== */
 
     if (checkInButton) {
@@ -938,6 +1450,10 @@ async function handleCheckIn() {
             "Checking...";
 
     }
+
+
+    let deviceWasReserved =
+        false;
 
 
     try {
@@ -966,14 +1482,19 @@ async function handleCheckIn() {
 
 
         /* =================================================
-           ACTIVE STAFF ONLY
+           ACTIVE STAFF
         ================================================= */
 
-        if (
-            staff.status &&
+        const staffStatus =
             String(
-                staff.status
-            ).toLowerCase() !== "active"
+                staff.status ||
+                "active"
+            ).toLowerCase();
+
+
+        if (
+            staffStatus !==
+            "active"
         ) {
 
             showMessage(
@@ -1014,7 +1535,46 @@ async function handleCheckIn() {
             );
 
 
+        /* =================================================
+           EXISTING STAFF ATTENDANCE
+        ================================================= */
+
         if (existingAttendance) {
+
+            /*
+               If this attendance belongs to another device,
+               prevent the worker from using another phone.
+            */
+
+            if (
+                !attendanceBelongsToCurrentDevice(
+                    existingAttendance
+                )
+            ) {
+
+                displayWorker(
+                    staff
+                );
+
+
+                showMessage(
+                    "This staff member has already checked in today using another phone/device. Please use the same phone used for check-in.",
+                    "error"
+                );
+
+
+                if (checkInButton) {
+
+                    checkInButton.disabled =
+                        false;
+
+                }
+
+
+                return;
+
+            }
+
 
             currentAttendance =
                 existingAttendance;
@@ -1044,30 +1604,105 @@ async function handleCheckIn() {
 
 
         /* =================================================
-           DETERMINE PRESENT OR LATE
-        =================================================
+           CHECK DEVICE LOCK
+        ================================================= */
 
-           IMPORTANT:
+        const deviceLock =
+            await getTodayDeviceLock();
 
-           This is calculated at the exact moment
-           the staff member presses Check In.
 
-           QR generation time DOES NOT determine
-           attendance status.
+        if (deviceLock) {
+
+            const lockedStaffId =
+                String(
+                    deviceLock.staffId ||
+                    ""
+                );
+
+
+            /*
+               Another staff member is trying
+               to use this phone.
+            */
+
+            if (
+                lockedStaffId !==
+                String(
+                    staff.staffId ||
+                    ""
+                )
+            ) {
+
+                console.warn(
+                    "🚫 Device already assigned to another staff member."
+                );
+
+
+                showMessage(
+                    "This phone has already been used for another staff member's attendance today. You cannot check in another staff member using this phone.",
+                    "error"
+                );
+
+
+                if (workerInfo) {
+
+                    workerInfo.classList.remove(
+                        "show"
+                    );
+
+                }
+
+
+                return;
+
+            }
+
+        }
+
+
+        /* =================================================
+           RESERVE DEVICE
+        ================================================= */
+
+        const reservation =
+            await reserveDeviceForStaff(
+                staff
+            );
+
+
+        if (
+            !reservation.allowed
+        ) {
+
+            showMessage(
+                "This phone has already been used for another staff member's attendance today.",
+                "error"
+            );
+
+
+            return;
+
+        }
+
+
+        deviceWasReserved =
+            !reservation.sameStaff;
+
+
+        /* =================================================
+           CURRENT TIME
+        ================================================= */
+
+        const checkInTime =
+            new Date();
+
+
+        /* =================================================
+           STATUS
         ================================================= */
 
         const attendanceStatusValue =
             getAttendanceStatus();
-
-
-        const attendanceLabel =
-            getAttendanceLabel(
-                attendanceStatusValue
-            );
-
-
-        const checkInTime =
-            new Date();
 
 
         console.log(
@@ -1080,12 +1715,12 @@ async function handleCheckIn() {
 
         console.log(
             "📊 Attendance status:",
-            attendanceLabel
+            attendanceStatusValue
         );
 
 
         /* =================================================
-           CREATE ATTENDANCE
+           ATTENDANCE DATA
         ================================================= */
 
         const attendanceData = {
@@ -1103,6 +1738,7 @@ async function handleCheckIn() {
 
             position:
                 staff.position ||
+                staff.role ||
                 "",
 
             organizationId:
@@ -1127,12 +1763,16 @@ async function handleCheckIn() {
             updatedAt:
                 serverTimestamp(),
 
+
             /* =============================================
-               ACTUAL ATTENDANCE INFORMATION
+               ATTENDANCE INFORMATION
             ============================================= */
 
             attendanceType:
                 attendanceStatusValue,
+
+            attendanceCompleted:
+                false,
 
             checkInHour:
                 checkInTime.getHours(),
@@ -1143,8 +1783,20 @@ async function handleCheckIn() {
             checkInSecond:
                 checkInTime.getSeconds(),
 
+
             /* =============================================
-               QR ACCESS INFORMATION
+               DEVICE INFORMATION
+            ============================================= */
+
+            deviceId:
+                currentDeviceId,
+
+            deviceLockDate:
+                getDateKey(),
+
+
+            /* =============================================
+               QR ACCESS
             ============================================= */
 
             attendanceAccess:
@@ -1158,6 +1810,10 @@ async function handleCheckIn() {
 
         };
 
+
+        /* =================================================
+           CREATE ATTENDANCE
+        ================================================= */
 
         const attendanceRef =
             collection(
@@ -1189,7 +1845,7 @@ async function handleCheckIn() {
 
 
         /* =================================================
-           SHOW CORRECT RESULT
+           SHOW RESULT
         ================================================= */
 
         if (
@@ -1213,17 +1869,33 @@ async function handleCheckIn() {
 
 
         console.log(
-            "📊 Final attendance status:",
-            attendanceStatusValue
+            "📱 Device locked to Staff ID:",
+            staff.staffId
         );
 
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(
             "❌ Check-in error:",
             error
         );
+
+
+        /*
+           If we reserved the device but failed
+           to create attendance, remove the lock.
+        */
+
+        if (
+            deviceWasReserved
+        ) {
+
+            await removeDeviceLock();
+
+        }
 
 
         showMessage(
@@ -1232,7 +1904,9 @@ async function handleCheckIn() {
             "error"
         );
 
-    } finally {
+    }
+
+    finally {
 
         if (checkInButton) {
 
@@ -1322,6 +1996,7 @@ function displayWorker(
 
         workerPosition.textContent =
             staff.position ||
+            staff.role ||
             "Staff";
 
     }
@@ -1330,7 +2005,7 @@ function displayWorker(
 
 
 /* =========================================================
-   CHECKED IN — PRESENT
+   PRESENT
 ========================================================= */
 
 function showCheckedIn() {
@@ -1354,27 +2029,19 @@ function showCheckedIn() {
         checkOutButton.style.display =
             "block";
 
-    }
-
-
-    if (staffIdInput) {
-
-        staffIdInput.disabled =
-            true;
+        checkOutButton.textContent =
+            "Check Out";
 
     }
 
 
-    if (checkInButton) {
+    disableStaffId();
 
-        checkInButton.style.display =
-            "none";
-
-    }
+    hideCheckInButton();
 
 
     showMessage(
-        "Check-in recorded successfully. You are marked Present.",
+        "Check-in recorded successfully. You are marked Present. This phone is now assigned to your attendance for today.",
         "success"
     );
 
@@ -1382,7 +2049,7 @@ function showCheckedIn() {
 
 
 /* =========================================================
-   CHECKED IN — LATE
+   LATE
 ========================================================= */
 
 function showLateCheckedIn() {
@@ -1406,27 +2073,19 @@ function showLateCheckedIn() {
         checkOutButton.style.display =
             "block";
 
-    }
-
-
-    if (staffIdInput) {
-
-        staffIdInput.disabled =
-            true;
+        checkOutButton.textContent =
+            "Check Out";
 
     }
 
 
-    if (checkInButton) {
+    disableStaffId();
 
-        checkInButton.style.display =
-            "none";
-
-    }
+    hideCheckInButton();
 
 
     showMessage(
-        "Check-in recorded. You arrived after 8:05 AM and have been marked Late.",
+        "Check-in recorded. You arrived after 8:05 AM and have been marked Late. This phone is now assigned to your attendance for today.",
         "success"
     );
 
@@ -1447,7 +2106,8 @@ function showAlreadyCheckedIn() {
 
 
     if (
-        status === "late"
+        status ===
+        "late"
     ) {
 
         if (attendanceStatus) {
@@ -1495,23 +2155,15 @@ function showAlreadyCheckedIn() {
         checkOutButton.style.display =
             "block";
 
-    }
-
-
-    if (staffIdInput) {
-
-        staffIdInput.disabled =
-            true;
+        checkOutButton.textContent =
+            "Check Out";
 
     }
 
 
-    if (checkInButton) {
+    disableStaffId();
 
-        checkInButton.style.display =
-            "none";
-
-    }
+    hideCheckInButton();
 
 }
 
@@ -1530,7 +2182,8 @@ function showCompletedAttendance() {
 
 
     if (
-        status === "late"
+        status ===
+        "late"
     ) {
 
         if (attendanceStatus) {
@@ -1603,6 +2256,31 @@ async function handleCheckOut() {
 
         showMessage(
             "Attendance record could not be found.",
+            "error"
+        );
+
+
+        return;
+
+    }
+
+
+    /* =====================================================
+       DEVICE SECURITY CHECK
+    ===================================================== */
+
+    if (
+        currentAttendance.deviceId &&
+        String(
+            currentAttendance.deviceId
+        ) !==
+        String(
+            currentDeviceId
+        )
+    ) {
+
+        showMessage(
+            "You must check out using the same phone/device that was used to check in.",
             "error"
         );
 
@@ -1688,13 +2366,9 @@ async function handleCheckOut() {
 
 
         /*
-           IMPORTANT:
+           DO NOT change Present/Late.
 
-           We DO NOT change the original
-           Present/Late status to "completed".
-
-           This means reports can still correctly
-           see whether the worker was Present or Late.
+           The original status remains.
         */
 
 
@@ -1707,7 +2381,9 @@ async function handleCheckOut() {
         );
 
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(
             "❌ Check-out error:",
@@ -1780,12 +2456,12 @@ console.log(
 
 
 console.log(
-    "🕘 Attendance cutoff: 08:06 AM"
+    "🕘 Attendance cutoff: 08:05 AM"
 );
 
 
 console.log(
-    "🟢 Before 08:05 AM = Present"
+    "🟢 08:05 AM or earlier = Present"
 );
 
 
@@ -1795,15 +2471,15 @@ console.log(
 
 
 console.log(
-    "🔴 No attendance record = Absent"
+    "🔐 Same-phone daily attendance protection active."
+);
+
+
+console.log(
+    "📱 One device = one staff attendance per day."
 );
 
 
 console.log(
     "🌐 Hosting-safe worker system active."
-);
-
-
-console.log(
-    "🔐 Office QR verification active."
 );
