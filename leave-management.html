@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>
+    Leave Management | Virello Technologies
+</title>
+
+<style>
+
+/* =========================================
+   RESET
+========================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* =========================================
+   BODY
+========================================= */
+
+body {
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: #f5f7fb;
+
+    color: #172033;
+
+    min-height: 100vh;
+
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+header {
+
+    height: 72px;
+
+    background: #ffffff;
+
+    border-bottom:
+        1px solid #e5e7eb;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 5%;
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 1000;
+
+}
+
+
+.logo {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+}
+
+
+.logo-icon {
+
+    width: 42px;
+
+    height: 42px;
+
+    background: #2563eb;
+
+    color: white;
+
+    border-radius: 10px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 21px;
+
+    font-weight: 800;
+
+}
+
+
+.logo-text h2 {
+
+    font-size: 18px;
+
+    color: #111827;
+
+}
+
+
+.logo-text p {
+
+    font-size: 10px;
+
+    color: #64748b;
+
+    margin-top: 2px;
+
+}
+
+
+.header-right {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+}
+
+
+.admin-name {
+
+    font-size: 13px;
+
+    color: #475569;
+
+}
+
+
+.back-button {
+
+    text-decoration: none;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    border: 1px solid #bfdbfe;
+
+    padding: 9px 14px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+}
+
+
+.logout-button {
+
+    border:
+        1px solid #fecaca;
+
+    background: #fef2f2;
+
+    color: #dc2626;
+
+    padding: 9px 15px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+
+/* =========================================
+   PAGE
+========================================= */
+
+.page {
+
+    max-width: 1200px;
+
+    margin: auto;
+
+    padding: 35px 25px 60px;
+
+}
+
+
+/* =========================================
+   TITLE
+========================================= */
+
+.page-title {
+
+    margin-bottom: 25px;
+
+}
+
+
+.page-title h1 {
+
+    font-size:
+        clamp(26px, 4vw, 35px);
+
+    color: #111827;
+
+    margin-bottom: 7px;
+
+}
+
+
+.page-title p {
+
+    color: #64748b;
+
+    font-size: 14px;
+
+}
+
+
+/* =========================================
+   STATISTICS
+========================================= */
+
+.stats-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 18px;
+
+    margin-bottom: 28px;
+
+}
+
+
+.stat-card {
+
+    background: white;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 14px;
+
+    padding: 20px;
+
+}
+
+
+.stat-icon {
+
+    font-size: 23px;
+
+    margin-bottom: 10px;
+
+}
+
+
+.stat-label {
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    margin-bottom: 5px;
+
+}
+
+
+.stat-number {
+
+    font-size: 27px;
+
+    font-weight: bold;
+
+    color: #111827;
+
+}
+
+
+/* =========================================
+   MAIN GRID
+========================================= */
+
+.content-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        350px 1fr;
+
+    gap: 22px;
+
+}
+
+
+/* =========================================
+   CARD
+========================================= */
+
+.card {
+
+    background: white;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 14px;
+
+    padding: 22px;
+
+}
+
+
+.card h2 {
+
+    font-size: 18px;
+
+    color: #111827;
+
+    margin-bottom: 5px;
+
+}
+
+
+.card-description {
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    margin-bottom: 20px;
+
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.form-group {
+
+    margin-bottom: 16px;
+
+}
+
+
+.form-group label {
+
+    display: block;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+    color: #334155;
+
+    margin-bottom: 7px;
+
+}
+
+
+.form-group input,
+
+.form-group select,
+
+.form-group textarea {
+
+    width: 100%;
+
+    padding: 11px 12px;
+
+    border: 1px solid #cbd5e1;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    font-family: inherit;
+
+    font-size: 13px;
+
+    background: white;
+
+}
+
+
+.form-group textarea {
+
+    min-height: 100px;
+
+    resize: vertical;
+
+}
+
+
+.form-group input:focus,
+
+.form-group select:focus,
+
+.form-group textarea:focus {
+
+    border-color: #2563eb;
+
+}
+
+
+.submit-button {
+
+    width: 100%;
+
+    border: none;
+
+    background: #2563eb;
+
+    color: white;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+
+.submit-button:hover {
+
+    background: #1d4ed8;
+
+}
+
+
+.submit-button:disabled {
+
+    opacity: 0.6;
+
+    cursor: not-allowed;
+
+}
+
+
+/* =========================================
+   TABLE
+========================================= */
+
+.table-wrapper {
+
+    width: 100%;
+
+    overflow-x: auto;
+
+}
+
+
+table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 700px;
+
+}
+
+
+thead {
+
+    background: #f8fafc;
+
+}
+
+
+th {
+
+    text-align: left;
+
+    padding: 13px;
+
+    color: #64748b;
+
+    font-size: 11px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.4px;
+
+    border-bottom: 1px solid #e2e8f0;
+
+}
+
+
+td {
+
+    padding: 14px 13px;
+
+    font-size: 12px;
+
+    border-bottom: 1px solid #eef2f7;
+
+    color: #334155;
+
+}
+
+
+.employee-name {
+
+    font-weight: bold;
+
+    color: #111827;
+
+}
+
+
+.employee-email {
+
+    color: #64748b;
+
+    font-size: 11px;
+
+    margin-top: 3px;
+
+}
+
+
+/* =========================================
+   STATUS
+========================================= */
+
+.status {
+
+    display: inline-block;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+
+    font-weight: bold;
+
+}
+
+
+.status-pending {
+
+    background: #fef3c7;
+
+    color: #92400e;
+
+}
+
+
+.status-approved {
+
+    background: #dcfce7;
+
+    color: #166534;
+
+}
+
+
+.status-rejected {
+
+    background: #fee2e2;
+
+    color: #991b1b;
+
+}
+
+
+/* =========================================
+   ACTIONS
+========================================= */
+
+.action-buttons {
+
+    display: flex;
+
+    gap: 6px;
+
+}
+
+
+.approve-button,
+
+.reject-button {
+
+    border: none;
+
+    padding: 7px 10px;
+
+    border-radius: 6px;
+
+    font-size: 10px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+
+.approve-button {
+
+    background: #dcfce7;
+
+    color: #166534;
+
+}
+
+
+.reject-button {
+
+    background: #fee2e2;
+
+    color: #991b1b;
+
+}
+
+
+.approve-button:disabled,
+
+.reject-button:disabled {
+
+    opacity: 0.5;
+
+}
+
+
+/* =========================================
+   EMPTY
+========================================= */
+
+.empty-state {
+
+    text-align: center;
+
+    padding: 45px 20px;
+
+    color: #64748b;
+
+}
+
+
+.empty-state-icon {
+
+    font-size: 35px;
+
+    margin-bottom: 10px;
+
+}
+
+
+.empty-state p {
+
+    font-size: 13px;
+
+}
+
+
+/* =========================================
+   LOADING
+========================================= */
+
+#loadingScreen {
+
+    position: fixed;
+
+    inset: 0;
+
+    background: #f5f7fb;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    z-index: 5000;
+
+}
+
+
+.loader {
+
+    width: 40px;
+
+    height: 40px;
+
+    border: 4px solid #dbeafe;
+
+    border-top-color: #2563eb;
+
+    border-radius: 50%;
+
+    animation: spin 0.8s linear infinite;
+
+    margin-bottom: 15px;
+
+}
+
+
+@keyframes spin {
+
+    to {
+
+        transform: rotate(360deg);
+
+    }
+
+}
+
+
+#loadingScreen p {
+
+    color: #64748b;
+
+    font-size: 13px;
+
+}
+
+
+/* =========================================
+   ERROR
+========================================= */
+
+#errorMessage {
+
+    display: none;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    color: #991b1b;
+
+    padding: 13px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    margin-bottom: 20px;
+
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 950px) {
+
+    .content-grid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+}
+
+
+@media (max-width: 750px) {
+
+    .stats-grid {
+
+        grid-template-columns:
+            repeat(2, 1fr);
+
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    header {
+
+        padding: 0 15px;
+
+    }
+
+    .logo-text p {
+
+        display: none;
+
+    }
+
+    .logo-text h2 {
+
+        font-size: 15px;
+
+    }
+
+    .admin-name {
+
+        display: none;
+
+    }
+
+    .back-button {
+
+        padding: 8px 10px;
+
+    }
+
+    .logout-button {
+
+        padding: 8px 10px;
+
+    }
+
+    .page {
+
+        padding: 25px 15px 50px;
+
+    }
+
+    .stats-grid {
+
+        gap: 10px;
+
+    }
+
+    .stat-card {
+
+        padding: 15px;
+
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================
+     LOADING
+========================================= -->
+
+<div id="loadingScreen">
+
+    <div class="loader"></div>
+
+    <p>
+        Loading Leave Management...
+    </p>
+
+</div>
+
+
+<!-- =========================================
+     HEADER
+========================================= -->
+
+<header>
+
+    <div class="logo">
+
+        <div class="logo-icon">
+            V
+        </div>
+
+        <div class="logo-text">
+
+            <h2>
+                Virello Technologies
+            </h2>
+
+            <p>
+                Digital Organization Solutions
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="header-right">
+
+        <div
+            id="adminName"
+            class="admin-name"
+        >
+            Loading...
+        </div>
+
+
+        <a
+            href="dashboard.html"
+            class="back-button"
+        >
+            Dashboard
+        </a>
+
+
+        <button
+            id="logoutButton"
+            class="logout-button"
+        >
+            Logout
+        </button>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================
+     MAIN
+========================================= -->
+
+<main class="page">
+
+
+    <section class="page-title">
+
+        <h1>
+            Leave Management
+        </h1>
+
+        <p>
+            Manage staff leave requests,
+            approvals and leave history.
+        </p>
+
+    </section>
+
+
+    <div
+        id="errorMessage"
+    ></div>
+
+
+    <!-- =====================================
+         STATISTICS
+    ====================================== -->
+
+    <section class="stats-grid">
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                📋
+            </div>
+
+            <div class="stat-label">
+                Total Requests
+            </div>
+
+            <div
+                id="totalRequests"
+                class="stat-number"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                🕒
+            </div>
+
+            <div class="stat-label">
+                Pending
+            </div>
+
+            <div
+                id="pendingRequests"
+                class="stat-number"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                ✅
+            </div>
+
+            <div class="stat-label">
+                Approved
+            </div>
+
+            <div
+                id="approvedRequests"
+                class="stat-number"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                ❌
+            </div>
+
+            <div class="stat-label">
+                Rejected
+            </div>
+
+            <div
+                id="rejectedRequests"
+                class="stat-number"
+            >
+                0
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+    <!-- =====================================
+         CONTENT
+    ====================================== -->
+
+    <section class="content-grid">
+
+
+        <!-- =================================
+             CREATE REQUEST
+        ================================== -->
+
+        <div class="card">
+
+            <h2>
+                Create Leave Request
+            </h2>
+
+            <p class="card-description">
+                Create a leave request on behalf
+                of a staff member.
+            </p>
+
+
+            <form id="leaveForm">
+
+
+                <div class="form-group">
+
+                    <label for="staffSelect">
+                        Staff Member
+                    </label>
+
+                    <select
+                        id="staffSelect"
+                        required
+                    >
+
+                        <option value="">
+                            Select staff member
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="leaveType">
+                        Leave Type
+                    </label>
+
+                    <select
+                        id="leaveType"
+                        required
+                    >
+
+                        <option value="">
+                            Select leave type
+                        </option>
+
+                        <option value="Annual Leave">
+                            Annual Leave
+                        </option>
+
+                        <option value="Sick Leave">
+                            Sick Leave
+                        </option>
+
+                        <option value="Maternity Leave">
+                            Maternity Leave
+                        </option>
+
+                        <option value="Paternity Leave">
+                            Paternity Leave
+                        </option>
+
+                        <option value="Emergency Leave">
+                            Emergency Leave
+                        </option>
+
+                        <option value="Study Leave">
+                            Study Leave
+                        </option>
+
+                        <option value="Other">
+                            Other
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="startDate">
+                        Start Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="startDate"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="endDate">
+                        End Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="endDate"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="reason">
+                        Reason
+                    </label>
+
+                    <textarea
+                        id="reason"
+                        placeholder="Enter reason for leave..."
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    id="submitLeaveButton"
+                    class="submit-button"
+                >
+                    Submit Leave Request
+                </button>
+
+
+            </form>
+
+        </div>
+
+
+        <!-- =================================
+             REQUESTS
+        ================================== -->
+
+        <div class="card">
+
+            <h2>
+                Leave Requests
+            </h2>
+
+            <p class="card-description">
+                Review and manage staff leave
+                requests.
+            </p>
+
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Staff
+                            </th>
+
+                            <th>
+                                Leave Type
+                            </th>
+
+                            <th>
+                                Period
+                            </th>
+
+                            <th>
+                                Reason
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody
+                        id="leaveTableBody"
+                    >
+
+                    </tbody>
+
+                </table>
+
+
+                <div
+                    id="emptyState"
+                    class="empty-state"
+                >
+
+                    <div class="empty-state-icon">
+                        📋
+                    </div>
+
+                    <p>
+                        No leave requests found.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+</main>
+
+
+<script
+    type="module"
+    src="js/leave-management.js"
+></script>
+
+
+</body>
+
+</html>
