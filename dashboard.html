@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -6,8 +7,9 @@
 <meta charset="UTF-8">
 
 <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
+name="viewport"
+content="width=device-width, initial-scale=1.0"
+
 >
 
 <title>
@@ -734,9 +736,7 @@ header {
 
 </head>
 
-
 <body>
-
 
 <!-- =========================================
      LOADING SCREEN
@@ -744,14 +744,15 @@ header {
 
 <div id="loadingScreen">
 
-    <div class="loader"></div>
 
-    <p>
-        Loading your organization...
-    </p>
+<div class="loader"></div>
+
+<p>
+    Loading your organization...
+</p>
+
 
 </div>
-
 
 <!-- =========================================
      HEADER
@@ -759,48 +760,48 @@ header {
 
 <header>
 
-    <div class="logo">
 
-        <div class="logo-icon">
-            V
-        </div>
+<div class="logo">
 
-        <div class="logo-text">
+    <div class="logo-icon">
+        V
+    </div>
 
-            <h2>
-                Virello Technologies
-            </h2>
+    <div class="logo-text">
 
-            <p>
-                Digital Organization Solutions
-            </p>
+        <h2>
+            Virello Technologies
+        </h2>
 
-        </div>
+        <p>
+            Digital Organization Solutions
+        </p>
 
     </div>
 
-
-    <div class="header-right">
-
-        <div
-            id="adminName"
-            class="admin-name"
-        >
-            Loading...
-        </div>
+</div>
 
 
-        <button
-            id="logoutButton"
-            class="logout-button"
-        >
-            Logout
-        </button>
+<div class="header-right">
 
+    <div
+        id="adminName"
+        class="admin-name"
+    >
+        Loading...
     </div>
+
+
+    <button
+        id="logoutButton"
+        class="logout-button"
+    >
+        Logout
+    </button>
+
+</div>
 
 </header>
-
 
 <!-- =========================================
      MAIN PAGE
@@ -808,347 +809,370 @@ header {
 
 <main class="page">
 
+<!-- =====================================
+     WELCOME
+===================================== -->
 
-    <!-- =====================================
-         WELCOME
-    ===================================== -->
+<section class="welcome">
 
-    <section class="welcome">
+    <h1>
+        Welcome to Virello
+    </h1>
 
-        <h1>
-            Welcome to Virello
-        </h1>
+    <p>
+        Manage your organization's digital
+        attendance from one place.
+    </p>
 
-        <p>
-            Manage your organization's digital
-            attendance from one place.
-        </p>
-
-    </section>
+</section>
 
 
-    <!-- =====================================
-         ORGANIZATION
-    ===================================== -->
+<!-- =====================================
+     ORGANIZATION
+===================================== -->
 
-    <section class="organization-card">
+<section class="organization-card">
 
-        <div class="organization-label">
-            Your Organization
-        </div>
+    <div class="organization-label">
+        Your Organization
+    </div>
 
+
+    <div
+        id="organizationName"
+        class="organization-name"
+    >
+        Loading...
+    </div>
+
+
+    <div class="organization-details">
 
         <div
-            id="organizationName"
-            class="organization-name"
+            id="organizationType"
+            class="organization-badge"
         >
             Loading...
         </div>
 
 
-        <div class="organization-details">
-
-            <div
-                id="organizationType"
-                class="organization-badge"
-            >
-                Loading...
-            </div>
-
-
-            <div
-                id="organizationCountry"
-                class="organization-badge"
-            >
-                Loading...
-            </div>
-
-
-            <div
-                id="subscriptionStatus"
-                class="organization-badge"
-            >
-                Subscription: Active
-            </div>
-
+        <div
+            id="organizationCountry"
+            class="organization-badge"
+        >
+            Loading...
         </div>
 
-    </section>
+
+        <div
+            id="subscriptionStatus"
+            class="organization-badge"
+        >
+            Subscription: Active
+        </div>
+
+    </div>
+
+</section>
 
 
-    <!-- =====================================
-         STATISTICS
-    ===================================== -->
+<!-- =====================================
+     STATISTICS
+===================================== -->
 
-    <section class="stats-grid">
+<section class="stats-grid">
 
 
-        <div class="stat-card">
+    <div class="stat-card">
 
-            <div class="stat-icon">
+        <div class="stat-icon">
+            👥
+        </div>
+
+        <div class="stat-label">
+            Total Staff
+        </div>
+
+        <div
+            id="totalStaff"
+            class="stat-number"
+        >
+            0
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div class="stat-icon">
+            🟢
+        </div>
+
+        <div class="stat-label">
+            Present Today
+        </div>
+
+        <div
+            id="presentToday"
+            class="stat-number"
+        >
+            0
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div class="stat-icon">
+            🕒
+        </div>
+
+        <div class="stat-label">
+            Late Today
+        </div>
+
+        <div
+            id="lateToday"
+            class="stat-number"
+        >
+            0
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div class="stat-icon">
+            🔴
+        </div>
+
+        <div class="stat-label">
+            Absent Today
+        </div>
+
+        <div
+            id="absentToday"
+            class="stat-number"
+        >
+            0
+        </div>
+
+    </div>
+
+
+</section>
+
+
+<!-- =====================================
+     QUICK ACTIONS
+===================================== -->
+
+<section>
+
+    <div class="section-title">
+
+        <h2>
+            Quick Actions
+        </h2>
+
+        <p>
+            Manage staff, classes, students
+            and attendance from one place.
+        </p>
+
+    </div>
+
+
+    <div class="actions-grid">
+
+
+        <!-- =================================
+             STAFF MANAGEMENT
+        ================================== -->
+
+        <a
+            href="staff.html"
+            class="action-card"
+        >
+
+            <div class="action-icon">
                 👥
             </div>
 
-            <div class="stat-label">
-                Total Staff
+            <h3>
+                Staff Management
+            </h3>
+
+            <p>
+                Add and manage employees
+                in your organization.
+            </p>
+
+        </a>
+
+
+        <!-- =================================
+             CLASSES & STUDENTS
+        ================================== -->
+
+        <a
+            href="classes.html"
+            class="action-card"
+        >
+
+            <div class="action-icon">
+                🎓
             </div>
 
-            <div
-                id="totalStaff"
-                class="stat-number"
-            >
-                0
+            <h3>
+                Classes & Students
+            </h3>
+
+            <p>
+                Create Grade 1 to Grade 9
+                classes and manage students
+                in each class.
+            </p>
+
+        </a>
+
+
+        <!-- =================================
+             FORM MASTER DASHBOARD
+        ================================== -->
+
+        <a
+            href="form-master.html"
+            class="action-card"
+        >
+
+            <div class="action-icon">
+                👨‍🏫
             </div>
 
-        </div>
+            <h3>
+                Form Master
+            </h3>
+
+            <p>
+                View assigned classes,
+                manage class attendance,
+                and mark students Present,
+                Late or Absent.
+            </p>
+
+        </a>
 
 
-        <div class="stat-card">
+        <!-- =================================
+             ATTENDANCE
+        ================================== -->
 
-            <div class="stat-icon">
-                🟢
-            </div>
+        <a
+            href="attendance.html"
+            class="action-card"
+        >
 
-            <div class="stat-label">
-                Present Today
-            </div>
-
-            <div
-                id="presentToday"
-                class="stat-number"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-icon">
+            <div class="action-icon">
                 🕒
             </div>
 
-            <div class="stat-label">
-                Late Today
-            </div>
-
-            <div
-                id="lateToday"
-                class="stat-number"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-icon">
-                🔴
-            </div>
-
-            <div class="stat-label">
-                Absent Today
-            </div>
-
-            <div
-                id="absentToday"
-                class="stat-number"
-            >
-                0
-            </div>
-
-        </div>
-
-
-    </section>
-
-
-    <!-- =====================================
-         QUICK ACTIONS
-    ===================================== -->
-
-    <section>
-
-        <div class="section-title">
-
-            <h2>
-                Quick Actions
-            </h2>
+            <h3>
+                Attendance
+            </h3>
 
             <p>
-                Manage staff, classes, students
-                and attendance from one place.
+                Record staff check-in
+                and check-out times.
             </p>
 
-        </div>
+        </a>
 
 
-        <div class="actions-grid">
+        <!-- =================================
+             REPORTS
+        ================================== -->
+
+        <a
+            href="reports.html"
+            class="action-card"
+        >
+
+            <div class="action-icon">
+                📊
+            </div>
+
+            <h3>
+                Reports
+            </h3>
+
+            <p>
+                View attendance records
+                and organization reports.
+            </p>
+
+        </a>
 
 
-            <!-- =================================
-                 STAFF MANAGEMENT
-            ================================== -->
+        <!-- =================================
+             ORGANIZATION SETTINGS
+        ================================== -->
 
-            <a
-                href="staff.html"
-                class="action-card"
-            >
+        <a
+            href="settings.html"
+            class="action-card"
+        >
 
-                <div class="action-icon">
-                    👥
-                </div>
+            <div class="action-icon">
+                ⚙️
+            </div>
 
-                <h3>
-                    Staff Management
-                </h3>
+            <h3>
+                Organization Settings
+            </h3>
 
-                <p>
-                    Add and manage employees
-                    in your organization.
-                </p>
+            <p>
+                Manage your organization
+                information and settings.
+            </p>
 
-            </a>
-
-
-            <!-- =================================
-                 CLASSES & STUDENTS
-            ================================== -->
-
-            <a
-                href="classes.html"
-                class="action-card"
-            >
-
-                <div class="action-icon">
-                    🎓
-                </div>
-
-                <h3>
-                    Classes & Students
-                </h3>
-
-                <p>
-                    Create Grade 1 to Grade 9
-                    classes and manage students
-                    in each class.
-                </p>
-
-            </a>
+        </a>
 
 
-            <!-- =================================
-                 FORM MASTER DASHBOARD
-            ================================== -->
+        <!-- =================================
+             LEAVE MANAGEMENT
+             NEW FEATURE
+        ================================== -->
 
-            <a
-                href="form-master.html"
-                class="action-card"
-            >
+        <a
+            href="leave-management.html"
+            class="action-card"
+        >
 
-                <div class="action-icon">
-                    👨‍🏫
-                </div>
+            <div class="action-icon">
+                📝
+            </div>
 
-                <h3>
-                    Form Master
-                </h3>
+            <h3>
+                Leave Management
+            </h3>
 
-                <p>
-                    View assigned classes,
-                    manage class attendance,
-                    and mark students Present,
-                    Late or Absent.
-                </p>
+            <p>
+                Manage staff leave requests,
+                approvals and leave records.
+            </p>
 
-            </a>
-
-
-            <!-- =================================
-                 ATTENDANCE
-            ================================== -->
-
-            <a
-                href="attendance.html"
-                class="action-card"
-            >
-
-                <div class="action-icon">
-                    🕒
-                </div>
-
-                <h3>
-                    Attendance
-                </h3>
-
-                <p>
-                    Record staff check-in
-                    and check-out times.
-                </p>
-
-            </a>
+        </a>
 
 
-            <!-- =================================
-                 REPORTS
-            ================================== -->
+    </div>
 
-            <a
-                href="reports.html"
-                class="action-card"
-            >
-
-                <div class="action-icon">
-                    📊
-                </div>
-
-                <h3>
-                    Reports
-                </h3>
-
-                <p>
-                    View attendance records
-                    and organization reports.
-                </p>
-
-            </a>
-
-
-            <!-- =================================
-                 ORGANIZATION SETTINGS
-            ================================== -->
-
-            <a
-                href="settings.html"
-                class="action-card"
-            >
-
-                <div class="action-icon">
-                    ⚙️
-                </div>
-
-                <h3>
-                    Organization Settings
-                </h3>
-
-                <p>
-                    Manage your organization
-                    information and settings.
-                </p>
-
-            </a>
-
-
-        </div>
-
-    </section>
-
+</section>
 
 </main>
-
 
 <!-- =========================================
      ERROR SCREEN
@@ -1156,17 +1180,17 @@ header {
 
 <div id="errorScreen">
 
-    <h2>
-        Unable to Load Organization
-    </h2>
 
-    <p id="errorMessage">
-        Something went wrong while loading
-        your organization.
-    </p>
+<h2>
+    Unable to Load Organization
+</h2>
+
+<p id="errorMessage">
+    Something went wrong while loading
+    your organization.
+</p>
 
 </div>
-
 
 <!-- =========================================
      FIREBASE DASHBOARD SCRIPT
@@ -1176,7 +1200,6 @@ header {
     type="module"
     src="js/dashboard.js"
 ></script>
-
 
 </body>
 
