@@ -1,6 +1,6 @@
 /* =========================================================
    VIRELLO TECHNOLOGIES
-   STAFF MANAGEMENT
+   DIGITAL STAFF MANAGEMENT + DIGITAL STAFF ID CARD
 
    FILE:
    js/staff.js
@@ -17,6 +17,11 @@
    - Edit staff
    - Activate / deactivate staff
    - Delete staff profile
+   - Digital Staff ID Card
+   - Staff photograph
+   - QR verification
+   - Print ID Card
+   - Save ID Card as PDF
    - Keep administrator logged in
 
    SCHOOL CLASS STRUCTURE:
@@ -87,6 +92,10 @@ let classes = [];
 let editingStaff = null;
 
 let selectedFormMasterClass = null;
+
+let selectedStaffPhoto = null;
+
+let idCardStaff = null;
 
 
 /* =========================================================
@@ -211,6 +220,12 @@ let formMasterClassSelect = null;
 let passwordGroup = null;
 
 let passwordInput = null;
+
+let staffPhotoGroup = null;
+
+let staffPhotoInput = null;
+
+let staffPhotoPreview = null;
 
 
 /* =========================================================
@@ -340,6 +355,167 @@ function createExtraFormFields() {
 
     /*
      * -------------------------------------------------------
+     * STAFF PHOTO
+     * -------------------------------------------------------
+     */
+
+    if (
+        emailGroup &&
+        !document.getElementById("staffPhoto")
+    ) {
+
+        staffPhotoGroup =
+            document.createElement("div");
+
+        staffPhotoGroup.className =
+            "form-group";
+
+        staffPhotoGroup.innerHTML = `
+
+            <label for="staffPhoto">
+                Staff Photograph
+            </label>
+
+            <input
+                type="file"
+                id="staffPhoto"
+                accept="image/jpeg,image/png,image/webp"
+            >
+
+            <small>
+                Upload a clear staff photograph.
+                JPG, PNG or WebP recommended.
+            </small>
+
+            <div
+                id="staffPhotoPreview"
+                style="
+                    display:none;
+                    margin-top:12px;
+                    width:90px;
+                    height:110px;
+                    border-radius:10px;
+                    overflow:hidden;
+                    border:2px solid #e2e8f0;
+                    background:#f8fafc;
+                "
+            >
+                <img
+                    id="staffPhotoPreviewImage"
+                    src=""
+                    alt="Staff preview"
+                    style="
+                        width:100%;
+                        height:100%;
+                        object-fit:cover;
+                    "
+                >
+            </div>
+
+        `;
+
+        passwordGroup.after(
+            staffPhotoGroup
+        );
+
+        staffPhotoInput =
+            document.getElementById(
+                "staffPhoto"
+            );
+
+        staffPhotoPreview =
+            document.getElementById(
+                "staffPhotoPreview"
+            );
+
+        const previewImage =
+            document.getElementById(
+                "staffPhotoPreviewImage"
+            );
+
+        staffPhotoInput.addEventListener(
+            "change",
+            async event => {
+
+                const file =
+                    event.target.files?.[0];
+
+                if (!file) {
+
+                    selectedStaffPhoto =
+                        null;
+
+                    if (staffPhotoPreview) {
+                        staffPhotoPreview.style.display =
+                            "none";
+                    }
+
+                    return;
+                }
+
+
+                try {
+
+                    if (!file.type.startsWith("image/")) {
+
+                        throw new Error(
+                            "Please select a valid image file."
+                        );
+
+                    }
+
+
+                    selectedStaffPhoto =
+                        await compressStaffPhoto(
+                            file
+                        );
+
+
+                    if (previewImage) {
+
+                        previewImage.src =
+                            selectedStaffPhoto;
+
+                    }
+
+
+                    if (staffPhotoPreview) {
+
+                        staffPhotoPreview.style.display =
+                            "block";
+
+                    }
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "Photo processing error:",
+                        error
+                    );
+
+                    selectedStaffPhoto =
+                        null;
+
+                    event.target.value =
+                        "";
+
+                    alert(
+                        error.message ||
+                        "Unable to process this photograph."
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
      * FORM MASTER CLASS
      * -------------------------------------------------------
      */
@@ -386,7 +562,7 @@ function createExtraFormFields() {
 
         `;
 
-        passwordGroup.after(
+        staffPhotoGroup.after(
             formMasterClassGroup
         );
 
@@ -442,6 +618,192 @@ function handleRoleChange() {
             role === "form_master";
 
     }
+
+}
+
+
+/* =========================================================
+   STAFF PHOTO COMPRESSION
+========================================================= */
+
+function compressStaffPhoto(
+    file
+) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const reader =
+                new FileReader();
+
+
+            reader.onload = event => {
+
+                const image =
+                    new Image();
+
+
+                image.onload = () => {
+
+                    const maxSize =
+                        500;
+
+                    let width =
+                        image.width;
+
+                    let height =
+                        image.height;
+
+
+                    if (
+                        width >
+                        height
+                    ) {
+
+                        if (
+                            width >
+                            maxSize
+                        ) {
+
+                            height =
+                                Math.round(
+                                    height *
+                                    maxSize /
+                                    width
+                                );
+
+                            width =
+                                maxSize;
+
+                        }
+
+                    }
+
+                    else {
+
+                        if (
+                            height >
+                            maxSize
+                        ) {
+
+                            width =
+                                Math.round(
+                                    width *
+                                    maxSize /
+                                    height
+                                );
+
+                            height =
+                                maxSize;
+
+                        }
+
+                    }
+
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+
+                    canvas.width =
+                        width;
+
+                    canvas.height =
+                        height;
+
+
+                    const context =
+                        canvas.getContext(
+                            "2d"
+                        );
+
+
+                    context.drawImage(
+                        image,
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+
+                    const compressed =
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            0.78
+                        );
+
+
+                    /*
+                     * Keep Firestore document size
+                     * reasonably small.
+                     */
+
+                    if (
+                        compressed.length >
+                        800000
+                    ) {
+
+                        const smaller =
+                            canvas.toDataURL(
+                                "image/jpeg",
+                                0.55
+                            );
+
+                        resolve(
+                            smaller
+                        );
+
+                        return;
+
+                    }
+
+
+                    resolve(
+                        compressed
+                    );
+
+                };
+
+
+                image.onerror =
+                    () => {
+
+                        reject(
+                            new Error(
+                                "Unable to read the selected photograph."
+                            )
+                        );
+
+                    };
+
+
+                image.src =
+                    event.target.result;
+
+            };
+
+
+            reader.onerror =
+                () => {
+
+                    reject(
+                        new Error(
+                            "Unable to process the photograph."
+                        )
+                    );
+
+                };
+
+
+            reader.readAsDataURL(
+                file
+            );
+
+        }
+    );
 
 }
 
@@ -1015,81 +1377,231 @@ async function loadClasses() {
 
     classes = [];
 
+
     if (!organization?.id) {
         return;
     }
 
-    const classesRef = collection(db, "classes");
+
+    const classesRef =
+        collection(
+            db,
+            "classes"
+        );
+
 
     try {
 
-        const q = query(
-            classesRef,
-            where("organizationId", "==", organization.id)
+        const q =
+            query(
+                classesRef,
+                where(
+                    "organizationId",
+                    "==",
+                    organization.id
+                )
+            );
+
+
+        const snapshot =
+            await getDocs(q);
+
+
+        snapshot.forEach(
+            item => {
+
+                classes.push({
+
+                    id:
+                        item.id,
+
+                    ...item.data()
+
+                });
+
+            }
         );
 
-        const snapshot = await getDocs(q);
-
-        snapshot.forEach(item => {
-            classes.push({
-                id: item.id,
-                ...item.data()
-            });
-        });
 
         const standardClasses = [
-            { id: "nursery-1", name: "Nursery 1", className: "Nursery 1", level: 1 },
-            { id: "nursery-2", name: "Nursery 2", className: "Nursery 2", level: 2 },
-            { id: "nursery-3", name: "Nursery 3", className: "Nursery 3", level: 3 },
-            { id: "grade-1", name: "Grade 1", className: "Grade 1", level: 4 },
-            { id: "grade-2", name: "Grade 2", className: "Grade 2", level: 5 },
-            { id: "grade-3", name: "Grade 3", className: "Grade 3", level: 6 },
-            { id: "grade-4", name: "Grade 4", className: "Grade 4", level: 7 },
-            { id: "grade-5", name: "Grade 5", className: "Grade 5", level: 8 },
-            { id: "grade-6", name: "Grade 6", className: "Grade 6", level: 9 },
-            { id: "grade-7", name: "Grade 7", className: "Grade 7", level: 10 },
-            { id: "grade-8", name: "Grade 8", className: "Grade 8", level: 11 },
-            { id: "grade-9", name: "Grade 9", className: "Grade 9", level: 12 }
-        ];
 
-        standardClasses.forEach(standardClass => {
+            {
+                id: "nursery-1",
+                name: "Nursery 1",
+                className: "Nursery 1",
+                level: 1
+            },
 
-            const existing = classes.find(item => {
-                const existingName = String(
-                    item.className || item.name || ""
-                ).trim().toLowerCase();
+            {
+                id: "nursery-2",
+                name: "Nursery 2",
+                className: "Nursery 2",
+                level: 2
+            },
 
-                return existingName === standardClass.name.toLowerCase();
-            });
+            {
+                id: "nursery-3",
+                name: "Nursery 3",
+                className: "Nursery 3",
+                level: 3
+            },
 
-            if (existing) {
-                if (!existing.level) {
-                    existing.level = standardClass.level;
-                }
-                return;
+            {
+                id: "grade-1",
+                name: "Grade 1",
+                className: "Grade 1",
+                level: 4
+            },
+
+            {
+                id: "grade-2",
+                name: "Grade 2",
+                className: "Grade 2",
+                level: 5
+            },
+
+            {
+                id: "grade-3",
+                name: "Grade 3",
+                className: "Grade 3",
+                level: 6
+            },
+
+            {
+                id: "grade-4",
+                name: "Grade 4",
+                className: "Grade 4",
+                level: 7
+            },
+
+            {
+                id: "grade-5",
+                name: "Grade 5",
+                className: "Grade 5",
+                level: 8
+            },
+
+            {
+                id: "grade-6",
+                name: "Grade 6",
+                className: "Grade 6",
+                level: 9
+            },
+
+            {
+                id: "grade-7",
+                name: "Grade 7",
+                className: "Grade 7",
+                level: 10
+            },
+
+            {
+                id: "grade-8",
+                name: "Grade 8",
+                className: "Grade 8",
+                level: 11
+            },
+
+            {
+                id: "grade-9",
+                name: "Grade 9",
+                className: "Grade 9",
+                level: 12
             }
 
-            /*
-             * IMPORTANT: virtual classes MUST be organization-specific.
-             * Never use a global ID such as "grade-7" for a virtual class.
-             */
-            const organizationClassId =
-                `${organization.id}__${standardClass.id}`;
+        ];
 
-            classes.push({
-                id: organizationClassId,
-                standardClassId: standardClass.id,
-                name: standardClass.name,
-                className: standardClass.className,
-                level: standardClass.level,
-                organizationId: organization.id,
-                virtualClass: true
-            });
-        });
 
-        classes.sort((a, b) =>
-            Number(a.level || 999) - Number(b.level || 999)
+        standardClasses.forEach(
+            standardClass => {
+
+                const existing =
+                    classes.find(
+                        item => {
+
+                            const existingName =
+                                String(
+                                    item.className ||
+                                    item.name ||
+                                    ""
+                                )
+                                    .trim()
+                                    .toLowerCase();
+
+
+                            return (
+                                existingName ===
+                                standardClass.name
+                                    .toLowerCase()
+                            );
+
+                        }
+                    );
+
+
+                if (existing) {
+
+                    if (!existing.level) {
+
+                        existing.level =
+                            standardClass.level;
+
+                    }
+
+                    return;
+
+                }
+
+
+                /*
+                 * IMPORTANT:
+                 * Virtual classes MUST be
+                 * organization-specific.
+                 */
+
+                const organizationClassId =
+                    `${organization.id}__${standardClass.id}`;
+
+
+                classes.push({
+
+                    id:
+                        organizationClassId,
+
+                    standardClassId:
+                        standardClass.id,
+
+                    name:
+                        standardClass.name,
+
+                    className:
+                        standardClass.className,
+
+                    level:
+                        standardClass.level,
+
+                    organizationId:
+                        organization.id,
+
+                    virtualClass:
+                        true
+
+                });
+
+            }
         );
+
+
+        classes.sort(
+            (a, b) =>
+                Number(
+                    a.level || 999
+                ) -
+                Number(
+                    b.level || 999
+                )
+        );
+
 
         console.log(
             "🏫 Organization-specific Virello class list:",
@@ -1097,15 +1609,24 @@ async function loadClasses() {
             classes
         );
 
+
         populateClassSelect();
 
-    } catch (error) {
+    }
 
-        console.error("❌ Could not load classes:", error);
+    catch (error) {
+
+        console.error(
+            "❌ Could not load classes:",
+            error
+        );
+
         throw error;
+
     }
 
 }
+
 
 /* =========================================================
    POPULATE FORM MASTER CLASS SELECT
@@ -1118,17 +1639,9 @@ function populateClassSelect() {
     }
 
 
-    /*
-     * Clear dropdown.
-     */
-
     formMasterClassSelect.innerHTML =
         "";
 
-
-    /*
-     * Default option.
-     */
 
     const defaultOption =
         document.createElement(
@@ -1148,10 +1661,6 @@ function populateClassSelect() {
         defaultOption
     );
 
-
-    /*
-     * No classes.
-     */
 
     if (!classes.length) {
 
@@ -1182,12 +1691,6 @@ function populateClassSelect() {
 
     }
 
-
-    /*
-     * ---------------------------------------------------
-     * ADD EVERY CLASS
-     * ---------------------------------------------------
-     */
 
     classes.forEach(
         classItem => {
@@ -1534,13 +2037,35 @@ function renderStaff() {
 
                 <td>
 
-                    <div class="action-buttons">
+                    <div
+                        class="action-buttons"
+                        style="
+                            display:flex;
+                            flex-wrap:wrap;
+                            gap:5px;
+                        "
+                    >
+
+                        <button
+                            type="button"
+                            class="action-button"
+                            data-action="idcard"
+                            data-id="${escapeHtml(staff.id)}"
+                            style="
+                                background:#0f172a;
+                                color:white;
+                                border:none;
+                                cursor:pointer;
+                            "
+                        >
+                            ID Card
+                        </button>
 
                         <button
                             type="button"
                             class="action-button edit-button"
                             data-action="edit"
-                            data-id="${staff.id}"
+                            data-id="${escapeHtml(staff.id)}"
                         >
                             Edit
                         </button>
@@ -1549,7 +2074,7 @@ function renderStaff() {
                             type="button"
                             class="action-button toggle-button"
                             data-action="toggle"
-                            data-id="${staff.id}"
+                            data-id="${escapeHtml(staff.id)}"
                         >
                             ${
                                 status === "active"
@@ -1562,7 +2087,7 @@ function renderStaff() {
                             type="button"
                             class="action-button delete-button"
                             data-action="delete"
-                            data-id="${staff.id}"
+                            data-id="${escapeHtml(staff.id)}"
                         >
                             Delete
                         </button>
@@ -1626,6 +2151,19 @@ if (staffTableBody) {
 
 
             if (
+                action === "idcard"
+            ) {
+
+                openDigitalStaffIDCard(
+                    staff
+                );
+
+                return;
+
+            }
+
+
+            if (
                 action === "edit"
             ) {
 
@@ -1678,6 +2216,10 @@ function openAddStaff() {
 
 
     selectedFormMasterClass =
+        null;
+
+
+    selectedStaffPhoto =
         null;
 
 
@@ -1747,6 +2289,12 @@ function openEditStaff(
 
     editingStaff =
         staff;
+
+
+    selectedStaffPhoto =
+        staff.photoData ||
+        staff.photoURL ||
+        null;
 
 
     if (modalTitle) {
@@ -1842,6 +2390,31 @@ function openEditStaff(
 
 
     /*
+     * Display existing photo.
+     */
+
+    const previewImage =
+        document.getElementById(
+            "staffPhotoPreviewImage"
+        );
+
+
+    if (
+        selectedStaffPhoto &&
+        previewImage &&
+        staffPhotoPreview
+    ) {
+
+        previewImage.src =
+            selectedStaffPhoto;
+
+        staffPhotoPreview.style.display =
+            "block";
+
+    }
+
+
+    /*
      * Password cannot be changed here.
      */
 
@@ -1888,6 +2461,10 @@ function closeModal() {
         null;
 
 
+    selectedStaffPhoto =
+        null;
+
+
     if (passwordInput) {
 
         passwordInput.disabled =
@@ -1910,6 +2487,32 @@ function clearForm() {
     if (addStaffForm) {
 
         addStaffForm.reset();
+
+    }
+
+
+    selectedStaffPhoto =
+        null;
+
+
+    if (staffPhotoPreview) {
+
+        staffPhotoPreview.style.display =
+            "none";
+
+    }
+
+
+    const previewImage =
+        document.getElementById(
+            "staffPhotoPreviewImage"
+        );
+
+
+    if (previewImage) {
+
+        previewImage.src =
+            "";
 
     }
 
@@ -1958,32 +2561,79 @@ function clearForm() {
    FORM MASTER CLASS VALIDATION
 ========================================================= */
 
-async function validateFormMasterClassAvailability(classItem) {
+async function validateFormMasterClassAvailability(
+    classItem
+) {
 
-    if (!classItem || !organization?.id) {
-        throw new Error("Please select a valid class for this Form Master.");
+    if (
+        !classItem ||
+        !organization?.id
+    ) {
+
+        throw new Error(
+            "Please select a valid class for this Form Master."
+        );
+
     }
 
-    if (classItem.organizationId &&
-        classItem.organizationId !== organization.id) {
-        throw new Error("This class belongs to another organization and cannot be assigned here.");
+
+    if (
+        classItem.organizationId &&
+        classItem.organizationId !==
+        organization.id
+    ) {
+
+        throw new Error(
+            "This class belongs to another organization and cannot be assigned here."
+        );
+
     }
 
-    const classRef = doc(db, "classes", classItem.id);
-    const existing = await getDoc(classRef);
+
+    const classRef =
+        doc(
+            db,
+            "classes",
+            classItem.id
+        );
+
+
+    const existing =
+        await getDoc(
+            classRef
+        );
+
 
     if (!existing.exists()) {
+
         if (!classItem.virtualClass) {
-            throw new Error("The selected class could not be found.");
+
+            throw new Error(
+                "The selected class could not be found."
+            );
+
         }
+
         return;
+
     }
 
-    const data = existing.data();
 
-    if (data.organizationId !== organization.id) {
-        throw new Error("This class belongs to another organization and cannot be assigned here.");
+    const data =
+        existing.data();
+
+
+    if (
+        data.organizationId !==
+        organization.id
+    ) {
+
+        throw new Error(
+            "This class belongs to another organization and cannot be assigned here."
+        );
+
     }
+
 
     const existingUid =
         data.formMasterUid ||
@@ -1991,15 +2641,20 @@ async function validateFormMasterClassAvailability(classItem) {
         data.formMaster ||
         "";
 
+
     if (existingUid) {
+
         const existingName =
             data.formMasterName ||
             "another Form Master";
 
+
         throw new Error(
             `This class is already assigned to ${existingName}. Please remove the existing Form Master before assigning another one.`
         );
+
     }
+
 }
 
 
@@ -2128,10 +2783,6 @@ if (addStaffForm) {
             }
 
 
-            /*
-             * Form Master requires a class.
-             */
-
             if (
                 role === "form_master" &&
                 !classId
@@ -2146,10 +2797,6 @@ if (addStaffForm) {
 
             }
 
-
-            /*
-             * New account requires email.
-             */
 
             if (
                 !editingStaff &&
@@ -2166,10 +2813,6 @@ if (addStaffForm) {
             }
 
 
-            /*
-             * New account requires password.
-             */
-
             if (
                 !editingStaff &&
                 password.length < 6
@@ -2184,10 +2827,6 @@ if (addStaffForm) {
 
             }
 
-
-            /*
-             * Duplicate Staff ID.
-             */
 
             const duplicateId =
                 staffMembers.find(
@@ -2260,7 +2899,10 @@ if (addStaffForm) {
 
                         role,
 
-                        classId
+                        classId,
+
+                        photoData:
+                            selectedStaffPhoto
 
                     });
 
@@ -2291,22 +2933,36 @@ if (addStaffForm) {
 
                 /*
                  * -------------------------------------------------
-                 * VALIDATE FORM MASTER CLASS BEFORE CREATING ACCOUNT
+                 * VALIDATE FORM MASTER CLASS
                  * -------------------------------------------------
-                 * This prevents the old problem where Firebase creates
-                 * the staff account first and the class assignment fails
-                 * afterwards, leaving a staff record behind.
                  */
 
                 const selectedClass =
-                    classes.find(item => item.id === classId);
+                    classes.find(
+                        item =>
+                            item.id ===
+                            classId
+                    );
 
-                if (role === "form_master") {
+
+                if (
+                    role ===
+                    "form_master"
+                ) {
+
                     if (!selectedClass) {
-                        throw new Error("The selected Form Master class could not be found.");
+
+                        throw new Error(
+                            "The selected Form Master class could not be found."
+                        );
+
                     }
 
-                    await validateFormMasterClassAvailability(selectedClass);
+
+                    await validateFormMasterClassAvailability(
+                        selectedClass
+                    );
+
                 }
 
 
@@ -2319,15 +2975,28 @@ if (addStaffForm) {
                 const firebaseConfig =
                     getFirebaseConfig();
 
+
                 const secondaryApp =
                     initializeApp(
                         firebaseConfig,
-                        "virelloStaffCreator_" + Date.now()
+                        "virelloStaffCreator_" +
+                        Date.now()
                     );
 
-                const secondaryAuth = getAuth(secondaryApp);
-                let createdUser = null;
-                let firestoreCommitted = false;
+
+                const secondaryAuth =
+                    getAuth(
+                        secondaryApp
+                    );
+
+
+                let createdUser =
+                    null;
+
+
+                let firestoreCommitted =
+                    false;
+
 
                 try {
 
@@ -2338,93 +3007,239 @@ if (addStaffForm) {
                             password
                         );
 
-                    createdUser = credential.user;
-                    const newUid = createdUser.uid;
 
-                    console.log("✅ Firebase account created:", newUid);
+                    createdUser =
+                        credential.user;
+
+
+                    const newUid =
+                        createdUser.uid;
+
+
+                    console.log(
+                        "✅ Firebase account created:",
+                        newUid
+                    );
+
 
                     const staffData = {
-                        uid: newUid,
-                        organizationId: organization.id,
+
+                        uid:
+                            newUid,
+
+                        organizationId:
+                            organization.id,
+
                         fullName,
-                        name: fullName,
-                        staffId: enteredStaffId,
+
+                        name:
+                            fullName,
+
+                        staffId:
+                            enteredStaffId,
+
                         position,
+
                         department,
+
                         email,
+
                         phone,
-                        employmentType: employment,
+
+                        employmentType:
+                            employment,
+
                         status,
+
                         role,
-                        isFormMaster: role === "form_master",
-                        formMasterClassId: role === "form_master" ? classId : "",
-                        formMasterClassName: role === "form_master"
-                            ? (selectedClass?.className || selectedClass?.name || "")
-                            : "",
-                        createdByUid: currentUser.uid,
-                        createdByEmail: currentUser.email || "",
-                        createdAt: serverTimestamp(),
-                        updatedAt: serverTimestamp()
+
+                        isFormMaster:
+                            role ===
+                            "form_master",
+
+                        formMasterClassId:
+                            role ===
+                            "form_master"
+                                ? classId
+                                : "",
+
+                        formMasterClassName:
+                            role ===
+                            "form_master"
+                                ? (
+                                    selectedClass?.className ||
+                                    selectedClass?.name ||
+                                    ""
+                                )
+                                : "",
+
+                        photoData:
+                            selectedStaffPhoto ||
+                            "",
+
+                        photoUpdatedAt:
+                            selectedStaffPhoto
+                                ? serverTimestamp()
+                                : null,
+
+                        createdByUid:
+                            currentUser.uid,
+
+                        createdByEmail:
+                            currentUser.email ||
+                            "",
+
+                        createdAt:
+                            serverTimestamp(),
+
+                        updatedAt:
+                            serverTimestamp()
+
                     };
+
 
                     const teacherData = {
-                        uid: newUid,
-                        organizationId: organization.id,
+
+                        uid:
+                            newUid,
+
+                        organizationId:
+                            organization.id,
+
                         fullName,
-                        name: fullName,
+
+                        name:
+                            fullName,
+
                         email,
+
                         phone,
+
                         role,
+
                         position,
+
                         department,
+
                         status,
-                        formMasterId: role === "form_master" ? newUid : "",
-                        formMasterUid: role === "form_master" ? newUid : "",
-                        formMasterClassId: role === "form_master" ? classId : "",
-                        formMasterClassName: role === "form_master"
-                            ? (selectedClass?.className || selectedClass?.name || "")
-                            : "",
-                        createdAt: serverTimestamp(),
-                        updatedAt: serverTimestamp()
+
+                        formMasterId:
+                            role ===
+                            "form_master"
+                                ? newUid
+                                : "",
+
+                        formMasterUid:
+                            role ===
+                            "form_master"
+                                ? newUid
+                                : "",
+
+                        formMasterClassId:
+                            role ===
+                            "form_master"
+                                ? classId
+                                : "",
+
+                        formMasterClassName:
+                            role ===
+                            "form_master"
+                                ? (
+                                    selectedClass?.className ||
+                                    selectedClass?.name ||
+                                    ""
+                                )
+                                : "",
+
+                        photoData:
+                            selectedStaffPhoto ||
+                            "",
+
+                        createdAt:
+                            serverTimestamp(),
+
+                        updatedAt:
+                            serverTimestamp()
+
                     };
 
-                    /*
-                     * All Firestore writes are committed together.
-                     * Therefore Staff + Teacher + Class succeed together
-                     * or none of them are written.
-                     */
-                    const batch = writeBatch(db);
+
+                    const batch =
+                        writeBatch(
+                            db
+                        );
+
 
                     batch.set(
-                        doc(db, "staff", newUid),
+                        doc(
+                            db,
+                            "staff",
+                            newUid
+                        ),
                         staffData
                     );
 
-                    if (role === "teacher" || role === "form_master") {
+
+                    if (
+                        role === "teacher" ||
+                        role === "form_master"
+                    ) {
+
                         batch.set(
-                            doc(db, "teachers", newUid),
+                            doc(
+                                db,
+                                "teachers",
+                                newUid
+                            ),
                             teacherData,
-                            { merge: true }
+                            {
+                                merge:
+                                    true
+                            }
                         );
+
                     }
 
-                    if (role === "form_master" && selectedClass) {
+
+                    if (
+                        role ===
+                        "form_master" &&
+                        selectedClass
+                    ) {
 
                         const classRef =
-                            doc(db, "classes", selectedClass.id);
+                            doc(
+                                db,
+                                "classes",
+                                selectedClass.id
+                            );
+
 
                         const classSnapshot =
-                            await getDoc(classRef);
+                            await getDoc(
+                                classRef
+                            );
 
-                        if (classSnapshot.exists()) {
 
-                            const classData = classSnapshot.data();
+                        if (
+                            classSnapshot.exists()
+                        ) {
 
-                            if (classData.organizationId !== organization.id) {
+                            const classData =
+                                classSnapshot.data();
+
+
+                            if (
+                                classData.organizationId !==
+                                organization.id
+                            ) {
+
                                 throw new Error(
                                     "This class belongs to another organization and cannot be assigned here."
                                 );
+
                             }
+
 
                             const occupiedBy =
                                 classData.formMasterUid ||
@@ -2432,91 +3247,189 @@ if (addStaffForm) {
                                 classData.formMaster ||
                                 "";
 
+
                             if (occupiedBy) {
+
                                 const existingName =
                                     classData.formMasterName ||
                                     "another Form Master";
 
+
                                 throw new Error(
                                     `This class is already assigned to ${existingName}. Please remove the existing Form Master before assigning another one.`
                                 );
+
                             }
 
-                            batch.update(classRef, {
-                                formMasterId: newUid,
-                                formMasterUid: newUid,
-                                formMasterName: fullName,
-                                formMasterEmail: email,
-                                formMasterRole: "form_master",
-                                updatedAt: serverTimestamp()
-                            });
 
-                        } else {
+                            batch.update(
+                                classRef,
+                                {
 
-                            if (!selectedClass.virtualClass) {
-                                throw new Error("The selected class could not be found.");
-                            }
+                                    formMasterId:
+                                        newUid,
 
-                            batch.set(classRef, {
-                                organizationId: organization.id,
-                                standardClassId: selectedClass.standardClassId || "",
-                                name: selectedClass.name,
-                                className: selectedClass.className,
-                                level: selectedClass.level,
-                                formMasterId: newUid,
-                                formMasterUid: newUid,
-                                formMasterName: fullName,
-                                formMasterEmail: email,
-                                formMasterRole: "form_master",
-                                createdAt: serverTimestamp(),
-                                updatedAt: serverTimestamp()
-                            });
+                                    formMasterUid:
+                                        newUid,
+
+                                    formMasterName:
+                                        fullName,
+
+                                    formMasterEmail:
+                                        email,
+
+                                    formMasterRole:
+                                        "form_master",
+
+                                    updatedAt:
+                                        serverTimestamp()
+
+                                }
+                            );
+
                         }
+
+                        else {
+
+                            if (
+                                !selectedClass.virtualClass
+                            ) {
+
+                                throw new Error(
+                                    "The selected class could not be found."
+                                );
+
+                            }
+
+
+                            batch.set(
+                                classRef,
+                                {
+
+                                    organizationId:
+                                        organization.id,
+
+                                    standardClassId:
+                                        selectedClass.standardClassId ||
+                                        "",
+
+                                    name:
+                                        selectedClass.name,
+
+                                    className:
+                                        selectedClass.className,
+
+                                    level:
+                                        selectedClass.level,
+
+                                    formMasterId:
+                                        newUid,
+
+                                    formMasterUid:
+                                        newUid,
+
+                                    formMasterName:
+                                        fullName,
+
+                                    formMasterEmail:
+                                        email,
+
+                                    formMasterRole:
+                                        "form_master",
+
+                                    createdAt:
+                                        serverTimestamp(),
+
+                                    updatedAt:
+                                        serverTimestamp()
+
+                                }
+                            );
+
+                        }
+
                     }
 
+
                     await batch.commit();
-                    firestoreCommitted = true;
+
+
+                    firestoreCommitted =
+                        true;
+
 
                     console.log(
-                        "✅ Staff, teacher and class assignment committed successfully.",
+                        "✅ Staff, teacher, photo and class assignment committed successfully.",
                         organization.id
                     );
 
-                } catch (error) {
+                }
 
-                    /*
-                     * If Firebase Authentication was created but Firestore
-                     * failed, remove the new Auth account so the operation
-                     * does not leave an orphaned login account.
-                     */
-                    if (createdUser && !firestoreCommitted) {
+                catch (error) {
+
+                    if (
+                        createdUser &&
+                        !firestoreCommitted
+                    ) {
+
                         try {
-                            await deleteUser(createdUser);
-                            console.log("🧹 Rolled back Firebase Authentication account.");
-                        } catch (rollbackError) {
+
+                            await deleteUser(
+                                createdUser
+                            );
+
+
+                            console.log(
+                                "🧹 Rolled back Firebase Authentication account."
+                            );
+
+                        }
+
+                        catch (rollbackError) {
+
                             console.warn(
                                 "Could not roll back Firebase account:",
                                 rollbackError
                             );
+
                         }
+
                     }
+
 
                     throw error;
 
-                } finally {
+                }
+
+                finally {
 
                     try {
-                        await signOut(secondaryAuth);
-                    } catch {
+
+                        await signOut(
+                            secondaryAuth
+                        );
+
+                    }
+
+                    catch {
                         // Ignore secondary logout.
                     }
 
+
                     try {
-                        await deleteApp(secondaryApp);
-                    } catch {
+
+                        await deleteApp(
+                            secondaryApp
+                        );
+
+                    }
+
+                    catch {
                         // Ignore secondary app cleanup.
                     }
+
                 }
+
 
                 /*
                  * -------------------------------------------------
@@ -2528,7 +3441,7 @@ if (addStaffForm) {
 
 
                 showFormMessage(
-                    `Form Master account created successfully for ${fullName}.`,
+                    `Staff account created successfully for ${fullName}.`,
                     "success"
                 );
 
@@ -2606,43 +3519,109 @@ async function assignFormMasterToClass(
 ) {
 
     if (!organization?.id) {
-        throw new Error("Organization could not be identified.");
+
+        throw new Error(
+            "Organization could not be identified."
+        );
+
     }
+
 
     if (!classItem) {
-        throw new Error("Please select a class.");
+
+        throw new Error(
+            "Please select a class."
+        );
+
     }
 
-    if (classItem.organizationId &&
-        classItem.organizationId !== organization.id) {
-        throw new Error("This class belongs to another organization and cannot be assigned here.");
+
+    if (
+        classItem.organizationId &&
+        classItem.organizationId !==
+        organization.id
+    ) {
+
+        throw new Error(
+            "This class belongs to another organization and cannot be assigned here."
+        );
+
     }
 
-    const classRef = doc(db, "classes", classItem.id);
-    const existing = await getDoc(classRef);
+
+    const classRef =
+        doc(
+            db,
+            "classes",
+            classItem.id
+        );
+
+
+    const existing =
+        await getDoc(
+            classRef
+        );
+
 
     if (!existing.exists()) {
 
         if (!classItem.virtualClass) {
-            throw new Error("The selected class could not be found.");
+
+            throw new Error(
+                "The selected class could not be found."
+            );
+
         }
 
-        await setDoc(classRef, {
-            organizationId: organization.id,
-            standardClassId: classItem.standardClassId || "",
-            name: classItem.name,
-            className: classItem.className,
-            level: classItem.level,
-            formMasterId: formMasterData.uid,
-            formMasterUid: formMasterData.uid,
-            formMasterName: formMasterData.fullName,
-            formMasterEmail: formMasterData.email,
-            formMasterRole: "form_master",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        });
 
-        classItem.virtualClass = false;
+        await setDoc(
+            classRef,
+            {
+
+                organizationId:
+                    organization.id,
+
+                standardClassId:
+                    classItem.standardClassId ||
+                    "",
+
+                name:
+                    classItem.name,
+
+                className:
+                    classItem.className,
+
+                level:
+                    classItem.level,
+
+                formMasterId:
+                    formMasterData.uid,
+
+                formMasterUid:
+                    formMasterData.uid,
+
+                formMasterName:
+                    formMasterData.fullName,
+
+                formMasterEmail:
+                    formMasterData.email,
+
+                formMasterRole:
+                    "form_master",
+
+                createdAt:
+                    serverTimestamp(),
+
+                updatedAt:
+                    serverTimestamp()
+
+            }
+        );
+
+
+        classItem.virtualClass =
+            false;
+
 
         console.log(
             "✅ New organization-specific class created and Form Master assigned:",
@@ -2650,14 +3629,27 @@ async function assignFormMasterToClass(
             organization.id
         );
 
+
         return;
+
     }
 
-    const existingData = existing.data();
 
-    if (existingData.organizationId !== organization.id) {
-        throw new Error("This class belongs to another organization and cannot be assigned here.");
+    const existingData =
+        existing.data();
+
+
+    if (
+        existingData.organizationId !==
+        organization.id
+    ) {
+
+        throw new Error(
+            "This class belongs to another organization and cannot be assigned here."
+        );
+
     }
+
 
     const existingFormMasterUid =
         existingData.formMasterUid ||
@@ -2665,28 +3657,53 @@ async function assignFormMasterToClass(
         existingData.formMaster ||
         "";
 
+
     if (
         existingFormMasterUid &&
-        existingFormMasterUid !== formMasterData.uid
+        existingFormMasterUid !==
+        formMasterData.uid
     ) {
+
         const existingName =
             existingData.formMasterName ||
             "another Form Master";
 
+
         throw new Error(
             `This class is already assigned to ${existingName}. Please remove the existing Form Master before assigning another one.`
         );
+
     }
 
-    await updateDoc(classRef, {
-        organizationId: organization.id,
-        formMasterId: formMasterData.uid,
-        formMasterUid: formMasterData.uid,
-        formMasterName: formMasterData.fullName,
-        formMasterEmail: formMasterData.email,
-        formMasterRole: "form_master",
-        updatedAt: serverTimestamp()
-    });
+
+    await updateDoc(
+        classRef,
+        {
+
+            organizationId:
+                organization.id,
+
+            formMasterId:
+                formMasterData.uid,
+
+            formMasterUid:
+                formMasterData.uid,
+
+            formMasterName:
+                formMasterData.fullName,
+
+            formMasterEmail:
+                formMasterData.email,
+
+            formMasterRole:
+                "form_master",
+
+            updatedAt:
+                serverTimestamp()
+
+        }
+    );
+
 
     console.log(
         "✅ Form Master assigned to organization class:",
@@ -2695,6 +3712,7 @@ async function assignFormMasterToClass(
     );
 
 }
+
 
 /* =========================================================
    UPDATE EXISTING STAFF
@@ -2783,6 +3801,26 @@ async function updateExistingStaff(
     };
 
 
+    /*
+     * -------------------------------------------------------
+     * PHOTO
+     * -------------------------------------------------------
+     */
+
+    if (
+        data.photoData !==
+        undefined
+    ) {
+
+        updates.photoData =
+            data.photoData || "";
+
+        updates.photoUpdatedAt =
+            serverTimestamp();
+
+    }
+
+
     await updateDoc(
         staffRef,
         updates
@@ -2812,76 +3850,90 @@ async function updateExistingStaff(
         )
     ) {
 
+        const teacherUpdates = {
+
+            uid:
+                editingStaff.uid,
+
+            organizationId:
+                organization.id,
+
+            fullName:
+                data.fullName,
+
+            name:
+                data.fullName,
+
+            email:
+                data.email,
+
+            phone:
+                data.phone,
+
+            role:
+                data.role,
+
+            position:
+                data.position,
+
+            department:
+                data.department,
+
+            status:
+                data.status,
+
+            formMasterId:
+                data.role ===
+                "form_master"
+                    ? editingStaff.uid
+                    : "",
+
+            formMasterUid:
+                data.role ===
+                "form_master"
+                    ? editingStaff.uid
+                    : "",
+
+            formMasterClassId:
+                data.role ===
+                "form_master"
+                    ? data.classId
+                    : "",
+
+            formMasterClassName:
+                data.role ===
+                "form_master"
+                    ? (
+                        selectedClass?.className ||
+                        selectedClass?.name ||
+                        ""
+                      )
+                    : "",
+
+            updatedAt:
+                serverTimestamp()
+
+        };
+
+
+        if (
+            data.photoData !==
+            undefined
+        ) {
+
+            teacherUpdates.photoData =
+                data.photoData || "";
+
+        }
+
+
         await setDoc(
             doc(
                 db,
                 "teachers",
                 editingStaff.uid
             ),
-            {
-
-                uid:
-                    editingStaff.uid,
-
-                organizationId:
-                    organization.id,
-
-                fullName:
-                    data.fullName,
-
-                name:
-                    data.fullName,
-
-                email:
-                    data.email,
-
-                phone:
-                    data.phone,
-
-                role:
-                    data.role,
-
-                position:
-                    data.position,
-
-                department:
-                    data.department,
-
-                status:
-                    data.status,
-
-                formMasterId:
-                    data.role ===
-                    "form_master"
-                        ? editingStaff.uid
-                        : "",
-
-                formMasterUid:
-                    data.role ===
-                    "form_master"
-                        ? editingStaff.uid
-                        : "",
-
-                formMasterClassId:
-                    data.role ===
-                    "form_master"
-                        ? data.classId
-                        : "",
-
-                formMasterClassName:
-                    data.role ===
-                    "form_master"
-                        ? (
-                            selectedClass?.className ||
-                            selectedClass?.name ||
-                            ""
-                          )
-                        : "",
-
-                updatedAt:
-                    serverTimestamp()
-
-            },
+            teacherUpdates,
             {
                 merge:
                     true
@@ -2912,6 +3964,7 @@ async function updateExistingStaff(
                     editingStaff.uid,
 
                 staffId:
+                    editingStaff.staffId ||
                     editingStaff.uid,
 
                 fullName:
@@ -3624,6 +4677,893 @@ function showError(
 
 
 /* =========================================================
+   DIGITAL STAFF ID CARD
+========================================================= */
+
+function openDigitalStaffIDCard(
+    staff
+) {
+
+    idCardStaff =
+        staff;
+
+
+    const existing =
+        document.getElementById(
+            "virelloDigitalIDModal"
+        );
+
+
+    if (existing) {
+
+        existing.remove();
+
+    }
+
+
+    const fullName =
+        staff.fullName ||
+        staff.name ||
+        "Staff Member";
+
+
+    const staffNumber =
+        staff.staffId ||
+        staff.id ||
+        "N/A";
+
+
+    const position =
+        staff.position ||
+        "Staff";
+
+
+    const department =
+        staff.department ||
+        "—";
+
+
+    const role =
+        getRoleLabel(
+            staff.role
+        );
+
+
+    const status =
+        staff.status ||
+        "active";
+
+
+    const schoolName =
+        organization?.organizationName ||
+        organization?.name ||
+        "Virello Organization";
+
+
+    const schoolType =
+        organization?.organizationType ||
+        organization?.type ||
+        "Educational Institution";
+
+
+    const photo =
+        staff.photoData ||
+        staff.photoURL ||
+        "";
+
+
+    const initials =
+        getInitials(
+            fullName
+        );
+
+
+    const verificationData =
+        encodeURIComponent(
+            JSON.stringify({
+
+                type:
+                    "VIRELLO_STAFF_ID",
+
+                organizationId:
+                    organization?.id ||
+                    "",
+
+                staffId:
+                    staffNumber,
+
+                uid:
+                    staff.uid ||
+                    staff.id ||
+                    "",
+
+                name:
+                    fullName
+
+            })
+        );
+
+
+    const qrUrl =
+        "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
+        verificationData;
+
+
+    const photoHTML =
+        photo
+
+            ? `
+                <img
+                    src="${escapeHtml(photo)}"
+                    alt="${escapeHtml(fullName)}"
+                    style="
+                        width:100%;
+                        height:100%;
+                        object-fit:cover;
+                    "
+                >
+              `
+
+            : `
+                <div
+                    style="
+                        width:100%;
+                        height:100%;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:42px;
+                        font-weight:800;
+                        color:#0f172a;
+                        background:#e2e8f0;
+                    "
+                >
+                    ${escapeHtml(initials)}
+                </div>
+              `;
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "virelloDigitalIDModal";
+
+
+    modal.innerHTML = `
+
+        <div
+            id="virelloIDOverlay"
+            style="
+                position:fixed;
+                inset:0;
+                z-index:99999;
+                background:rgba(15,23,42,.78);
+                backdrop-filter:blur(6px);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                padding:20px;
+                overflow:auto;
+            "
+        >
+
+            <div
+                style="
+                    width:min(1050px,100%);
+                    max-height:95vh;
+                    overflow:auto;
+                    background:#f8fafc;
+                    border-radius:20px;
+                    padding:24px;
+                    box-shadow:0 30px 80px rgba(0,0,0,.35);
+                "
+            >
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:15px;
+                        margin-bottom:20px;
+                    "
+                >
+
+                    <div>
+
+                        <div
+                            style="
+                                font-size:22px;
+                                font-weight:800;
+                                color:#0f172a;
+                            "
+                        >
+                            Digital Staff ID Card
+                        </div>
+
+                        <div
+                            style="
+                                color:#64748b;
+                                font-size:13px;
+                                margin-top:4px;
+                            "
+                        >
+                            Virello Technologies Staff Identification
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        id="closeVirelloID"
+                        type="button"
+                        style="
+                            border:none;
+                            background:#e2e8f0;
+                            color:#0f172a;
+                            width:40px;
+                            height:40px;
+                            border-radius:50%;
+                            font-size:22px;
+                            cursor:pointer;
+                        "
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="virelloIDPrintArea"
+                    style="
+                        display:flex;
+                        flex-wrap:wrap;
+                        justify-content:center;
+                        gap:30px;
+                    "
+                >
+
+                    <!-- FRONT -->
+
+                    <div
+                        class="virello-id-card"
+                        style="
+                            width:350px;
+                            min-height:500px;
+                            background:white;
+                            border-radius:18px;
+                            overflow:hidden;
+                            position:relative;
+                            box-shadow:0 12px 35px rgba(15,23,42,.18);
+                            border:1px solid #dbe4ef;
+                            font-family:Arial,Helvetica,sans-serif;
+                        "
+                    >
+
+                        <div
+                            style="
+                                height:92px;
+                                background:linear-gradient(135deg,#0f172a,#1e3a8a);
+                                color:white;
+                                padding:18px;
+                                position:relative;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    font-size:13px;
+                                    font-weight:700;
+                                    letter-spacing:1.5px;
+                                "
+                            >
+                                VIRELLO TECHNOLOGIES
+                            </div>
+
+                            <div
+                                style="
+                                    font-size:19px;
+                                    font-weight:800;
+                                    margin-top:7px;
+                                "
+                            >
+                                STAFF ID CARD
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                display:flex;
+                                justify-content:center;
+                                margin-top:-35px;
+                                position:relative;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    width:125px;
+                                    height:145px;
+                                    border-radius:12px;
+                                    overflow:hidden;
+                                    background:#e2e8f0;
+                                    border:6px solid white;
+                                    box-shadow:0 8px 20px rgba(0,0,0,.18);
+                                "
+                            >
+                                ${photoHTML}
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                text-align:center;
+                                padding:12px 20px 5px;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    font-size:22px;
+                                    font-weight:900;
+                                    color:#0f172a;
+                                "
+                            >
+                                ${escapeHtml(fullName)}
+                            </div>
+
+                            <div
+                                style="
+                                    color:#2563eb;
+                                    font-size:14px;
+                                    font-weight:700;
+                                    margin-top:4px;
+                                "
+                            >
+                                ${escapeHtml(position)}
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                padding:15px 28px;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    display:grid;
+                                    grid-template-columns:105px 1fr;
+                                    gap:9px;
+                                    font-size:12px;
+                                "
+                            >
+
+                                <strong>Staff ID</strong>
+                                <span>${escapeHtml(staffNumber)}</span>
+
+                                <strong>Department</strong>
+                                <span>${escapeHtml(department)}</span>
+
+                                <strong>Role</strong>
+                                <span>${escapeHtml(role)}</span>
+
+                                <strong>Status</strong>
+                                <span
+                                    style="
+                                        color:${
+                                            status === "active"
+                                                ? "#15803d"
+                                                : "#dc2626"
+                                        };
+                                        font-weight:800;
+                                    "
+                                >
+                                    ${
+                                        status === "active"
+                                            ? "ACTIVE"
+                                            : "INACTIVE"
+                                    }
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                position:absolute;
+                                bottom:0;
+                                left:0;
+                                right:0;
+                                background:#f1f5f9;
+                                padding:11px 15px;
+                                text-align:center;
+                                font-size:9px;
+                                color:#64748b;
+                            "
+                        >
+                            Official Virello Digital Staff Identification
+                        </div>
+
+                    </div>
+
+
+                    <!-- BACK -->
+
+                    <div
+                        class="virello-id-card"
+                        style="
+                            width:350px;
+                            min-height:500px;
+                            background:white;
+                            border-radius:18px;
+                            overflow:hidden;
+                            position:relative;
+                            box-shadow:0 12px 35px rgba(15,23,42,.18);
+                            border:1px solid #dbe4ef;
+                            font-family:Arial,Helvetica,sans-serif;
+                        "
+                    >
+
+                        <div
+                            style="
+                                height:92px;
+                                background:linear-gradient(135deg,#1e3a8a,#0f172a);
+                                color:white;
+                                padding:20px;
+                                text-align:center;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    font-size:18px;
+                                    font-weight:900;
+                                "
+                            >
+                                ${escapeHtml(schoolName)}
+                            </div>
+
+                            <div
+                                style="
+                                    font-size:11px;
+                                    opacity:.8;
+                                    margin-top:5px;
+                                "
+                            >
+                                ${escapeHtml(schoolType)}
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                padding:30px 30px 20px;
+                                text-align:center;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    font-size:14px;
+                                    font-weight:800;
+                                    color:#0f172a;
+                                    margin-bottom:15px;
+                                "
+                            >
+                                STAFF VERIFICATION QR
+                            </div>
+
+
+                            <div
+                                style="
+                                    width:190px;
+                                    height:190px;
+                                    margin:0 auto;
+                                    padding:10px;
+                                    background:white;
+                                    border:1px solid #e2e8f0;
+                                    border-radius:12px;
+                                "
+                            >
+
+                                <img
+                                    src="${qrUrl}"
+                                    alt="Staff verification QR"
+                                    style="
+                                        width:100%;
+                                        height:100%;
+                                    "
+                                >
+
+                            </div>
+
+
+                            <div
+                                style="
+                                    font-size:11px;
+                                    color:#64748b;
+                                    margin-top:12px;
+                                    line-height:1.5;
+                                "
+                            >
+                                Scan this QR code to verify
+                                the staff identification record.
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                margin:0 25px;
+                                border-top:1px solid #e2e8f0;
+                                padding-top:18px;
+                                text-align:center;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    font-size:10px;
+                                    color:#64748b;
+                                "
+                            >
+                                Staff ID
+                            </div>
+
+                            <div
+                                style="
+                                    font-size:19px;
+                                    font-weight:900;
+                                    color:#0f172a;
+                                    letter-spacing:1px;
+                                "
+                            >
+                                ${escapeHtml(staffNumber)}
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                position:absolute;
+                                bottom:0;
+                                left:0;
+                                right:0;
+                                background:#f1f5f9;
+                                padding:13px;
+                                text-align:center;
+                                font-size:9px;
+                                color:#64748b;
+                            "
+                        >
+                            Property of ${escapeHtml(schoolName)}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:center;
+                        gap:10px;
+                        flex-wrap:wrap;
+                        margin-top:25px;
+                    "
+                >
+
+                    <button
+                        id="printVirelloID"
+                        type="button"
+                        style="
+                            border:none;
+                            background:#0f172a;
+                            color:white;
+                            padding:13px 22px;
+                            border-radius:10px;
+                            font-weight:800;
+                            cursor:pointer;
+                        "
+                    >
+                        🖨️ Print ID Card
+                    </button>
+
+
+                    <button
+                        id="closeVirelloIDBottom"
+                        type="button"
+                        style="
+                            border:none;
+                            background:#e2e8f0;
+                            color:#0f172a;
+                            padding:13px 22px;
+                            border-radius:10px;
+                            font-weight:800;
+                            cursor:pointer;
+                        "
+                    >
+                        Close
+                    </button>
+
+                </div>
+
+
+                <div
+                    style="
+                        text-align:center;
+                        margin-top:14px;
+                        font-size:11px;
+                        color:#64748b;
+                    "
+                >
+                    To save as PDF, choose
+                    <strong>Save as PDF</strong>
+                    in the browser print window.
+                </div>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    document
+        .getElementById(
+            "closeVirelloID"
+        )
+        ?.addEventListener(
+            "click",
+            closeDigitalStaffIDCard
+        );
+
+
+    document
+        .getElementById(
+            "closeVirelloIDBottom"
+        )
+        ?.addEventListener(
+            "click",
+            closeDigitalStaffIDCard
+        );
+
+
+    document
+        .getElementById(
+            "printVirelloID"
+        )
+        ?.addEventListener(
+            "click",
+            printDigitalStaffIDCard
+        );
+
+
+    document
+        .getElementById(
+            "virelloIDOverlay"
+        )
+        ?.addEventListener(
+            "click",
+            event => {
+
+                if (
+                    event.target.id ===
+                    "virelloIDOverlay"
+                ) {
+
+                    closeDigitalStaffIDCard();
+
+                }
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   CLOSE DIGITAL ID CARD
+========================================================= */
+
+function closeDigitalStaffIDCard() {
+
+    const modal =
+        document.getElementById(
+            "virelloDigitalIDModal"
+        );
+
+
+    if (modal) {
+
+        modal.remove();
+
+    }
+
+
+    idCardStaff =
+        null;
+
+}
+
+
+/* =========================================================
+   PRINT DIGITAL STAFF ID CARD
+========================================================= */
+
+function printDigitalStaffIDCard() {
+
+    const printArea =
+        document.getElementById(
+            "virelloIDPrintArea"
+        );
+
+
+    if (!printArea) {
+        return;
+    }
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=1100,height=850"
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            "Your browser blocked the print window. Please allow pop-ups for this site."
+        );
+
+        return;
+
+    }
+
+
+    printWindow.document.open();
+
+
+    printWindow.document.write(`
+
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                Virello Staff ID Card
+            </title>
+
+            <meta
+                charset="UTF-8"
+            >
+
+            <style>
+
+                * {
+                    box-sizing:border-box;
+                }
+
+                html,
+                body {
+                    margin:0;
+                    padding:0;
+                    background:white;
+                    font-family:Arial,Helvetica,sans-serif;
+                }
+
+                body {
+                    padding:20px;
+                }
+
+                #printCards {
+                    display:flex;
+                    justify-content:center;
+                    align-items:flex-start;
+                    gap:25px;
+                    flex-wrap:wrap;
+                }
+
+                .virello-id-card {
+                    flex:0 0 350px;
+                    width:350px;
+                    height:500px;
+                    min-height:500px;
+                    page-break-inside:avoid;
+                    break-inside:avoid;
+                    box-shadow:none !important;
+                }
+
+                img {
+                    print-color-adjust:exact;
+                    -webkit-print-color-adjust:exact;
+                }
+
+                @media print {
+
+                    @page {
+                        size:A4 portrait;
+                        margin:10mm;
+                    }
+
+                    body {
+                        padding:0;
+                    }
+
+                    #printCards {
+                        gap:15mm;
+                    }
+
+                }
+
+            </style>
+
+        </head>
+
+
+        <body>
+
+            <div id="printCards">
+
+                ${printArea.innerHTML}
+
+            </div>
+
+            <script>
+
+                window.onload = function() {
+
+                    setTimeout(
+                        function() {
+                            window.print();
+                        },
+                        700
+                    );
+
+                };
+
+            <\/script>
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    printWindow.document.close();
+
+}
+
+
+/* =========================================================
    GLOBAL DEBUG
 ========================================================= */
 
@@ -3639,7 +5579,10 @@ window.virelloStaffDebug = {
         () => staffMembers,
 
     getClasses:
-        () => classes
+        () => classes,
+
+    openStaffID:
+        staff => openDigitalStaffIDCard(staff)
 
 };
 
@@ -3649,23 +5592,42 @@ window.virelloStaffDebug = {
 ========================================================= */
 
 console.log(
-    "✅ Virello Staff Management JavaScript loaded."
+    "✅ Virello Staff Management + Digital Staff ID Card loaded."
 );
+
+
+console.log(
+    "🪪 Digital Staff ID Card system ready."
+);
+
 
 console.log(
     "🏫 Standard classes:",
     [
+
         "Nursery 1",
+
         "Nursery 2",
+
         "Nursery 3",
+
         "Grade 1",
+
         "Grade 2",
+
         "Grade 3",
+
         "Grade 4",
+
         "Grade 5",
+
         "Grade 6",
+
         "Grade 7",
+
         "Grade 8",
+
         "Grade 9"
+
     ]
 );
