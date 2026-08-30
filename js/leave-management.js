@@ -18,6 +18,7 @@
    - Reject leave
    - Leave statistics
    - Organization-based Firestore queries
+   - STAFF LEAVE APPROVAL NOTIFICATIONS
 ========================================================= */
 
 
@@ -556,7 +557,7 @@ if (leaveForm) {
                 }
 
 
-                const staffId =
+                const selectedStaffDocumentId =
                     staffSelect.value;
 
 
@@ -576,7 +577,7 @@ if (leaveForm) {
                     reason.value.trim();
 
 
-                if (!staffId) {
+                if (!selectedStaffDocumentId) {
 
                     throw new Error(
                         "Please select a staff member."
@@ -637,7 +638,7 @@ if (leaveForm) {
                     staffMembers.find(
                         item =>
                             item.id ===
-                            staffId
+                            selectedStaffDocumentId
                     );
 
 
@@ -664,12 +665,12 @@ if (leaveForm) {
                         currentOrganization.id,
 
                     staffDocumentId:
-                        staffId,
+                        selectedStaffDocumentId,
 
                     staffId:
                         staff.staffId ||
                         staff.employeeId ||
-                        staffId,
+                        selectedStaffDocumentId,
 
                     staffName:
                         getStaffName(staff),
@@ -767,6 +768,139 @@ if (leaveForm) {
             }
 
         }
+    );
+
+}
+
+
+/* =========================================================
+   CREATE STAFF LEAVE NOTIFICATION
+========================================================= */
+
+async function createStaffLeaveNotification(
+    request,
+    newStatus
+) {
+
+    if (!request) {
+
+        return;
+
+    }
+
+
+    const staffDocumentId =
+        request.staffDocumentId ||
+        "";
+
+
+    const staffId =
+        request.staffId ||
+        "";
+
+
+    const staffName =
+        request.staffName ||
+        "Staff Member";
+
+
+    const leaveType =
+        request.leaveType ||
+        "Leave";
+
+
+    const start =
+        request.startDate ||
+        "";
+
+
+    const end =
+        request.endDate ||
+        "";
+
+
+    const isApproved =
+        newStatus ===
+        "approved";
+
+
+    const title =
+        isApproved
+
+            ? `Your ${leaveType} Has Been Approved`
+
+            : `Your ${leaveType} Has Been Rejected`;
+
+
+    const message =
+        isApproved
+
+            ? `Your ${leaveType.toLowerCase()} request from ${start} to ${end} has been approved.`
+
+            : `Your ${leaveType.toLowerCase()} request from ${start} to ${end} has been rejected.`;
+
+
+    const notificationData = {
+
+        organizationId:
+            request.organizationId ||
+            currentOrganization?.id ||
+            "",
+
+        staffDocumentId:
+            staffDocumentId,
+
+        staffId:
+            staffId,
+
+        staffName:
+            staffName,
+
+        leaveRequestId:
+            request.id,
+
+        type:
+            "leave",
+
+        leaveType:
+            leaveType,
+
+        status:
+            newStatus,
+
+        title:
+            title,
+
+        message:
+            message,
+
+        read:
+            false,
+
+        createdAt:
+            serverTimestamp(),
+
+        updatedAt:
+            serverTimestamp()
+
+    };
+
+
+    await addDoc(
+
+        collection(
+            db,
+            "staffNotifications"
+        ),
+
+        notificationData
+
+    );
+
+
+    console.log(
+        "🔔 Staff leave notification created:",
+        notificationData
     );
 
 }
@@ -981,9 +1115,11 @@ function getRequestActions(
     ) {
 
         return `
+
             <span style="color:#94a3b8;">
                 —
             </span>
+
         `;
 
     }
@@ -1150,6 +1286,10 @@ if (leaveTableBody) {
                     );
 
 
+                /* =========================================
+                   UPDATE LEAVE REQUEST
+                ========================================= */
+
                 await updateDoc(
                     requestRef,
                     {
@@ -1174,6 +1314,49 @@ if (leaveTableBody) {
                 );
 
 
+                /*
+                 * Keep local request updated
+                 * so notification contains
+                 * the correct leave request ID.
+                 */
+
+                request.status =
+                    newStatus;
+
+
+                /* =========================================
+                   CREATE STAFF NOTIFICATION
+                ========================================= */
+
+                try {
+
+                    await createStaffLeaveNotification(
+                        request,
+                        newStatus
+                    );
+
+                    console.log(
+                        "🔔 Staff notification sent successfully."
+                    );
+
+                }
+
+                catch (
+                    notificationError
+                ) {
+
+                    console.error(
+                        "⚠️ Leave approved but notification could not be created:",
+                        notificationError
+                    );
+
+                }
+
+
+                /* =========================================
+                   REFRESH ADMIN VIEW
+                ========================================= */
+
                 await loadLeaveRequests();
 
 
@@ -1185,8 +1368,10 @@ if (leaveTableBody) {
 
                 alert(
                     newStatus === "approved"
-                        ? "Leave request approved."
-                        : "Leave request rejected."
+
+                        ? "Leave request approved. The staff member has been notified."
+
+                        : "Leave request rejected. The staff member has been notified."
                 );
 
             }
@@ -1405,7 +1590,9 @@ function getTimestampMillis(
         return Number.isNaN(
             parsed.getTime()
         )
+
             ? 0
+
             : parsed.getTime();
 
     }
@@ -1427,22 +1614,27 @@ function escapeHtml(
     return String(
         value ?? ""
     )
+
         .replace(
             /&/g,
             "&amp;"
         )
+
         .replace(
             /</g,
             "&lt;"
         )
+
         .replace(
             />/g,
             "&gt;"
         )
+
         .replace(
             /"/g,
             "&quot;"
         )
+
         .replace(
             /'/g,
             "&#039;"
@@ -1556,4 +1748,9 @@ function hideLoading() {
 
 console.log(
     "✅ Virello Leave Management complete."
+);
+
+
+console.log(
+    "🔔 Staff leave notification system ready."
 );
