@@ -17,20 +17,12 @@
 
     <style>
 
-        /* =====================================================
-           RESET
-        ===================================================== */
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-
-        /* =====================================================
-           BODY
-        ===================================================== */
 
         body {
 
@@ -61,22 +53,14 @@
         }
 
 
-        /* =====================================================
-           CONTAINER
-        ===================================================== */
-
         .worker-container {
 
             width: 100%;
 
-            max-width: 480px;
+            max-width: 520px;
 
         }
 
-
-        /* =====================================================
-           BRAND
-        ===================================================== */
 
         .brand {
 
@@ -134,10 +118,6 @@
         }
 
 
-        /* =====================================================
-           CARD
-        ===================================================== */
-
         .card {
 
             background: white;
@@ -178,10 +158,6 @@
 
         }
 
-
-        /* =====================================================
-           OFFICE QR VERIFICATION
-        ===================================================== */
 
         .office-access {
 
@@ -256,10 +232,6 @@
         }
 
 
-        /* =====================================================
-           DATE
-        ===================================================== */
-
         .date-box {
 
             background: #f8fafc;
@@ -301,10 +273,6 @@
         }
 
 
-        /* =====================================================
-           FIELD
-        ===================================================== */
-
         .field {
 
             margin-bottom: 16px;
@@ -327,13 +295,13 @@
         }
 
 
-        .field input {
+        .field input,
+        .field select,
+        .field textarea {
 
             width: 100%;
 
-            height: 48px;
-
-            padding: 0 14px;
+            padding: 12px 14px;
 
             border:
                 1px solid #cbd5e1;
@@ -342,14 +310,43 @@
 
             outline: none;
 
-            font-size: 15px;
+            font-size: 14px;
 
             color: #172033;
+
+            background: white;
 
         }
 
 
-        .field input:focus {
+        .field input {
+
+            height: 48px;
+
+        }
+
+
+        .field select {
+
+            height: 48px;
+
+        }
+
+
+        .field textarea {
+
+            min-height: 100px;
+
+            resize: vertical;
+
+            line-height: 1.5;
+
+        }
+
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
 
             border-color: #2563eb;
 
@@ -359,10 +356,6 @@
 
         }
 
-
-        /* =====================================================
-           PRIMARY BUTTON
-        ===================================================== */
 
         .primary-button {
 
@@ -402,10 +395,6 @@
 
         }
 
-
-        /* =====================================================
-           WORKER INFO
-        ===================================================== */
 
         .worker-info {
 
@@ -455,10 +444,6 @@
         }
 
 
-        /* =====================================================
-           ATTENDANCE STATUS
-        ===================================================== */
-
         .attendance-status {
 
             padding: 10px 12px;
@@ -501,9 +486,14 @@
         }
 
 
-        /* =====================================================
-           CHECK OUT
-        ===================================================== */
+        .status-late {
+
+            background: #fef3c7;
+
+            color: #92400e;
+
+        }
+
 
         .secondary-button {
 
@@ -525,6 +515,8 @@
 
             cursor: pointer;
 
+            margin-top: 5px;
+
         }
 
 
@@ -545,8 +537,149 @@
 
 
         /* =====================================================
-           MESSAGE
+           LEAVE SECTION
         ===================================================== */
+
+        .leave-section {
+
+            display: none;
+
+            margin-top: 24px;
+
+            padding-top: 24px;
+
+            border-top: 1px solid #e2e8f0;
+
+        }
+
+
+        .leave-section.show {
+
+            display: block;
+
+        }
+
+
+        .leave-heading {
+
+            font-size: 17px;
+
+            font-weight: 800;
+
+            color: #111827;
+
+            margin-bottom: 5px;
+
+        }
+
+
+        .leave-description {
+
+            font-size: 12px;
+
+            color: #64748b;
+
+            line-height: 1.6;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        .leave-button {
+
+            width: 100%;
+
+            height: 46px;
+
+            border: none;
+
+            border-radius: 9px;
+
+            background: #7c3aed;
+
+            color: white;
+
+            font-size: 13px;
+
+            font-weight: 800;
+
+            cursor: pointer;
+
+            margin-top: 10px;
+
+        }
+
+
+        .leave-button:hover {
+
+            background: #6d28d9;
+
+        }
+
+
+        .leave-button:disabled {
+
+            opacity: .6;
+
+            cursor: not-allowed;
+
+        }
+
+
+        .leave-form {
+
+            display: none;
+
+            margin-top: 15px;
+
+            padding: 16px;
+
+            border-radius: 12px;
+
+            background: #faf5ff;
+
+            border: 1px solid #e9d5ff;
+
+        }
+
+
+        .leave-form.show {
+
+            display: block;
+
+        }
+
+
+        .leave-success {
+
+            display: none;
+
+            margin-top: 15px;
+
+            padding: 13px;
+
+            border-radius: 10px;
+
+            background: #f0fdf4;
+
+            border: 1px solid #bbf7d0;
+
+            color: #166534;
+
+            font-size: 12px;
+
+            line-height: 1.6;
+
+        }
+
+
+        .leave-success.show {
+
+            display: block;
+
+        }
+
 
         .message {
 
@@ -561,6 +694,8 @@
             font-size: 12px;
 
             font-weight: 600;
+
+            line-height: 1.5;
 
         }
 
@@ -594,10 +729,6 @@
         }
 
 
-        /* =====================================================
-           FOOTER
-        ===================================================== */
-
         .footer {
 
             text-align: center;
@@ -610,10 +741,6 @@
 
         }
 
-
-        /* =====================================================
-           MOBILE
-        ===================================================== */
 
         @media (max-width: 500px) {
 
@@ -640,207 +767,316 @@
 <body>
 
 
-    <div class="worker-container">
+<div class="worker-container">
 
 
-        <!-- =================================================
-             BRAND
-        ================================================== -->
+    <div class="brand">
 
-        <div class="brand">
-
-            <div class="logo">
-                V
-            </div>
-
-            <h1>
-                Virello Technologies
-            </h1>
-
-            <p>
-                Digital Staff Attendance
-            </p>
-
+        <div class="logo">
+            V
         </div>
 
+        <h1>
+            Virello Technologies
+        </h1>
 
-        <!-- =================================================
-             CARD
-        ================================================== -->
-
-        <div class="card">
-
-
-            <h2>
-                Staff Attendance
-            </h2>
-
-
-            <p class="description">
-                Scan the official office QR code before
-                entering your Staff ID.
-            </p>
-
-
-            <!-- =================================================
-                 OFFICE QR ACCESS STATUS
-            ================================================== -->
-
-            <div
-                id="officeAccess"
-                class="office-access"
-            >
-
-                <div
-                    id="officeAccessTitle"
-                    class="office-access-title"
-                >
-                    ✓ Office QR Verified
-                </div>
-
-
-                <div
-                    id="officeAccessText"
-                    class="office-access-text"
-                >
-                    You accessed Virello attendance through
-                    the office QR code.
-                </div>
-
-            </div>
-
-
-            <!-- =================================================
-                 DATE
-            ================================================== -->
-
-            <div class="date-box">
-
-                <span>
-                    Today's Date
-                </span>
-
-                <strong id="todayDate">
-                    Loading...
-                </strong>
-
-            </div>
-
-
-            <!-- =================================================
-                 MESSAGE
-            ================================================== -->
-
-            <div
-                id="workerMessage"
-                class="message"
-            ></div>
-
-
-            <!-- =================================================
-                 STAFF ID
-            ================================================== -->
-
-            <div class="field">
-
-                <label for="staffIdInput">
-                    Staff ID
-                </label>
-
-
-                <input
-                    type="text"
-                    id="staffIdInput"
-                    placeholder="Enter your Staff ID"
-                    autocomplete="off"
-                >
-
-            </div>
-
-
-            <!-- =================================================
-                 CHECK IN
-            ================================================== -->
-
-            <button
-                type="button"
-                id="checkInButton"
-                class="primary-button"
-            >
-                Check In
-            </button>
-
-
-            <!-- =================================================
-                 WORKER INFORMATION
-            ================================================== -->
-
-            <div
-                id="workerInfo"
-                class="worker-info"
-            >
-
-
-                <div
-                    id="workerName"
-                    class="worker-name"
-                >
-                    Staff Member
-                </div>
-
-
-                <div
-                    id="workerPosition"
-                    class="worker-position"
-                >
-                    Position
-                </div>
-
-
-                <div
-                    id="attendanceStatus"
-                    class="attendance-status"
-                >
-                    Attendance status
-                </div>
-
-
-                <!-- CHECK OUT -->
-
-                <button
-                    type="button"
-                    id="checkOutButton"
-                    class="secondary-button"
-                >
-                    Check Out
-                </button>
-
-
-            </div>
-
-
-        </div>
-
-
-        <div class="footer">
-
-            Virello Technologies ·
-            Digital Organization Solutions
-
-        </div>
-
+        <p>
+            Digital Staff Attendance
+        </p>
 
     </div>
 
 
-    <!-- =====================================================
-         JAVASCRIPT
-    ====================================================== -->
+    <div class="card">
 
-    <script
-        type="module"
-        src="js/worker.js"
-    ></script>
+
+        <h2>
+            Staff Attendance
+        </h2>
+
+
+        <p class="description">
+            Scan the official office QR code before
+            entering your Staff ID.
+        </p>
+
+
+        <div
+            id="officeAccess"
+            class="office-access"
+        >
+
+            <div
+                id="officeAccessTitle"
+                class="office-access-title"
+            >
+                ✓ Office QR Verified
+            </div>
+
+
+            <div
+                id="officeAccessText"
+                class="office-access-text"
+            >
+                You accessed Virello attendance through
+                the office QR code.
+            </div>
+
+        </div>
+
+
+        <div class="date-box">
+
+            <span>
+                Today's Date
+            </span>
+
+            <strong id="todayDate">
+                Loading...
+            </strong>
+
+        </div>
+
+
+        <div
+            id="workerMessage"
+            class="message"
+        ></div>
+
+
+        <div class="field">
+
+            <label for="staffIdInput">
+                Staff ID
+            </label>
+
+
+            <input
+                type="text"
+                id="staffIdInput"
+                placeholder="Enter your Staff ID"
+                autocomplete="off"
+            >
+
+        </div>
+
+
+        <button
+            type="button"
+            id="checkInButton"
+            class="primary-button"
+        >
+            Check In
+        </button>
+
+
+        <div
+            id="workerInfo"
+            class="worker-info"
+        >
+
+            <div
+                id="workerName"
+                class="worker-name"
+            >
+                Staff Member
+            </div>
+
+
+            <div
+                id="workerPosition"
+                class="worker-position"
+            >
+                Position
+            </div>
+
+
+            <div
+                id="attendanceStatus"
+                class="attendance-status"
+            >
+                Attendance status
+            </div>
+
+
+            <button
+                type="button"
+                id="checkOutButton"
+                class="secondary-button"
+            >
+                Check Out
+            </button>
+
+
+            <!-- =================================================
+                 LEAVE MANAGEMENT
+            ================================================== -->
+
+            <div
+                id="leaveSection"
+                class="leave-section"
+            >
+
+                <div class="leave-heading">
+                    Leave Management
+                </div>
+
+
+                <div class="leave-description">
+                    Need time away from work? Submit your
+                    leave request here. Your request will be
+                    sent to your Form Master or administrator
+                    for review.
+                </div>
+
+
+                <button
+                    type="button"
+                    id="showLeaveButton"
+                    class="leave-button"
+                >
+                    Submit Leave Request
+                </button>
+
+
+                <div
+                    id="leaveForm"
+                    class="leave-form"
+                >
+
+                    <div class="field">
+
+                        <label for="leaveType">
+                            Leave Type
+                        </label>
+
+
+                        <select id="leaveType">
+
+                            <option value="">
+                                Select leave type
+                            </option>
+
+                            <option value="Annual Leave">
+                                Annual Leave
+                            </option>
+
+                            <option value="Sick Leave">
+                                Sick Leave
+                            </option>
+
+                            <option value="Casual Leave">
+                                Casual Leave
+                            </option>
+
+                            <option value="Emergency Leave">
+                                Emergency Leave
+                            </option>
+
+                            <option value="Maternity Leave">
+                                Maternity Leave
+                            </option>
+
+                            <option value="Paternity Leave">
+                                Paternity Leave
+                            </option>
+
+                            <option value="Study Leave">
+                                Study Leave
+                            </option>
+
+                            <option value="Other">
+                                Other
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="leaveStartDate">
+                            Start Date
+                        </label>
+
+
+                        <input
+                            type="date"
+                            id="leaveStartDate"
+                        >
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="leaveEndDate">
+                            End Date
+                        </label>
+
+
+                        <input
+                            type="date"
+                            id="leaveEndDate"
+                        >
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="leaveReason">
+                            Reason / Description
+                        </label>
+
+
+                        <textarea
+                            id="leaveReason"
+                            placeholder="Explain the reason for your leave request..."
+                        ></textarea>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        id="submitLeaveButton"
+                        class="leave-button"
+                    >
+                        Submit Leave Request
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="leaveSuccess"
+                    class="leave-success"
+                ></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="footer">
+
+        Virello Technologies ·
+        Digital Organization Solutions
+
+    </div>
+
+
+</div>
+
+
+<script
+    type="module"
+    src="js/worker.js"
+></script>
 
 
 </body>
