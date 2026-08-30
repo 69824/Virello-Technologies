@@ -29,25 +29,25 @@
    - Future approved leave display
    - Approved current leave prevents attendance
    - Leave dates automatically checked
-   - Staff can be changed without old leave state remaining
-   - Multiple leave field formats supported
-   - StaffDocumentId OR StaffId leave matching
+   - Staff switching clears previous state
+   - Supports approved/Approved/APPROVED
+   - Supports different approval field names
    - Hosting safe
 
-   ATTENDANCE RULE:
-   - 08:05 AM OR EARLIER = PRESENT
-   - 08:06 AM OR LATER = LATE
+   ATTENDANCE:
+   08:05 AM OR EARLIER = PRESENT
+   08:06 AM OR LATER = LATE
 
-   DEVICE RULE:
-   - One device can check in ONE staff member per day.
-   - Same staff member can check out from same device.
+   DEVICE:
+   One device can check in ONE staff member per day.
+   Same staff member can check out from same device.
 
-   LEAVE RULE:
-   - Pending leave = cannot submit another request
-   - Approved current leave = attendance blocked
-   - Future approved leave = displayed
-   - Rejected leave = may submit another request
-   - Expired approved leave = attendance returns to normal
+   LEAVE:
+   Pending = cannot submit another request
+   Approved current = attendance blocked
+   Approved future = displayed but attendance allowed
+   Rejected = new request allowed
+   Expired approved = attendance normal
 ========================================================= */
 
 
@@ -103,11 +103,8 @@ const db = getFirestore(app);
 ========================================================= */
 
 let currentStaff = null;
-
 let currentAttendance = null;
-
 let currentLeaveRequest = null;
-
 let currentLeaveState = "none";
 
 
@@ -116,9 +113,7 @@ let currentLeaveState = "none";
 ========================================================= */
 
 let officeQRVerified = false;
-
 let officeQRTimestamp = null;
-
 let officeQRToken = null;
 
 
@@ -144,7 +139,6 @@ const QR_LIFETIME_SECONDS = 30;
 ========================================================= */
 
 const PRESENT_CUTOFF_HOUR = 8;
-
 const PRESENT_CUTOFF_MINUTE = 5;
 
 
@@ -227,7 +221,7 @@ const leaveSuccess =
 
 document.addEventListener(
     "DOMContentLoaded",
-    async () => {
+    () => {
 
         console.log(
             "🔥 Virello Worker Attendance starting..."
@@ -246,10 +240,6 @@ document.addEventListener(
         verifyOfficeQR();
 
 
-        /* =====================================================
-           CHECK-IN BUTTON
-        ===================================================== */
-
         if (checkInButton) {
 
             checkInButton.addEventListener(
@@ -260,10 +250,6 @@ document.addEventListener(
         }
 
 
-        /* =====================================================
-           CHECK-OUT BUTTON
-        ===================================================== */
-
         if (checkOutButton) {
 
             checkOutButton.addEventListener(
@@ -273,10 +259,6 @@ document.addEventListener(
 
         }
 
-
-        /* =====================================================
-           STAFF ID ENTER KEY
-        ===================================================== */
 
         if (staffIdInput) {
 
@@ -296,10 +278,6 @@ document.addEventListener(
             );
 
 
-            /* =================================================
-               STAFF ID CHANGED
-            ================================================= */
-
             staffIdInput.addEventListener(
                 "input",
                 () => {
@@ -316,7 +294,6 @@ document.addEventListener(
                         return;
 
                     }
-
 
                     if (
                         currentStaff &&
@@ -336,10 +313,6 @@ document.addEventListener(
         }
 
 
-        /* =====================================================
-           LEAVE BUTTON
-        ===================================================== */
-
         if (showLeaveButton) {
 
             showLeaveButton.addEventListener(
@@ -350,10 +323,6 @@ document.addEventListener(
         }
 
 
-        /* =====================================================
-           LEAVE SUBMISSION
-        ===================================================== */
-
         if (submitLeaveButton) {
 
             submitLeaveButton.addEventListener(
@@ -363,63 +332,12 @@ document.addEventListener(
 
         }
 
-
-        /* =====================================================
-           OPTIONAL STAFF ID FROM URL
-
-           Supports links such as:
-
-           ?staffId=69824
-           ?staff=69824
-           ?id=69824
-
-           This is useful if a staff QR code opens the worker
-           page with the Staff ID already attached.
-        ===================================================== */
-
-        try {
-
-            const params =
-                new URLSearchParams(
-                    window.location.search
-                );
-
-            const urlStaffId =
-                params.get("staffId") ||
-                params.get("staff") ||
-                params.get("id");
-
-            if (
-                urlStaffId &&
-                staffIdInput
-            ) {
-
-                staffIdInput.value =
-                    String(
-                        urlStaffId
-                    ).trim();
-
-                await verifyStaffFromInput();
-
-            }
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "⚠️ URL Staff ID check skipped:",
-                error
-            );
-
-        }
-
     }
 );
 
 
 /* =========================================================
-   VERIFY STAFF FROM INPUT
+   VERIFY STAFF
 ========================================================= */
 
 async function verifyStaffFromInput() {
@@ -428,8 +346,7 @@ async function verifyStaffFromInput() {
 
     const staffId =
         String(
-            staffIdInput?.value ||
-            ""
+            staffIdInput?.value || ""
         ).trim();
 
     if (!staffId) {
@@ -448,21 +365,13 @@ async function verifyStaffFromInput() {
 
     try {
 
-        /*
-           Completely clear the previous employee before
-           loading the new employee.
-        */
-
-        clearPreviousStaffState();
-
-
         const staff =
-            await findStaff(
-                staffId
-            );
+            await findStaff(staffId);
 
 
         if (!staff) {
+
+            resetStaffState();
 
             showMessage(
                 "Staff ID not found. Please check your Staff ID.",
@@ -476,15 +385,15 @@ async function verifyStaffFromInput() {
 
         const staffStatus =
             String(
-                staff.status ||
-                "active"
-            ).trim().toLowerCase();
+                staff.status || "active"
+            )
+            .trim()
+            .toLowerCase();
 
 
-        if (
-            staffStatus !==
-            "active"
-        ) {
+        if (staffStatus !== "active") {
+
+            resetStaffState();
 
             showMessage(
                 "This staff account is inactive. Please contact your administrator.",
@@ -496,48 +405,34 @@ async function verifyStaffFromInput() {
         }
 
 
-        currentStaff =
-            staff;
+        currentStaff = staff;
+        currentAttendance = null;
+        currentLeaveRequest = null;
+        currentLeaveState = "none";
 
 
-        displayWorker(
-            staff
-        );
+        displayWorker(staff);
 
 
         console.log(
-            "👤 Staff verified:",
+            "👤 Staff selected:",
             staff
         );
 
-
-        /*
-           IMPORTANT:
-           Always check leave immediately after staff
-           verification.
-        */
 
         const leaveResult =
-            await checkStaffLeaveStatus(
-                staff
-            );
+            await checkStaffLeaveStatus(staff);
 
 
         console.log(
-            "📋 LEAVE RESULT:",
+            "📋 Leave result:",
             leaveResult
         );
 
 
         if (
-            leaveResult.state ===
-            "approved"
+            leaveResult.state === "approved"
         ) {
-
-            /*
-               Current approved leave.
-               Attendance is blocked.
-            */
 
             return;
 
@@ -545,18 +440,8 @@ async function verifyStaffFromInput() {
 
 
         if (
-            leaveResult.state ===
-            "approved_future"
+            leaveResult.state === "approved_future"
         ) {
-
-            /*
-               Future approved leave.
-               Attendance remains available.
-            */
-
-            await loadExistingAttendanceForDisplay(
-                staff
-            );
 
             return;
 
@@ -564,73 +449,15 @@ async function verifyStaffFromInput() {
 
 
         if (
-            leaveResult.state ===
-            "pending"
+            leaveResult.state === "pending"
         ) {
-
-            /*
-               Pending leave does not automatically block
-               attendance, unless your policy says otherwise.
-               The staff member simply cannot submit another
-               leave request.
-            */
-
-            await loadExistingAttendanceForDisplay(
-                staff
-            );
 
             return;
 
         }
 
 
-        if (
-            leaveResult.state ===
-            "rejected"
-        ) {
-
-            await loadExistingAttendanceForDisplay(
-                staff
-            );
-
-            return;
-
-        }
-
-
-        if (
-            leaveResult.state ===
-            "none"
-        ) {
-
-            await loadExistingAttendanceForDisplay(
-                staff
-            );
-
-            return;
-
-        }
-
-
-        /*
-           ERROR:
-           Do not silently allow attendance when the leave
-           database cannot be checked.
-        */
-
-        if (
-            leaveResult.state ===
-            "error"
-        ) {
-
-            disableAttendanceButtons();
-
-            showMessage(
-                "Unable to check your leave status. Please try again or contact the administrator.",
-                "error"
-            );
-
-        }
+        prepareForNormalAttendanceDisplay();
 
     }
 
@@ -653,37 +480,27 @@ async function verifyStaffFromInput() {
 
 
 /* =========================================================
-   CLEAR PREVIOUS STAFF STATE
+   RESET STAFF STATE
 ========================================================= */
 
-function clearPreviousStaffState() {
+function resetStaffState() {
 
-    currentStaff =
-        null;
-
-    currentAttendance =
-        null;
-
-    currentLeaveRequest =
-        null;
-
-    currentLeaveState =
-        "none";
+    currentStaff = null;
+    currentAttendance = null;
+    currentLeaveRequest = null;
+    currentLeaveState = "none";
 
 
     if (workerInfo) {
 
-        workerInfo.classList.remove(
-            "show"
-        );
+        workerInfo.classList.remove("show");
 
     }
 
 
     if (attendanceStatus) {
 
-        attendanceStatus.textContent =
-            "";
+        attendanceStatus.textContent = "";
 
         attendanceStatus.className =
             "attendance-status";
@@ -693,21 +510,16 @@ function clearPreviousStaffState() {
 
     if (leaveSuccess) {
 
-        leaveSuccess.textContent =
-            "";
+        leaveSuccess.textContent = "";
 
-        leaveSuccess.classList.remove(
-            "show"
-        );
+        leaveSuccess.classList.remove("show");
 
     }
 
 
     if (leaveForm) {
 
-        leaveForm.classList.remove(
-            "show"
-        );
+        leaveForm.classList.remove("show");
 
     }
 
@@ -745,43 +557,45 @@ function clearPreviousStaffState() {
         checkOutButton.disabled =
             true;
 
-        checkOutButton.textContent =
-            "Check Out";
-
     }
 
 }
 
 
 /* =========================================================
-   RESET STAFF STATE
+   NORMAL ATTENDANCE DISPLAY
 ========================================================= */
 
-function resetStaffState() {
-
-    clearPreviousStaffState();
-
-}
-
-
-/* =========================================================
-   DISABLE ATTENDANCE BUTTONS
-========================================================= */
-
-function disableAttendanceButtons() {
+function prepareForNormalAttendanceDisplay() {
 
     if (checkInButton) {
 
+        checkInButton.style.display =
+            "block";
+
         checkInButton.disabled =
-            true;
+            false;
+
+        checkInButton.textContent =
+            "Check In";
 
     }
 
 
     if (checkOutButton) {
 
+        checkOutButton.style.display =
+            "none";
+
         checkOutButton.disabled =
             true;
+
+    }
+
+
+    if (attendanceStatus) {
+
+        attendanceStatus.textContent = "";
 
     }
 
@@ -852,7 +666,7 @@ function getOrCreateDeviceId() {
     catch (error) {
 
         console.error(
-            "❌ Unable to create device ID:",
+            "❌ Device ID error:",
             error
         );
 
@@ -872,7 +686,7 @@ function getOrCreateDeviceId() {
 
 
 /* =========================================================
-   DEVICE LOCK DOCUMENT ID
+   DEVICE LOCK ID
 ========================================================= */
 
 function getDeviceLockDocumentId() {
@@ -881,10 +695,7 @@ function getDeviceLockDocumentId() {
         String(
             currentDeviceId || ""
         )
-        .replace(
-            /\//g,
-            "_"
-        );
+        .replace(/\//g, "_");
 
 
     return (
@@ -897,7 +708,7 @@ function getDeviceLockDocumentId() {
 
 
 /* =========================================================
-   CHECK DEVICE LOCK
+   GET DEVICE LOCK
 ========================================================= */
 
 async function getTodayDeviceLock() {
@@ -924,9 +735,7 @@ async function getTodayDeviceLock() {
 
 
     const lockSnapshot =
-        await getDoc(
-            lockReference
-        );
+        await getDoc(lockReference);
 
 
     if (!lockSnapshot.exists()) {
@@ -938,8 +747,7 @@ async function getTodayDeviceLock() {
 
     return {
 
-        id:
-            lockSnapshot.id,
+        id: lockSnapshot.id,
 
         ...lockSnapshot.data()
 
@@ -955,15 +763,6 @@ async function getTodayDeviceLock() {
 async function reserveDeviceForStaff(
     staff
 ) {
-
-    if (!currentDeviceId) {
-
-        throw new Error(
-            "This device could not be identified."
-        );
-
-    }
-
 
     const lockId =
         getDeviceLockDocumentId();
@@ -1008,8 +807,6 @@ async function reserveDeviceForStaff(
 
                 sameStaff: true,
 
-                createdNew: false,
-
                 lock: lockData
 
             };
@@ -1022,8 +819,6 @@ async function reserveDeviceForStaff(
             allowed: false,
 
             sameStaff: false,
-
-            createdNew: false,
 
             lock: lockData
 
@@ -1077,9 +872,7 @@ async function reserveDeviceForStaff(
 
         allowed: true,
 
-        sameStaff: true,
-
-        createdNew: true,
+        sameStaff: false,
 
         lock: lockData
 
@@ -1130,7 +923,7 @@ async function removeDeviceLock() {
 
 
 /* =========================================================
-   OFFICE QR VERIFICATION
+   OFFICE QR
 ========================================================= */
 
 function verifyOfficeQR() {
@@ -1144,10 +937,8 @@ function verifyOfficeQR() {
     const officeQR =
         params.get("officeQR");
 
-
     const timestamp =
         params.get("timestamp");
-
 
     const token =
         params.get("token");
@@ -1159,14 +950,15 @@ function verifyOfficeQR() {
         !token
     ) {
 
-        officeQRVerified =
-            false;
+        officeQRVerified = false;
+
 
         setOfficeAccessState(
             false,
             "Office QR Required",
             "Please scan the official Virello office QR code before using attendance or leave management."
         );
+
 
         return;
 
@@ -1178,13 +970,11 @@ function verifyOfficeQR() {
 
 
     if (
-        !Number.isFinite(
-            qrTimestamp
-        )
+        !Number.isFinite(qrTimestamp)
     ) {
 
-        officeQRVerified =
-            false;
+        officeQRVerified = false;
+
 
         setOfficeAccessState(
             false,
@@ -1192,40 +982,27 @@ function verifyOfficeQR() {
             "The QR code information is invalid."
         );
 
+
         return;
 
     }
 
 
-    const now =
-        Date.now();
-
-
     const age =
         Math.abs(
-            now -
+            Date.now() -
             qrTimestamp
         );
 
 
-    const maxAge =
-        QR_LIFETIME_SECONDS *
-        1000;
-
-
     if (
         age >
-        maxAge
+        QR_LIFETIME_SECONDS * 1000
     ) {
 
-        officeQRVerified =
-            false;
-
-        officeQRTimestamp =
-            null;
-
-        officeQRToken =
-            null;
+        officeQRVerified = false;
+        officeQRTimestamp = null;
+        officeQRToken = null;
 
 
         setOfficeAccessState(
@@ -1233,6 +1010,7 @@ function verifyOfficeQR() {
             "Office QR Expired",
             "This QR code has expired. Please scan the current office QR code."
         );
+
 
         return;
 
@@ -1242,10 +1020,8 @@ function verifyOfficeQR() {
     officeQRTimestamp =
         qrTimestamp;
 
-
     officeQRToken =
         token;
-
 
     officeQRVerified =
         true;
@@ -1277,9 +1053,7 @@ function setOfficeAccessState(
     }
 
 
-    officeAccess.classList.add(
-        "show"
-    );
+    officeAccess.classList.add("show");
 
 
     if (verified) {
@@ -1318,7 +1092,7 @@ function setOfficeAccessState(
 
 
 /* =========================================================
-   TODAY DATE
+   TODAY
 ========================================================= */
 
 function setTodayDate() {
@@ -1330,12 +1104,8 @@ function setTodayDate() {
     }
 
 
-    const now =
-        new Date();
-
-
     todayDate.textContent =
-        now.toLocaleDateString(
+        new Date().toLocaleDateString(
             "en-GB",
             {
                 weekday: "long",
@@ -1365,19 +1135,13 @@ function getDateKey() {
     const month =
         String(
             now.getMonth() + 1
-        ).padStart(
-            2,
-            "0"
-        );
+        ).padStart(2, "0");
 
 
     const day =
         String(
             now.getDate()
-        ).padStart(
-            2,
-            "0"
-        );
+        ).padStart(2, "0");
 
 
     return `${year}-${month}-${day}`;
@@ -1404,8 +1168,7 @@ function getAttendanceStatus() {
 
 
     if (
-        hour <
-        PRESENT_CUTOFF_HOUR
+        hour < PRESENT_CUTOFF_HOUR
     ) {
 
         return "present";
@@ -1414,10 +1177,8 @@ function getAttendanceStatus() {
 
 
     if (
-        hour ===
-        PRESENT_CUTOFF_HOUR &&
-        minute <=
-        PRESENT_CUTOFF_MINUTE
+        hour === PRESENT_CUTOFF_HOUR &&
+        minute <= PRESENT_CUTOFF_MINUTE
     ) {
 
         return "present";
@@ -1451,8 +1212,7 @@ function showMessage(
 
 
     workerMessage.className =
-        "message show " +
-        type;
+        "message show " + type;
 
 }
 
@@ -1529,16 +1289,12 @@ async function findStaff(
         snapshot.docs[0];
 
 
-    const staffData =
-        staffDocument.data();
-
-
     return {
 
         id:
             staffDocument.id,
 
-        ...staffData
+        ...staffDocument.data()
 
     };
 
@@ -1553,21 +1309,13 @@ async function findTodayAttendance(
     staff
 ) {
 
-    const attendanceRef =
-        collection(
-            db,
-            "attendance"
-        );
-
-
-    /*
-       Primary search by staff document ID.
-    */
-
-    const primaryQuery =
+    const attendanceQuery =
         query(
 
-            attendanceRef,
+            collection(
+                db,
+                "attendance"
+            ),
 
             where(
                 "staffDocumentId",
@@ -1584,68 +1332,13 @@ async function findTodayAttendance(
         );
 
 
-    const primarySnapshot =
+    const snapshot =
         await getDocs(
-            primaryQuery
+            attendanceQuery
         );
 
 
-    if (
-        !primarySnapshot.empty
-    ) {
-
-        const attendanceDocument =
-            primarySnapshot.docs[0];
-
-
-        return {
-
-            id:
-                attendanceDocument.id,
-
-            ...attendanceDocument.data()
-
-        };
-
-    }
-
-
-    /*
-       Fallback search by Staff ID.
-
-       This makes the system more tolerant of older
-       attendance records.
-    */
-
-    const staffIdQuery =
-        query(
-
-            attendanceRef,
-
-            where(
-                "staffId",
-                "==",
-                staff.staffId
-            ),
-
-            where(
-                "date",
-                "==",
-                getDateKey()
-            )
-
-        );
-
-
-    const staffIdSnapshot =
-        await getDocs(
-            staffIdQuery
-        );
-
-
-    if (
-        staffIdSnapshot.empty
-    ) {
+    if (snapshot.empty) {
 
         return null;
 
@@ -1653,7 +1346,7 @@ async function findTodayAttendance(
 
 
     const attendanceDocument =
-        staffIdSnapshot.docs[0];
+        snapshot.docs[0];
 
 
     return {
@@ -1669,134 +1362,21 @@ async function findTodayAttendance(
 
 
 /* =========================================================
-   LOAD EXISTING ATTENDANCE FOR DISPLAY
-========================================================= */
-
-async function loadExistingAttendanceForDisplay(
-    staff
-) {
-
-    try {
-
-        const existingAttendance =
-            await findTodayAttendance(
-                staff
-            );
-
-
-        if (!existingAttendance) {
-
-            prepareForNormalAttendanceDisplay();
-
-            return;
-
-        }
-
-
-        if (
-            !attendanceBelongsToCurrentDevice(
-                existingAttendance
-            )
-        ) {
-
-            currentAttendance =
-                existingAttendance;
-
-
-            if (checkInButton) {
-
-                checkInButton.style.display =
-                    "block";
-
-                checkInButton.disabled =
-                    false;
-
-            }
-
-
-            if (checkOutButton) {
-
-                checkOutButton.style.display =
-                    "none";
-
-                checkOutButton.disabled =
-                    true;
-
-            }
-
-
-            showMessage(
-                "This staff member has already checked in today using another phone/device.",
-                "error"
-            );
-
-            return;
-
-        }
-
-
-        currentAttendance =
-            existingAttendance;
-
-
-        showLeaveSection();
-
-
-        if (
-            existingAttendance.checkOut
-        ) {
-
-            showCompletedAttendance();
-
-        }
-
-        else {
-
-            showAlreadyCheckedIn();
-
-        }
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "❌ Attendance lookup error:",
-            error
-        );
-
-
-        showMessage(
-            "Unable to check today's attendance record.",
-            "error"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
    FIND STAFF LEAVE REQUESTS
-=========================================================
 
    IMPORTANT FIX:
 
-   The old version only searched:
+   This query is intentionally based on the STAFF DOCUMENT ID.
 
-       staffDocumentId == staff.id
+   Example:
 
-   This version searches BOTH:
+   Dainel Bayoh
+   staff document ID = abc123
 
-       staffDocumentId == staff.id
+   leaveRequests document:
+   staffDocumentId = abc123
 
-   AND:
-
-       staffId == staff.staffId
-
-   This is important because older/admin-created leave
-   requests may contain Staff ID but not the Firestore
-   document ID.
+   This allows the worker to find the approved request.
 ========================================================= */
 
 async function findStaffLeaveRequests(
@@ -1804,9 +1384,12 @@ async function findStaffLeaveRequests(
 ) {
 
     console.log(
-        "🔎 Checking ALL leave requests for:",
-        staff.staffId,
-        "document:",
+        "🔎 Searching leave requests for:",
+        staff.staffId
+    );
+
+    console.log(
+        "🆔 Staff document ID:",
         staff.id
     );
 
@@ -1818,161 +1401,79 @@ async function findStaffLeaveRequests(
         );
 
 
-    const requestsMap =
-        new Map();
+    const leaveQuery =
+        query(
+            leaveRef,
 
+            where(
+                "staffDocumentId",
+                "==",
+                staff.id
+            )
 
-    /* =====================================================
-       SEARCH 1 — STAFF DOCUMENT ID
-    ===================================================== */
-
-    try {
-
-        if (staff.id) {
-
-            const documentQuery =
-                query(
-                    leaveRef,
-                    where(
-                        "staffDocumentId",
-                        "==",
-                        staff.id
-                    )
-                );
-
-
-            const documentSnapshot =
-                await getDocs(
-                    documentQuery
-                );
-
-
-            documentSnapshot.forEach(
-                leaveDocument => {
-
-                    requestsMap.set(
-                        leaveDocument.id,
-                        {
-                            id:
-                                leaveDocument.id,
-
-                            ...leaveDocument.data()
-
-                        }
-                    );
-
-                }
-            );
-
-        }
-
-    }
-
-    catch (error) {
-
-        console.warn(
-            "⚠️ Leave search by staffDocumentId failed:",
-            error
-        );
-
-    }
-
-
-    /* =====================================================
-       SEARCH 2 — STAFF ID
-    ===================================================== */
-
-    try {
-
-        if (staff.staffId) {
-
-            const staffIdQuery =
-                query(
-                    leaveRef,
-                    where(
-                        "staffId",
-                        "==",
-                        staff.staffId
-                    )
-                );
-
-
-            const staffIdSnapshot =
-                await getDocs(
-                    staffIdQuery
-                );
-
-
-            staffIdSnapshot.forEach(
-                leaveDocument => {
-
-                    requestsMap.set(
-                        leaveDocument.id,
-                        {
-                            id:
-                                leaveDocument.id,
-
-                            ...leaveDocument.data()
-
-                        }
-                    );
-
-                }
-            );
-
-        }
-
-    }
-
-    catch (error) {
-
-        console.warn(
-            "⚠️ Leave search by staffId failed:",
-            error
-        );
-
-    }
-
-
-    const requests =
-        Array.from(
-            requestsMap.values()
         );
 
 
-    requests.sort(
-        (a, b) => {
-
-            const aTime =
-                getTimestampMillis(
-                    a.createdAt ||
-                    a.submittedAt ||
-                    a.requestedAt ||
-                    a.appliedAt
-                );
+    const snapshot =
+        await getDocs(
+            leaveQuery
+        );
 
 
-            const bTime =
-                getTimestampMillis(
-                    b.createdAt ||
-                    b.submittedAt ||
-                    b.requestedAt ||
-                    b.appliedAt
-                );
+    console.log(
+        "📋 Leave documents found:",
+        snapshot.size
+    );
 
 
-            return (
-                bTime -
-                aTime
+    const requests = [];
+
+
+    snapshot.forEach(
+        leaveDocument => {
+
+            const data =
+                leaveDocument.data();
+
+
+            console.log(
+                "📄 Leave document:",
+                leaveDocument.id,
+                data
             );
+
+
+            requests.push({
+
+                id:
+                    leaveDocument.id,
+
+                ...data
+
+            });
 
         }
     );
 
 
-    console.log(
-        "📋 FOUND LEAVE REQUESTS:",
-        requests
+    requests.sort(
+        (a, b) => {
+
+            return (
+                getTimestampMillis(
+                    b.createdAt ||
+                    b.submittedAt ||
+                    b.updatedAt
+                )
+                -
+                getTimestampMillis(
+                    a.createdAt ||
+                    a.submittedAt ||
+                    a.updatedAt
+                )
+            );
+
+        }
     );
 
 
@@ -1982,19 +1483,29 @@ async function findStaffLeaveRequests(
 
 
 /* =========================================================
-   GET REQUEST STATUS
+   NORMALIZE LEAVE STATUS
+
+   Supports:
+
+   approved
+   Approved
+   APPROVED
+   approved_current
 ========================================================= */
 
-function getLeaveStatus(
+function normalizeLeaveStatus(
     request
 ) {
 
+    const raw =
+        request?.status ??
+        request?.leaveStatus ??
+        request?.approvalStatus ??
+        "";
+
+
     return String(
-        request?.status ||
-        request?.leaveStatus ||
-        request?.approvalStatus ||
-        request?.requestStatus ||
-        ""
+        raw
     )
     .trim()
     .toLowerCase();
@@ -2003,39 +1514,35 @@ function getLeaveStatus(
 
 
 /* =========================================================
-   GET LEAVE START DATE
+   GET LEAVE START
 ========================================================= */
 
 function getLeaveStartDate(
     request
 ) {
 
-    return normalizeDateKey(
-        request?.startDate ??
-        request?.fromDate ??
-        request?.leaveStartDate ??
-        request?.start ??
-        request?.from
-    );
+    return String(
+        request?.startDate ||
+        request?.leaveStartDate ||
+        ""
+    ).trim();
 
 }
 
 
 /* =========================================================
-   GET LEAVE END DATE
+   GET LEAVE END
 ========================================================= */
 
 function getLeaveEndDate(
     request
 ) {
 
-    return normalizeDateKey(
-        request?.endDate ??
-        request?.toDate ??
-        request?.leaveEndDate ??
-        request?.end ??
-        request?.to
-    );
+    return String(
+        request?.endDate ||
+        request?.leaveEndDate ||
+        ""
+    ).trim();
 
 }
 
@@ -2051,26 +1558,7 @@ function getLeaveType(
     return (
         request?.leaveType ||
         request?.type ||
-        request?.leaveCategory ||
         "Leave"
-    );
-
-}
-
-
-/* =========================================================
-   GET LEAVE REASON
-========================================================= */
-
-function getLeaveReason(
-    request
-) {
-
-    return (
-        request?.reason ||
-        request?.leaveReason ||
-        request?.description ||
-        ""
     );
 
 }
@@ -2092,6 +1580,11 @@ async function getCurrentStaffLeave(
 
     if (!requests.length) {
 
+        console.log(
+            "ℹ️ No leave request found."
+        );
+
+
         return {
 
             state: "none",
@@ -2108,36 +1601,42 @@ async function getCurrentStaffLeave(
 
 
     console.log(
-        "📅 TODAY:",
+        "📅 Today:",
         today
     );
 
 
     /* =====================================================
-       APPROVED REQUESTS
+       APPROVED
     ===================================================== */
 
     const approvedRequests =
         requests.filter(
-            request =>
-                getLeaveStatus(
-                    request
-                ) === "approved"
+            request => {
+
+                const status =
+                    normalizeLeaveStatus(
+                        request
+                    );
+
+
+                return (
+                    status === "approved" ||
+                    status === "approve"
+                );
+
+            }
         );
 
 
     console.log(
-        "✅ APPROVED LEAVE REQUESTS:",
+        "✅ Approved requests:",
         approvedRequests
     );
 
 
     /* =====================================================
        CURRENT APPROVED LEAVE
-
-       start <= today
-       AND
-       end >= today
     ===================================================== */
 
     const activeApprovedLeave =
@@ -2157,38 +1656,16 @@ async function getCurrentStaffLeave(
 
 
                 console.log(
-                    "🔍 Checking approved leave:",
+                    "🏖️ Checking approved leave:",
                     {
-                        id:
-                            request.id,
-
                         start,
                         end,
-                        today,
-
-                        leaveType:
-                            getLeaveType(
-                                request
-                            ),
-
-                        status:
-                            getLeaveStatus(
-                                request
-                            )
-
+                        today
                     }
                 );
 
 
-                if (
-                    !start ||
-                    !end
-                ) {
-
-                    console.warn(
-                        "⚠️ Approved leave has missing dates:",
-                        request
-                    );
+                if (!start || !end) {
 
                     return false;
 
@@ -2214,8 +1691,7 @@ async function getCurrentStaffLeave(
 
         return {
 
-            state:
-                "approved",
+            state: "approved",
 
             request:
                 activeApprovedLeave
@@ -2230,46 +1706,22 @@ async function getCurrentStaffLeave(
     ===================================================== */
 
     const futureApprovedLeave =
-        approvedRequests
-            .filter(
-                request => {
+        approvedRequests.find(
+            request => {
 
-                    const start =
-                        getLeaveStartDate(
-                            request
-                        );
-
-
-                    return (
-                        start &&
-                        start > today
+                const start =
+                    getLeaveStartDate(
+                        request
                     );
 
-                }
-            )
-            .sort(
-                (a, b) => {
 
-                    const aStart =
-                        getLeaveStartDate(
-                            a
-                        );
+                return (
+                    start &&
+                    start > today
+                );
 
-
-                    const bStart =
-                        getLeaveStartDate(
-                            b
-                        );
-
-
-                    return (
-                        aStart.localeCompare(
-                            bStart
-                        )
-                    );
-
-                }
-            )[0];
+            }
+        );
 
 
     if (futureApprovedLeave) {
@@ -2282,8 +1734,7 @@ async function getCurrentStaffLeave(
 
         return {
 
-            state:
-                "approved_future",
+            state: "approved_future",
 
             request:
                 futureApprovedLeave
@@ -2294,15 +1745,20 @@ async function getCurrentStaffLeave(
 
 
     /* =====================================================
-       PENDING REQUESTS
+       PENDING
     ===================================================== */
 
     const pendingRequests =
         requests.filter(
-            request =>
-                getLeaveStatus(
-                    request
-                ) === "pending"
+            request => {
+
+                return (
+                    normalizeLeaveStatus(
+                        request
+                    ) === "pending"
+                );
+
+            }
         );
 
 
@@ -2310,41 +1766,20 @@ async function getCurrentStaffLeave(
         pendingRequests.find(
             request => {
 
-                const start =
-                    getLeaveStartDate(
-                        request
-                    );
-
-
                 const end =
                     getLeaveEndDate(
                         request
                     );
 
 
-                /*
-                   If dates are missing, preserve pending
-                   protection.
-                */
-
-                if (
-                    !start ||
-                    !end
-                ) {
+                if (!end) {
 
                     return true;
 
                 }
 
 
-                /*
-                   Pending request is active if it has not
-                   completely expired.
-                */
-
-                return (
-                    end >= today
-                );
+                return end >= today;
 
             }
         );
@@ -2360,8 +1795,7 @@ async function getCurrentStaffLeave(
 
         return {
 
-            state:
-                "pending",
+            state: "pending",
 
             request:
                 activePendingRequest
@@ -2377,10 +1811,15 @@ async function getCurrentStaffLeave(
 
     const rejectedRequest =
         requests.find(
-            request =>
-                getLeaveStatus(
-                    request
-                ) === "rejected"
+            request => {
+
+                return (
+                    normalizeLeaveStatus(
+                        request
+                    ) === "rejected"
+                );
+
+            }
         );
 
 
@@ -2388,8 +1827,7 @@ async function getCurrentStaffLeave(
 
         return {
 
-            state:
-                "rejected",
+            state: "rejected",
 
             request:
                 rejectedRequest
@@ -2401,11 +1839,9 @@ async function getCurrentStaffLeave(
 
     return {
 
-        state:
-            "none",
+        state: "none",
 
-        request:
-            null
+        request: null
 
     };
 
@@ -2420,33 +1856,30 @@ async function checkStaffLeaveStatus(
     staff
 ) {
 
-    currentLeaveRequest =
-        null;
-
-    currentLeaveState =
-        "none";
+    currentLeaveRequest = null;
+    currentLeaveState = "none";
 
 
     try {
 
-        const leaveResult =
+        const result =
             await getCurrentStaffLeave(
                 staff
             );
 
 
         currentLeaveState =
-            leaveResult.state;
+            result.state;
 
 
         currentLeaveRequest =
-            leaveResult.request;
+            result.request;
 
 
         console.log(
             "📋 FINAL LEAVE STATE:",
             {
-                staffId:
+                staff:
                     staff.staffId,
 
                 state:
@@ -2454,7 +1887,6 @@ async function checkStaffLeaveStatus(
 
                 request:
                     currentLeaveRequest
-
             }
         );
 
@@ -2462,14 +1894,14 @@ async function checkStaffLeaveStatus(
         applyLeaveStateToInterface();
 
 
-        return leaveResult;
+        return result;
 
     }
 
     catch (error) {
 
         console.error(
-            "❌ Unable to check leave status:",
+            "❌ LEAVE LOOKUP FAILED:",
             error
         );
 
@@ -2482,13 +1914,21 @@ async function checkStaffLeaveStatus(
             null;
 
 
+        showMessage(
+            "Unable to check leave status: " +
+            (
+                error.message ||
+                "Firestore error"
+            ),
+            "error"
+        );
+
+
         return {
 
-            state:
-                "error",
+            state: "error",
 
-            request:
-                null
+            request: null
 
         };
 
@@ -2503,73 +1943,51 @@ async function checkStaffLeaveStatus(
 
 function applyLeaveStateToInterface() {
 
-    if (
-        currentLeaveState ===
-        "pending"
+    switch (
+        currentLeaveState
     ) {
 
-        showPendingLeave();
+        case "pending":
 
-        return;
+            showPendingLeave();
 
-    }
-
-
-    if (
-        currentLeaveState ===
-        "approved"
-    ) {
-
-        showApprovedLeave();
-
-        return;
-
-    }
+            break;
 
 
-    if (
-        currentLeaveState ===
-        "approved_future"
-    ) {
+        case "approved":
 
-        showFutureApprovedLeave();
+            showApprovedLeave();
 
-        return;
-
-    }
+            break;
 
 
-    if (
-        currentLeaveState ===
-        "rejected"
-    ) {
+        case "approved_future":
 
-        showRejectedLeave();
+            showFutureApprovedLeave();
 
-        return;
+            break;
+
+
+        case "rejected":
+
+            showRejectedLeave();
+
+            break;
+
+
+        default:
+
+            showNormalLeaveState();
+
+            break;
 
     }
-
-
-    if (
-        currentLeaveState ===
-        "error"
-    ) {
-
-        disableAttendanceButtons();
-
-        return;
-
-    }
-
-
-    showNormalLeaveState();
 
 }
 
 
 /* =========================================================
-   PENDING LEAVE
+   SHOW PENDING
 ========================================================= */
 
 function showPendingLeave() {
@@ -2598,7 +2016,7 @@ function showPendingLeave() {
         currentLeaveRequest;
 
 
-    const leaveName =
+    const type =
         getLeaveType(
             request
         );
@@ -2618,23 +2036,12 @@ function showPendingLeave() {
 
     if (leaveSuccess) {
 
-        if (
-            start &&
-            end
-        ) {
+        leaveSuccess.textContent =
+            start && end
 
-            leaveSuccess.textContent =
-                `🕒 Your ${leaveName} request is currently PENDING from ${formatLeaveDate(start)} to ${formatLeaveDate(end)}. Please wait for your administrator to review and approve or reject it.`;
+                ? `🕒 Your ${type} request is currently PENDING from ${formatLeaveDate(start)} to ${formatLeaveDate(end)}. Please wait for your administrator to review it.`
 
-        }
-
-        else {
-
-            leaveSuccess.textContent =
-                `🕒 Your ${leaveName} request is currently PENDING. Please wait for your administrator to review and approve or reject it.`;
-
-        }
-
+                : `🕒 Your ${type} request is currently PENDING. Please wait for your administrator to review it.`;
 
         leaveSuccess.classList.add(
             "show"
@@ -2652,7 +2059,7 @@ function showPendingLeave() {
 
 
 /* =========================================================
-   APPROVED LEAVE
+   SHOW APPROVED CURRENT LEAVE
 ========================================================= */
 
 function showApprovedLeave() {
@@ -2681,7 +2088,7 @@ function showApprovedLeave() {
         currentLeaveRequest;
 
 
-    const leaveName =
+    const type =
         getLeaveType(
             request
         );
@@ -2699,42 +2106,21 @@ function showApprovedLeave() {
         );
 
 
-    const reason =
-        getLeaveReason(
-            request
-        );
-
-
     console.log(
-        "🏖️ DISPLAYING APPROVED LEAVE:",
+        "🎉 DISPLAYING APPROVED LEAVE:",
         {
-            leaveName,
+            type,
             start,
             end,
-            reason,
             request
         }
     );
 
 
-    /*
-       THIS IS THE IMPORTANT PART.
-
-       If Dainel Bayoh has:
-
-       Study Leave
-       2026-08-30 to 2026-08-30
-       Approved
-
-       and today is 2026-08-30,
-
-       this message will be displayed.
-    */
-
     if (leaveSuccess) {
 
         leaveSuccess.textContent =
-            `✅ Your ${leaveName} Has Been Approved — Leave approved from ${formatLeaveDate(start)} to ${formatLeaveDate(end)}.`;
+            `✅ Your ${type} Has Been Approved — Leave approved from ${formatLeaveDate(start)} to ${formatLeaveDate(end)}.`;
 
         leaveSuccess.classList.add(
             "show"
@@ -2746,17 +2132,13 @@ function showApprovedLeave() {
     if (attendanceStatus) {
 
         attendanceStatus.textContent =
-            `🏖️ You are currently on approved leave from ${formatLeaveDate(start)} to ${formatLeaveDate(end)}.`;
+            `🏖️ You are currently on approved leave (${formatLeaveDate(start)} to ${formatLeaveDate(end)}).`;
 
         attendanceStatus.className =
             "attendance-status status-approved";
 
     }
 
-
-    /*
-       APPROVED CURRENT LEAVE = NO ATTENDANCE.
-    */
 
     if (checkInButton) {
 
@@ -2781,7 +2163,7 @@ function showApprovedLeave() {
 
 
     showMessage(
-        `✅ Your ${leaveName} Has Been Approved. Leave period: ${formatLeaveDate(start)} to ${formatLeaveDate(end)}. Attendance is not required while you are on approved leave.`,
+        `✅ Your ${type} Has Been Approved. Leave period: ${formatLeaveDate(start)} to ${formatLeaveDate(end)}. Attendance is not required today.`,
         "success"
     );
 
@@ -2789,7 +2171,7 @@ function showApprovedLeave() {
 
 
 /* =========================================================
-   FUTURE APPROVED LEAVE
+   SHOW FUTURE APPROVED
 ========================================================= */
 
 function showFutureApprovedLeave() {
@@ -2818,7 +2200,7 @@ function showFutureApprovedLeave() {
         currentLeaveRequest;
 
 
-    const leaveName =
+    const type =
         getLeaveType(
             request
         );
@@ -2839,7 +2221,7 @@ function showFutureApprovedLeave() {
     if (leaveSuccess) {
 
         leaveSuccess.textContent =
-            `✅ Leave Approved — Your ${leaveName} has been approved for ${formatLeaveDate(start)} to ${formatLeaveDate(end)}.`;
+            `✅ Leave Approved — Your ${type} has been approved for ${formatLeaveDate(start)} to ${formatLeaveDate(end)}.`;
 
         leaveSuccess.classList.add(
             "show"
@@ -2847,10 +2229,6 @@ function showFutureApprovedLeave() {
 
     }
 
-
-    /*
-       Future approved leave does NOT prevent attendance.
-    */
 
     if (checkInButton) {
 
@@ -2864,7 +2242,7 @@ function showFutureApprovedLeave() {
 
 
     showMessage(
-        `✅ Your ${leaveName} has been approved for ${formatLeaveDate(start)} to ${formatLeaveDate(end)}. You can continue normal attendance until your leave starts.`,
+        `✅ Your ${type} has been approved for ${formatLeaveDate(start)} to ${formatLeaveDate(end)}. You can continue normal attendance until your leave starts.`,
         "success"
     );
 
@@ -2872,7 +2250,7 @@ function showFutureApprovedLeave() {
 
 
 /* =========================================================
-   REJECTED LEAVE
+   SHOW REJECTED
 ========================================================= */
 
 function showRejectedLeave() {
@@ -2932,7 +2310,7 @@ function showRejectedLeave() {
 
 
 /* =========================================================
-   NORMAL LEAVE STATE
+   NORMAL LEAVE
 ========================================================= */
 
 function showNormalLeaveState() {
@@ -2967,9 +2345,6 @@ function showNormalLeaveState() {
 
         checkInButton.disabled =
             false;
-
-        checkInButton.textContent =
-            "Check In";
 
     }
 
@@ -3015,8 +2390,7 @@ function showLeaveForm() {
 
 
     if (
-        currentLeaveState ===
-        "pending"
+        currentLeaveState === "pending"
     ) {
 
         showMessage(
@@ -3030,8 +2404,7 @@ function showLeaveForm() {
 
 
     if (
-        currentLeaveState ===
-        "approved"
+        currentLeaveState === "approved"
     ) {
 
         showMessage(
@@ -3079,7 +2452,7 @@ function showLeaveForm() {
 
 
 /* =========================================================
-   LEAVE DATE VALIDATION
+   VALIDATE LEAVE DATES
 ========================================================= */
 
 function validateLeaveDates(
@@ -3087,10 +2460,7 @@ function validateLeaveDates(
     endDate
 ) {
 
-    if (
-        !startDate ||
-        !endDate
-    ) {
+    if (!startDate || !endDate) {
 
         return {
 
@@ -3104,10 +2474,7 @@ function validateLeaveDates(
     }
 
 
-    if (
-        endDate <
-        startDate
-    ) {
+    if (endDate < startDate) {
 
         return {
 
@@ -3133,7 +2500,7 @@ function validateLeaveDates(
 
 
 /* =========================================================
-   SUBMIT LEAVE
+   HANDLE LEAVE SUBMISSION
 ========================================================= */
 
 async function handleLeaveSubmission() {
@@ -3152,10 +2519,6 @@ async function handleLeaveSubmission() {
 
     }
 
-
-    /*
-       Get fresh status immediately before submission.
-    */
 
     const latestLeaveState =
         await checkStaffLeaveStatus(
@@ -3193,21 +2556,6 @@ async function handleLeaveSubmission() {
     }
 
 
-    if (
-        latestLeaveState.state ===
-        "error"
-    ) {
-
-        showMessage(
-            "Your leave status could not be verified. Please try again.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
     if (!officeQRVerified) {
 
         showMessage(
@@ -3222,8 +2570,7 @@ async function handleLeaveSubmission() {
 
     if (!isOfficeQRStillValid()) {
 
-        officeQRVerified =
-            false;
+        officeQRVerified = false;
 
         showMessage(
             "The Office QR code has expired. Please scan the new QR code.",
@@ -3237,29 +2584,25 @@ async function handleLeaveSubmission() {
 
     const selectedLeaveType =
         String(
-            leaveType?.value ||
-            ""
+            leaveType?.value || ""
         ).trim();
 
 
     const startDate =
         String(
-            leaveStartDate?.value ||
-            ""
+            leaveStartDate?.value || ""
         ).trim();
 
 
     const endDate =
         String(
-            leaveEndDate?.value ||
-            ""
+            leaveEndDate?.value || ""
         ).trim();
 
 
     const reason =
         String(
-            leaveReason?.value ||
-            ""
+            leaveReason?.value || ""
         ).trim();
 
 
@@ -3306,10 +2649,7 @@ async function handleLeaveSubmission() {
     }
 
 
-    if (
-        reason.length <
-        5
-    ) {
+    if (reason.length < 5) {
 
         showMessage(
             "Please provide a little more information about your leave.",
@@ -3398,24 +2738,14 @@ async function handleLeaveSubmission() {
         };
 
 
-        const leaveRef =
-            collection(
-                db,
-                "leaveRequests"
-            );
-
-
         const leaveDocument =
             await addDoc(
-                leaveRef,
+                collection(
+                    db,
+                    "leaveRequests"
+                ),
                 leaveData
             );
-
-
-        console.log(
-            "✅ Leave request submitted:",
-            leaveDocument.id
-        );
 
 
         currentLeaveRequest = {
@@ -3435,7 +2765,7 @@ async function handleLeaveSubmission() {
         if (leaveSuccess) {
 
             leaveSuccess.textContent =
-                "🕒 Leave request submitted successfully. Your request is now Pending. You cannot submit another request until your administrator reviews this request.";
+                "🕒 Leave request submitted successfully. Your request is now Pending.";
 
             leaveSuccess.classList.add(
                 "show"
@@ -3452,32 +2782,28 @@ async function handleLeaveSubmission() {
 
         if (leaveType) {
 
-            leaveType.value =
-                "";
+            leaveType.value = "";
 
         }
 
 
         if (leaveStartDate) {
 
-            leaveStartDate.value =
-                "";
+            leaveStartDate.value = "";
 
         }
 
 
         if (leaveEndDate) {
 
-            leaveEndDate.value =
-                "";
+            leaveEndDate.value = "";
 
         }
 
 
         if (leaveReason) {
 
-            leaveReason.value =
-                "";
+            leaveReason.value = "";
 
         }
 
@@ -3537,235 +2863,7 @@ async function handleLeaveSubmission() {
 
 
 /* =========================================================
-   PRESENT
-========================================================= */
-
-function showCheckedIn() {
-
-    if (attendanceStatus) {
-
-        attendanceStatus.textContent =
-            "✓ You are checked in — Present.";
-
-        attendanceStatus.className =
-            "attendance-status status-present";
-
-    }
-
-
-    if (checkOutButton) {
-
-        checkOutButton.disabled =
-            false;
-
-        checkOutButton.style.display =
-            "block";
-
-        checkOutButton.textContent =
-            "Check Out";
-
-    }
-
-
-    hideCheckInButton();
-
-
-    showMessage(
-        "Check-in recorded successfully. You are marked Present. This phone is now assigned to your attendance for today.",
-        "success"
-    );
-
-}
-
-
-/* =========================================================
-   LATE
-========================================================= */
-
-function showLateCheckedIn() {
-
-    if (attendanceStatus) {
-
-        attendanceStatus.textContent =
-            "✓ You are checked in — Late.";
-
-        attendanceStatus.className =
-            "attendance-status status-late";
-
-    }
-
-
-    if (checkOutButton) {
-
-        checkOutButton.disabled =
-            false;
-
-        checkOutButton.style.display =
-            "block";
-
-        checkOutButton.textContent =
-            "Check Out";
-
-    }
-
-
-    hideCheckInButton();
-
-
-    showMessage(
-        "Check-in recorded. You arrived after 8:05 AM and have been marked Late.",
-        "success"
-    );
-
-}
-
-
-/* =========================================================
-   ALREADY CHECKED IN
-========================================================= */
-
-function showAlreadyCheckedIn() {
-
-    const status =
-        String(
-            currentAttendance?.status ||
-            "present"
-        ).toLowerCase();
-
-
-    if (
-        status ===
-        "late"
-    ) {
-
-        if (attendanceStatus) {
-
-            attendanceStatus.textContent =
-                "✓ You are already checked in — Late.";
-
-            attendanceStatus.className =
-                "attendance-status status-late";
-
-        }
-
-
-        showMessage(
-            "You have already checked in today and are marked Late.",
-            "success"
-        );
-
-    }
-
-    else {
-
-        if (attendanceStatus) {
-
-            attendanceStatus.textContent =
-                "✓ You are already checked in — Present.";
-
-            attendanceStatus.className =
-                "attendance-status status-present";
-
-        }
-
-
-        showMessage(
-            "You have already checked in today and are marked Present.",
-            "success"
-        );
-
-    }
-
-
-    if (checkOutButton) {
-
-        checkOutButton.disabled =
-            false;
-
-        checkOutButton.style.display =
-            "block";
-
-        checkOutButton.textContent =
-            "Check Out";
-
-    }
-
-
-    hideCheckInButton();
-
-}
-
-
-/* =========================================================
-   COMPLETED ATTENDANCE
-========================================================= */
-
-function showCompletedAttendance() {
-
-    const status =
-        String(
-            currentAttendance?.status ||
-            ""
-        ).toLowerCase();
-
-
-    if (attendanceStatus) {
-
-        if (
-            status ===
-            "late"
-        ) {
-
-            attendanceStatus.textContent =
-                "✓ Attendance completed — Late.";
-
-            attendanceStatus.className =
-                "attendance-status status-late";
-
-        }
-
-        else {
-
-            attendanceStatus.textContent =
-                "✓ Attendance completed — Present.";
-
-            attendanceStatus.className =
-                "attendance-status status-present";
-
-        }
-
-    }
-
-
-    if (checkOutButton) {
-
-        checkOutButton.disabled =
-            true;
-
-        checkOutButton.textContent =
-            "Attendance Complete";
-
-        checkOutButton.style.display =
-            "block";
-
-    }
-
-
-    hideCheckInButton();
-
-
-    showMessage(
-        status === "late"
-            ? "You checked in late and have completed your attendance for today."
-            : "You have completed your attendance for today.",
-        "success"
-    );
-
-}
-
-
-/* =========================================================
-   HANDLE CHECK IN
+   CHECK IN
 ========================================================= */
 
 async function handleCheckIn() {
@@ -3780,12 +2878,6 @@ async function handleCheckIn() {
             "error"
         );
 
-        setOfficeAccessState(
-            false,
-            "Office QR Required",
-            "Attendance check-in requires scanning the official Virello office QR code."
-        );
-
         return;
 
     }
@@ -3793,8 +2885,7 @@ async function handleCheckIn() {
 
     if (!isOfficeQRStillValid()) {
 
-        officeQRVerified =
-            false;
+        officeQRVerified = false;
 
         showMessage(
             "The Office QR code has expired. Please scan the new QR code.",
@@ -3808,8 +2899,7 @@ async function handleCheckIn() {
 
     const staffId =
         String(
-            staffIdInput?.value ||
-            ""
+            staffIdInput?.value || ""
         ).trim();
 
 
@@ -3819,8 +2909,6 @@ async function handleCheckIn() {
             "Please enter your Staff ID.",
             "error"
         );
-
-        staffIdInput?.focus();
 
         return;
 
@@ -3838,8 +2926,7 @@ async function handleCheckIn() {
     }
 
 
-    let deviceWasReserved =
-        false;
+    let deviceWasReserved = false;
 
 
     try {
@@ -3864,18 +2951,18 @@ async function handleCheckIn() {
 
         const staffStatus =
             String(
-                staff.status ||
-                "active"
-            ).toLowerCase();
+                staff.status || "active"
+            )
+            .trim()
+            .toLowerCase();
 
 
         if (
-            staffStatus !==
-            "active"
+            staffStatus !== "active"
         ) {
 
             showMessage(
-                "This staff account is inactive. Please contact your administrator.",
+                "This staff account is inactive.",
                 "error"
             );
 
@@ -3888,14 +2975,18 @@ async function handleCheckIn() {
             staff;
 
 
+        currentAttendance =
+            null;
+
+
         displayWorker(
             staff
         );
 
 
-        /*
-           CHECK LEAVE AGAIN immediately before attendance.
-        */
+        /* =================================================
+           CHECK LEAVE FIRST
+        ================================================= */
 
         const leaveResult =
             await checkStaffLeaveStatus(
@@ -3908,29 +2999,14 @@ async function handleCheckIn() {
             "approved"
         ) {
 
-            console.log(
-                "🏖️ Check-in blocked because staff is on approved leave."
-            );
-
             return;
 
         }
 
 
-        if (
-            leaveResult.state ===
-            "error"
-        ) {
-
-            showMessage(
-                "Unable to verify leave status. Attendance has been stopped for your protection. Please try again.",
-                "error"
-            );
-
-            return;
-
-        }
-
+        /* =================================================
+           EXISTING ATTENDANCE
+        ================================================= */
 
         const existingAttendance =
             await findTodayAttendance(
@@ -3947,7 +3023,7 @@ async function handleCheckIn() {
             ) {
 
                 showMessage(
-                    "This staff member has already checked in today using another phone/device. Please use the same phone used for check-in.",
+                    "This staff member has already checked in today using another phone/device.",
                     "error"
                 );
 
@@ -3983,6 +3059,10 @@ async function handleCheckIn() {
         }
 
 
+        /* =================================================
+           DEVICE LOCK
+        ================================================= */
+
         const deviceLock =
             await getTodayDeviceLock();
 
@@ -3991,16 +3071,14 @@ async function handleCheckIn() {
 
             const lockedStaffId =
                 String(
-                    deviceLock.staffId ||
-                    ""
+                    deviceLock.staffId || ""
                 );
 
 
             if (
                 lockedStaffId !==
                 String(
-                    staff.staffId ||
-                    ""
+                    staff.staffId || ""
                 )
             ) {
 
@@ -4022,9 +3100,7 @@ async function handleCheckIn() {
             );
 
 
-        if (
-            !reservation.allowed
-        ) {
+        if (!reservation.allowed) {
 
             showMessage(
                 "This phone has already been used for another staff member's attendance today.",
@@ -4037,8 +3113,12 @@ async function handleCheckIn() {
 
 
         deviceWasReserved =
-            reservation.createdNew;
+            !reservation.sameStaff;
 
+
+        /* =================================================
+           CREATE ATTENDANCE
+        ================================================= */
 
         const checkInTime =
             new Date();
@@ -4121,16 +3201,12 @@ async function handleCheckIn() {
         };
 
 
-        const attendanceRef =
-            collection(
-                db,
-                "attendance"
-            );
-
-
         const newAttendance =
             await addDoc(
-                attendanceRef,
+                collection(
+                    db,
+                    "attendance"
+                ),
                 attendanceData
             );
 
@@ -4208,7 +3284,7 @@ async function handleCheckIn() {
 
 
 /* =========================================================
-   QR STILL VALID
+   QR VALIDITY
 ========================================================= */
 
 function isOfficeQRStillValid() {
@@ -4224,21 +3300,16 @@ function isOfficeQRStillValid() {
     }
 
 
-    const now =
-        Date.now();
-
-
     const age =
         Math.abs(
-            now -
+            Date.now() -
             officeQRTimestamp
         );
 
 
     return (
         age <=
-        QR_LIFETIME_SECONDS *
-        1000
+        QR_LIFETIME_SECONDS * 1000
     );
 
 }
@@ -4279,6 +3350,200 @@ function displayWorker(
             "Staff";
 
     }
+
+}
+
+
+/* =========================================================
+   PRESENT
+========================================================= */
+
+function showCheckedIn() {
+
+    if (attendanceStatus) {
+
+        attendanceStatus.textContent =
+            "✓ You are checked in — Present.";
+
+        attendanceStatus.className =
+            "attendance-status status-present";
+
+    }
+
+
+    if (checkOutButton) {
+
+        checkOutButton.disabled =
+            false;
+
+        checkOutButton.style.display =
+            "block";
+
+        checkOutButton.textContent =
+            "Check Out";
+
+    }
+
+
+    hideCheckInButton();
+
+
+    showMessage(
+        "Check-in recorded successfully. You are marked Present.",
+        "success"
+    );
+
+}
+
+
+/* =========================================================
+   LATE
+========================================================= */
+
+function showLateCheckedIn() {
+
+    if (attendanceStatus) {
+
+        attendanceStatus.textContent =
+            "✓ You are checked in — Late.";
+
+        attendanceStatus.className =
+            "attendance-status status-late";
+
+    }
+
+
+    if (checkOutButton) {
+
+        checkOutButton.disabled =
+            false;
+
+        checkOutButton.style.display =
+            "block";
+
+        checkOutButton.textContent =
+            "Check Out";
+
+    }
+
+
+    hideCheckInButton();
+
+
+    showMessage(
+        "Check-in recorded. You arrived after 8:05 AM and have been marked Late.",
+        "success"
+    );
+
+}
+
+
+/* =========================================================
+   ALREADY CHECKED IN
+========================================================= */
+
+function showAlreadyCheckedIn() {
+
+    const status =
+        String(
+            currentAttendance?.status ||
+            "present"
+        ).toLowerCase();
+
+
+    if (attendanceStatus) {
+
+        attendanceStatus.textContent =
+            status === "late"
+                ? "✓ You are already checked in — Late."
+                : "✓ You are already checked in — Present.";
+
+        attendanceStatus.className =
+            status === "late"
+                ? "attendance-status status-late"
+                : "attendance-status status-present";
+
+    }
+
+
+    if (checkOutButton) {
+
+        checkOutButton.disabled =
+            false;
+
+        checkOutButton.style.display =
+            "block";
+
+        checkOutButton.textContent =
+            "Check Out";
+
+    }
+
+
+    hideCheckInButton();
+
+
+    showMessage(
+        status === "late"
+            ? "You have already checked in today and are marked Late."
+            : "You have already checked in today and are marked Present.",
+        "success"
+    );
+
+}
+
+
+/* =========================================================
+   COMPLETED
+========================================================= */
+
+function showCompletedAttendance() {
+
+    const status =
+        String(
+            currentAttendance?.status ||
+            ""
+        ).toLowerCase();
+
+
+    if (attendanceStatus) {
+
+        attendanceStatus.textContent =
+            status === "late"
+                ? "✓ Attendance completed — Late."
+                : "✓ Attendance completed — Present.";
+
+        attendanceStatus.className =
+            status === "late"
+                ? "attendance-status status-late"
+                : "attendance-status status-present";
+
+    }
+
+
+    if (checkOutButton) {
+
+        checkOutButton.disabled =
+            true;
+
+        checkOutButton.textContent =
+            "Attendance Complete";
+
+        checkOutButton.style.display =
+            "block";
+
+    }
+
+
+    hideCheckInButton();
+
+
+    showMessage(
+        status === "late"
+            ? "You checked in late and have completed your attendance for today."
+            : "You have completed your attendance for today.",
+        "success"
+    );
 
 }
 
@@ -4333,7 +3598,7 @@ async function handleCheckOut() {
     ) {
 
         showMessage(
-            "You must check out using the same phone/device that was used to check in.",
+            "You must check out using the same phone/device used to check in.",
             "error"
         );
 
@@ -4383,16 +3648,14 @@ async function handleCheckOut() {
 
     try {
 
-        const attendanceDocument =
+        await updateDoc(
+
             doc(
                 db,
                 "attendance",
                 currentAttendance.id
-            );
+            ),
 
-
-        await updateDoc(
-            attendanceDocument,
             {
 
                 checkOut:
@@ -4405,6 +3668,7 @@ async function handleCheckOut() {
                     true
 
             }
+
         );
 
 
@@ -4451,7 +3715,7 @@ async function handleCheckOut() {
 
 
 /* =========================================================
-   HIDE CHECK-IN BUTTON
+   HIDE CHECK-IN
 ========================================================= */
 
 function hideCheckInButton() {
@@ -4467,245 +3731,14 @@ function hideCheckInButton() {
 
 
 /* =========================================================
-   FORMAT DATE TO YYYY-MM-DD
-=========================================================
-
-   Supports:
-
-   - "2026-08-30"
-   - Firestore Timestamp
-   - Date object
-   - timestamp-like objects
-   - ISO strings
-   - numeric timestamps
-========================================================= */
-
-function normalizeDateKey(
-    value
-) {
-
-    if (
-        value ===
-        null ||
-        value ===
-        undefined ||
-        value ===
-        ""
-    ) {
-
-        return "";
-
-    }
-
-
-    /*
-       Already YYYY-MM-DD
-    */
-
-    if (
-        typeof value ===
-        "string"
-    ) {
-
-        const trimmed =
-            value.trim();
-
-
-        if (
-            /^\d{4}-\d{2}-\d{2}$/.test(
-                trimmed
-            )
-        ) {
-
-            return trimmed;
-
-        }
-
-
-        /*
-           Date strings such as:
-           2026-08-30T00:00:00.000Z
-        */
-
-        const parsedStringDate =
-            new Date(
-                trimmed
-            );
-
-
-        if (
-            !Number.isNaN(
-                parsedStringDate.getTime()
-            )
-        ) {
-
-            return formatDateObjectToKey(
-                parsedStringDate
-            );
-
-        }
-
-    }
-
-
-    /*
-       Firestore Timestamp
-    */
-
-    if (
-        typeof value.toDate ===
-        "function"
-    ) {
-
-        try {
-
-            return formatDateObjectToKey(
-                value.toDate()
-            );
-
-        }
-
-        catch (error) {
-
-            return "";
-
-        }
-
-    }
-
-
-    /*
-       Firestore timestamp object:
-       { seconds: ..., nanoseconds: ... }
-    */
-
-    if (
-        typeof value ===
-        "object" &&
-        typeof value.seconds ===
-        "number"
-    ) {
-
-        const date =
-            new Date(
-                value.seconds *
-                1000
-            );
-
-
-        return formatDateObjectToKey(
-            date
-        );
-
-    }
-
-
-    /*
-       JavaScript Date
-    */
-
-    if (
-        value instanceof Date
-    ) {
-
-        return formatDateObjectToKey(
-            value
-        );
-
-    }
-
-
-    /*
-       Numeric timestamp
-    */
-
-    if (
-        typeof value ===
-        "number"
-    ) {
-
-        const date =
-            new Date(
-                value
-            );
-
-
-        return formatDateObjectToKey(
-            date
-        );
-
-    }
-
-
-    return "";
-
-}
-
-
-/* =========================================================
-   FORMAT DATE OBJECT
-========================================================= */
-
-function formatDateObjectToKey(
-    date
-) {
-
-    if (
-        !date ||
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return "";
-
-    }
-
-
-    const year =
-        date.getFullYear();
-
-
-    const month =
-        String(
-            date.getMonth() + 1
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    const day =
-        String(
-            date.getDate()
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    return (
-        `${year}-${month}-${day}`
-    );
-
-}
-
-
-/* =========================================================
-   FORMAT LEAVE DATE
+   FORMAT DATE
 ========================================================= */
 
 function formatLeaveDate(
     dateString
 ) {
 
-    const normalized =
-        normalizeDateKey(
-            dateString
-        );
-
-
-    if (!normalized) {
+    if (!dateString) {
 
         return "—";
 
@@ -4713,35 +3746,30 @@ function formatLeaveDate(
 
 
     const parts =
-        normalized.split("-");
+        String(
+            dateString
+        ).split("-");
 
 
     if (
-        parts.length !==
-        3
+        parts.length !== 3
     ) {
 
-        return normalized;
+        return dateString;
 
     }
 
 
     const year =
-        Number(
-            parts[0]
-        );
+        Number(parts[0]);
 
 
     const month =
-        Number(
-            parts[1]
-        ) - 1;
+        Number(parts[1]) - 1;
 
 
     const day =
-        Number(
-            parts[2]
-        );
+        Number(parts[2]);
 
 
     const date =
@@ -4758,7 +3786,7 @@ function formatLeaveDate(
         )
     ) {
 
-        return normalized;
+        return dateString;
 
     }
 
@@ -4776,7 +3804,7 @@ function formatLeaveDate(
 
 
 /* =========================================================
-   DEVICE OWNERSHIP CHECK
+   DEVICE OWNERSHIP
 ========================================================= */
 
 function attendanceBelongsToCurrentDevice(
@@ -4845,16 +3873,11 @@ function getTimestampMillis(
 
 
     if (
-        typeof value ===
-        "object" &&
-        typeof value.seconds ===
-        "number"
+        typeof value === "object" &&
+        typeof value.seconds === "number"
     ) {
 
-        return (
-            value.seconds *
-            1000
-        );
+        return value.seconds * 1000;
 
     }
 
@@ -4869,14 +3892,11 @@ function getTimestampMillis(
 
 
     if (
-        typeof value ===
-        "string"
+        typeof value === "string"
     ) {
 
         const parsed =
-            new Date(
-                value
-            );
+            new Date(value);
 
 
         return Number.isNaN(
@@ -4888,23 +3908,13 @@ function getTimestampMillis(
     }
 
 
-    if (
-        typeof value ===
-        "number"
-    ) {
-
-        return value;
-
-    }
-
-
     return 0;
 
 }
 
 
 /* =========================================================
-   FINAL SYSTEM LOG
+   FINAL LOG
 ========================================================= */
 
 console.log(
@@ -4928,45 +3938,17 @@ console.log(
 );
 
 console.log(
-    "📱 One device = one staff attendance per day."
+    "📋 Leave system active."
 );
 
 console.log(
-    "📋 Leave submission enabled."
+    "✅ Approved current leave blocks attendance."
 );
 
 console.log(
-    "🕒 Pending leave blocks duplicate requests."
+    "📅 Future approved leave supported."
 );
 
 console.log(
-    "✅ Approved leave is displayed to staff."
-);
-
-console.log(
-    "🏖️ Current approved leave blocks attendance."
-);
-
-console.log(
-    "📅 Future approved leave is displayed."
-);
-
-console.log(
-    "🔄 Staff switching clears previous leave state."
-);
-
-console.log(
-    "🔎 Leave matching supports staffDocumentId AND staffId."
-);
-
-console.log(
-    "🔎 Leave status supports status / leaveStatus / approvalStatus."
-);
-
-console.log(
-    "📅 Leave dates support string, Date and Firestore Timestamp."
-);
-
-console.log(
-    "🌐 Hosting-safe worker system active."
+    "🔄 Staff switching supported."
 );
