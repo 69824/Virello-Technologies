@@ -801,6 +801,7 @@ header {
 
 </div>
 
+
 </header>
 
 <!-- =========================================
@@ -815,17 +816,18 @@ header {
 
 <section class="welcome">
 
-    <h1>
-        Welcome to Virello
-    </h1>
 
-    <p>
-        Manage your organization's digital
-        attendance from one place.
-    </p>
+<h1>
+    Welcome to Virello
+</h1>
+
+<p>
+    Manage your organization's digital
+    attendance from one place.
+</p>
+
 
 </section>
-
 
 <!-- =====================================
      ORGANIZATION
@@ -833,48 +835,49 @@ header {
 
 <section class="organization-card">
 
-    <div class="organization-label">
-        Your Organization
-    </div>
 
+<div class="organization-label">
+    Your Organization
+</div>
+
+
+<div
+    id="organizationName"
+    class="organization-name"
+>
+    Loading...
+</div>
+
+
+<div class="organization-details">
 
     <div
-        id="organizationName"
-        class="organization-name"
+        id="organizationType"
+        class="organization-badge"
     >
         Loading...
     </div>
 
 
-    <div class="organization-details">
-
-        <div
-            id="organizationType"
-            class="organization-badge"
-        >
-            Loading...
-        </div>
-
-
-        <div
-            id="organizationCountry"
-            class="organization-badge"
-        >
-            Loading...
-        </div>
-
-
-        <div
-            id="subscriptionStatus"
-            class="organization-badge"
-        >
-            Subscription: Active
-        </div>
-
+    <div
+        id="organizationCountry"
+        class="organization-badge"
+    >
+        Loading...
     </div>
 
-</section>
 
+    <div
+        id="subscriptionStatus"
+        class="organization-badge"
+    >
+        Subscription: Active
+    </div>
+
+</div>
+
+
+</section>
 
 <!-- =====================================
      STATISTICS
@@ -883,88 +886,87 @@ header {
 <section class="stats-grid">
 
 
-    <div class="stat-card">
+<div class="stat-card">
 
-        <div class="stat-icon">
-            👥
-        </div>
-
-        <div class="stat-label">
-            Total Staff
-        </div>
-
-        <div
-            id="totalStaff"
-            class="stat-number"
-        >
-            0
-        </div>
-
+    <div class="stat-icon">
+        👥
     </div>
 
-
-    <div class="stat-card">
-
-        <div class="stat-icon">
-            🟢
-        </div>
-
-        <div class="stat-label">
-            Present Today
-        </div>
-
-        <div
-            id="presentToday"
-            class="stat-number"
-        >
-            0
-        </div>
-
+    <div class="stat-label">
+        Total Staff
     </div>
 
-
-    <div class="stat-card">
-
-        <div class="stat-icon">
-            🕒
-        </div>
-
-        <div class="stat-label">
-            Late Today
-        </div>
-
-        <div
-            id="lateToday"
-            class="stat-number"
-        >
-            0
-        </div>
-
+    <div
+        id="totalStaff"
+        class="stat-number"
+    >
+        0
     </div>
 
+</div>
 
-    <div class="stat-card">
 
-        <div class="stat-icon">
-            🔴
-        </div>
+<div class="stat-card">
 
-        <div class="stat-label">
-            Absent Today
-        </div>
-
-        <div
-            id="absentToday"
-            class="stat-number"
-        >
-            0
-        </div>
-
+    <div class="stat-icon">
+        🟢
     </div>
+
+    <div class="stat-label">
+        Present Today
+    </div>
+
+    <div
+        id="presentToday"
+        class="stat-number"
+    >
+        0
+    </div>
+
+</div>
+
+
+<div class="stat-card">
+
+    <div class="stat-icon">
+        🕒
+    </div>
+
+    <div class="stat-label">
+        Late Today
+    </div>
+
+    <div
+        id="lateToday"
+        class="stat-number"
+    >
+        0
+    </div>
+
+</div>
+
+
+<div class="stat-card">
+
+    <div class="stat-icon">
+        🔴
+    </div>
+
+    <div class="stat-label">
+        Absent Today
+    </div>
+
+    <div
+        id="absentToday"
+        class="stat-number"
+    >
+        0
+    </div>
+
+</div>
 
 
 </section>
-
 
 <!-- =====================================
      QUICK ACTIONS
@@ -972,203 +974,231 @@ header {
 
 <section>
 
-    <div class="section-title">
 
-        <h2>
-            Quick Actions
-        </h2>
+<div class="section-title">
+
+    <h2>
+        Quick Actions
+    </h2>
+
+    <p>
+        Manage staff, classes, students,
+        attendance, results and more from
+        one place.
+    </p>
+
+</div>
+
+
+<div class="actions-grid">
+
+
+    <!-- =================================
+         STAFF MANAGEMENT
+    ================================== -->
+
+    <a
+        href="staff.html"
+        class="action-card"
+    >
+
+        <div class="action-icon">
+            👥
+        </div>
+
+        <h3>
+            Staff Management
+        </h3>
 
         <p>
-            Manage staff, classes, students
-            and attendance from one place.
+            Add and manage employees
+            in your organization.
         </p>
 
-    </div>
+    </a>
 
 
-    <div class="actions-grid">
+    <!-- =================================
+         CLASSES & STUDENTS
+    ================================== -->
+
+    <a
+        href="classes.html"
+        class="action-card"
+    >
+
+        <div class="action-icon">
+            🎓
+        </div>
+
+        <h3>
+            Classes & Students
+        </h3>
+
+        <p>
+            Create classes from Nursery 1
+            through Grade 9 and manage
+            students in each class.
+        </p>
+
+    </a>
 
 
-        <!-- =================================
-             STAFF MANAGEMENT
-        ================================== -->
+    <!-- =================================
+         FORM MASTER DASHBOARD
+    ================================== -->
 
-        <a
-            href="staff.html"
-            class="action-card"
-        >
+    <a
+        href="form-master.html"
+        class="action-card"
+    >
 
-            <div class="action-icon">
-                👥
-            </div>
+        <div class="action-icon">
+            👨‍🏫
+        </div>
 
-            <h3>
-                Staff Management
-            </h3>
+        <h3>
+            Form Master
+        </h3>
 
-            <p>
-                Add and manage employees
-                in your organization.
-            </p>
+        <p>
+            View assigned classes,
+            manage class attendance,
+            and mark students Present,
+            Late or Absent.
+        </p>
 
-        </a>
-
-
-        <!-- =================================
-             CLASSES & STUDENTS
-        ================================== -->
-
-        <a
-            href="classes.html"
-            class="action-card"
-        >
-
-            <div class="action-icon">
-                🎓
-            </div>
-
-            <h3>
-                Classes & Students
-            </h3>
-
-            <p>
-                Create Grade 1 to Grade 9
-                classes and manage students
-                in each class.
-            </p>
-
-        </a>
+    </a>
 
 
-        <!-- =================================
-             FORM MASTER DASHBOARD
-        ================================== -->
+    <!-- =================================
+         ATTENDANCE
+    ================================== -->
 
-        <a
-            href="form-master.html"
-            class="action-card"
-        >
+    <a
+        href="attendance.html"
+        class="action-card"
+    >
 
-            <div class="action-icon">
-                👨‍🏫
-            </div>
+        <div class="action-icon">
+            🕒
+        </div>
 
-            <h3>
-                Form Master
-            </h3>
+        <h3>
+            Attendance
+        </h3>
 
-            <p>
-                View assigned classes,
-                manage class attendance,
-                and mark students Present,
-                Late or Absent.
-            </p>
+        <p>
+            Record staff check-in
+            and check-out times.
+        </p>
 
-        </a>
+    </a>
 
 
-        <!-- =================================
-             ATTENDANCE
-        ================================== -->
+    <!-- =================================
+         ACADEMIC RESULTS
+    ================================== -->
 
-        <a
-            href="attendance.html"
-            class="action-card"
-        >
+    <a
+        href="results.html"
+        class="action-card"
+    >
 
-            <div class="action-icon">
-                🕒
-            </div>
+        <div class="action-icon">
+            📚
+        </div>
 
-            <h3>
-                Attendance
-            </h3>
+        <h3>
+            Academic Results
+        </h3>
 
-            <p>
-                Record staff check-in
-                and check-out times.
-            </p>
+        <p>
+            Create, edit, save and publish
+            academic results for students
+            from Nursery 1 through Grade 9.
+        </p>
 
-        </a>
-
-
-        <!-- =================================
-             REPORTS
-        ================================== -->
-
-        <a
-            href="reports.html"
-            class="action-card"
-        >
-
-            <div class="action-icon">
-                📊
-            </div>
-
-            <h3>
-                Reports
-            </h3>
-
-            <p>
-                View attendance records
-                and organization reports.
-            </p>
-
-        </a>
+    </a>
 
 
-        <!-- =================================
-             ORGANIZATION SETTINGS
-        ================================== -->
+    <!-- =================================
+         REPORTS
+    ================================== -->
 
-        <a
-            href="settings.html"
-            class="action-card"
-        >
+    <a
+        href="reports.html"
+        class="action-card"
+    >
 
-            <div class="action-icon">
-                ⚙️
-            </div>
+        <div class="action-icon">
+            📊
+        </div>
 
-            <h3>
-                Organization Settings
-            </h3>
+        <h3>
+            Reports
+        </h3>
 
-            <p>
-                Manage your organization
-                information and settings.
-            </p>
+        <p>
+            View attendance records
+            and organization reports.
+        </p>
 
-        </a>
-
-
-        <!-- =================================
-             LEAVE MANAGEMENT
-             NEW FEATURE
-        ================================== -->
-
-        <a
-            href="leave-management.html"
-            class="action-card"
-        >
-
-            <div class="action-icon">
-                📝
-            </div>
-
-            <h3>
-                Leave Management
-            </h3>
-
-            <p>
-                Manage staff leave requests,
-                approvals and leave records.
-            </p>
-
-        </a>
+    </a>
 
 
-    </div>
+    <!-- =================================
+         ORGANIZATION SETTINGS
+    ================================== -->
+
+    <a
+        href="settings.html"
+        class="action-card"
+    >
+
+        <div class="action-icon">
+            ⚙️
+        </div>
+
+        <h3>
+            Organization Settings
+        </h3>
+
+        <p>
+            Manage your organization
+            information and settings.
+        </p>
+
+    </a>
+
+
+    <!-- =================================
+         LEAVE MANAGEMENT
+    ================================== -->
+
+    <a
+        href="leave-management.html"
+        class="action-card"
+    >
+
+        <div class="action-icon">
+            📝
+        </div>
+
+        <h3>
+            Leave Management
+        </h3>
+
+        <p>
+            Manage staff leave requests,
+            approvals and leave records.
+        </p>
+
+    </a>
+
+
+</div>
+
 
 </section>
 
@@ -1180,7 +1210,6 @@ header {
 
 <div id="errorScreen">
 
-
 <h2>
     Unable to Load Organization
 </h2>
@@ -1189,7 +1218,6 @@ header {
     Something went wrong while loading
     your organization.
 </p>
-
 </div>
 
 <!-- =========================================
