@@ -8,6 +8,15 @@
    PURPOSE:
    CLASS + STUDENT MANAGEMENT
 
+   STUDENT REGISTRATION FIELDS:
+   - Student ID
+   - Full Name
+   - Date of Birth
+   - Address
+   - Parent / Guardian Telephone
+   - Class
+   - Status
+
    FEATURES:
    - Administrator authentication
    - Organization loading
@@ -17,10 +26,9 @@
    - Edit class / Form Master
    - Load classes
    - Select class
-   - Add students
+   - Add complete student profile
    - Search students
-   - Edit students
-   - Move students between classes
+   - Edit complete student profile
    - Activate / deactivate students
    - Remove students
    - Delete empty classes
@@ -83,6 +91,8 @@ let selectedClass = null;
 let selectedStudents = [];
 
 let studentSearchTerm = "";
+
+let editingStudentId = null;
 
 
 /* =========================================================
@@ -149,21 +159,58 @@ const studentIdInput =
 const studentNameInput =
     document.getElementById("studentNameInput");
 
+const studentDobInput =
+    document.getElementById("studentDobInput");
+
+const studentAddressInput =
+    document.getElementById("studentAddressInput");
+
+const parentTelephoneInput =
+    document.getElementById("parentTelephoneInput");
+
 const addStudentButton =
     document.getElementById("addStudentButton");
 
 const studentList =
     document.getElementById("studentList");
 
-
-/* =========================================================
-   OPTIONAL SEARCH INPUT
-   Works automatically if classes.html contains:
-   id="studentSearch"
-========================================================= */
-
 const studentSearch =
     document.getElementById("studentSearch");
+
+
+/* =========================================================
+   EDIT STUDENT MODAL DOM
+========================================================= */
+
+const studentModal =
+    document.getElementById("studentModal");
+
+const editStudentForm =
+    document.getElementById("editStudentForm");
+
+const editStudentId =
+    document.getElementById("editStudentId");
+
+const editStudentName =
+    document.getElementById("editStudentName");
+
+const editStudentDob =
+    document.getElementById("editStudentDob");
+
+const editStudentAddress =
+    document.getElementById("editStudentAddress");
+
+const editParentTelephone =
+    document.getElementById("editParentTelephone");
+
+const closeStudentModal =
+    document.getElementById("closeStudentModal");
+
+const cancelStudentEdit =
+    document.getElementById("cancelStudentEdit");
+
+const saveStudentButton =
+    document.getElementById("saveStudentButton");
 
 
 /* =========================================================
@@ -207,7 +254,8 @@ function startClasses() {
                 }
 
 
-                currentUser = user;
+                currentUser =
+                    user;
 
 
                 console.log(
@@ -746,7 +794,6 @@ if (classForm) {
 
                 await loadClasses();
 
-
                 renderClasses();
 
                 updateStatistics();
@@ -883,9 +930,11 @@ function renderClasses() {
                     </div>
 
                     <div class="class-count">
+
                         ${Number(
                             classItem.studentCount || 0
                         )}
+
                         Student${
                             Number(
                                 classItem.studentCount || 0
@@ -893,6 +942,7 @@ function renderClasses() {
                                 ? ""
                                 : "s"
                         }
+
                     </div>
 
                 </div>
@@ -1124,43 +1174,33 @@ async function editClass(
     }
 
 
-    const currentTeacher =
+    let selectedTeacher =
         classItem.formMasterId ||
         "";
-
-
-    const teacherOptions =
-        teachers
-            .map(
-                teacher =>
-                    `${teacher.id}::${getTeacherName(
-                        teacher
-                    )}`
-            )
-            .join("\n");
-
-
-    let selectedTeacher =
-        currentTeacher;
 
 
     if (teachers.length) {
 
         const teacherMessage =
-            `Enter Form Master ID.\n\nLeave blank for no Form Master.\n\nAvailable:\n${teachers
-                .map(
-                    teacher =>
-                        `${teacher.id} - ${getTeacherName(
-                            teacher
-                        )}`
-                )
-                .join("\n")}`;
+            `Enter Form Master ID.
+
+Leave blank for no Form Master.
+
+Available:
+${teachers
+    .map(
+        teacher =>
+            `${teacher.id} - ${getTeacherName(
+                teacher
+            )}`
+    )
+    .join("\n")}`;
 
 
         const response =
             prompt(
                 teacherMessage,
-                currentTeacher
+                selectedTeacher
             );
 
 
@@ -1304,46 +1344,48 @@ async function editClass(
         }
 
 
+        await loadClasses();
+
+
+        const updatedClass =
+            classes.find(
+                item =>
+                    item.id ===
+                    classId
+            );
+
+
         if (
             selectedClass &&
             selectedClass.id ===
             classId
         ) {
 
-            selectedClass.className =
-                cleanName;
+            selectedClass =
+                updatedClass ||
+                selectedClass;
 
-            selectedClass.formMasterId =
-                selectedTeacher || null;
+            if (selectedClassTitle) {
 
-            selectedClass.formMasterName =
-                teacher
-                    ? getTeacherName(
+                selectedClassTitle.textContent =
+                    cleanName;
+
+            }
+
+            if (selectedClassTeacher) {
+
+                selectedClassTeacher.textContent =
+                    `Form Master: ${
                         teacher
-                    )
-                    : "";
+                            ? getTeacherName(
+                                teacher
+                            )
+                            : "No Form Master assigned"
+                    }`;
 
-            selectedClass.grade =
-                getGradeNumber(
-                    cleanName
-                );
-
-            selectedClassTitle.textContent =
-                cleanName;
-
-            selectedClassTeacher.textContent =
-                `Form Master: ${
-                    teacher
-                        ? getTeacherName(
-                            teacher
-                        )
-                        : "No Form Master assigned"
-                }`;
+            }
 
         }
-
-
-        await loadClasses();
 
 
         renderClasses();
@@ -1440,7 +1482,6 @@ async function selectClass(
 
 
     await loadStudents();
-
 
     renderStudents();
 
@@ -1580,13 +1621,61 @@ if (studentForm) {
                 ).trim();
 
 
+            const dateOfBirth =
+                String(
+                    studentDobInput?.value ||
+                    ""
+                ).trim();
+
+
+            const address =
+                String(
+                    studentAddressInput?.value ||
+                    ""
+                ).trim();
+
+
+            const parentTelephone =
+                String(
+                    parentTelephoneInput?.value ||
+                    ""
+                ).trim();
+
+
             if (
                 !studentId ||
-                !fullName
+                !fullName ||
+                !dateOfBirth ||
+                !address ||
+                !parentTelephone
             ) {
 
                 alert(
-                    "Please enter the Student ID and full name."
+                    "Please complete all student registration fields."
+                );
+
+                return;
+
+            }
+
+
+            /*
+               Prevent future birth dates.
+            */
+
+            const today =
+                new Date()
+                    .toISOString()
+                    .split("T")[0];
+
+
+            if (
+                dateOfBirth >
+                today
+            ) {
+
+                alert(
+                    "Date of birth cannot be in the future."
                 );
 
                 return;
@@ -1608,6 +1697,11 @@ if (studentForm) {
                         "students"
                     );
 
+
+                /*
+                   Check duplicate Student ID
+                   within the organization.
+                */
 
                 const duplicateQuery =
                     query(
@@ -1662,6 +1756,15 @@ if (studentForm) {
 
                     fullName:
                         fullName,
+
+                    dateOfBirth:
+                        dateOfBirth,
+
+                    address:
+                        address,
+
+                    parentTelephone:
+                        parentTelephone,
 
                     status:
                         "active",
@@ -1759,7 +1862,8 @@ if (studentSearch) {
                 String(
                     studentSearch.value ||
                     ""
-                ).trim()
+                )
+                .trim()
                 .toLowerCase();
 
 
@@ -1933,6 +2037,12 @@ function renderStudents() {
                     : "Active";
 
 
+            const formattedDob =
+                formatDateOfBirth(
+                    student.dateOfBirth
+                );
+
+
             row.innerHTML = `
 
                 <div class="student-number">
@@ -1952,7 +2062,24 @@ function renderStudents() {
                     </div>
 
 
-                    <div class="student-status ${status === "inactive" ? "inactive" : "active"}">
+                    <div class="student-id">
+
+                        ID:
+                        ${escapeHtml(
+                            student.studentId ||
+                            "—"
+                        )}
+
+                    </div>
+
+
+                    <div
+                        class="student-status ${
+                            status === "inactive"
+                                ? "inactive"
+                                : ""
+                        }"
+                    >
 
                         ${statusText}
 
@@ -1961,17 +2088,65 @@ function renderStudents() {
                 </div>
 
 
-                <div class="student-id">
+                <div class="student-dob">
+
+                    <strong>
+                        DOB
+                    </strong>
+
+                    <br>
 
                     ${escapeHtml(
-                        student.studentId ||
-                        ""
+                        formattedDob
+                    )}
+
+                </div>
+
+
+                <div class="student-address">
+
+                    <strong>
+                        Address
+                    </strong>
+
+                    <br>
+
+                    ${escapeHtml(
+                        student.address ||
+                        "Not provided"
+                    )}
+
+                </div>
+
+
+                <div class="student-parent">
+
+                    <strong>
+                        Parent / Guardian
+                    </strong>
+
+                    <br>
+
+                    ${escapeHtml(
+                        student.parentTelephone ||
+                        "Not provided"
                     )}
 
                 </div>
 
 
                 <div class="student-actions">
+
+                    <button
+                        type="button"
+                        class="small-button"
+                        data-view-student="${escapeHtml(
+                            student.id
+                        )}"
+                    >
+                        View
+                    </button>
+
 
                     <button
                         type="button"
@@ -1991,11 +2166,13 @@ function renderStudents() {
                             student.id
                         )}"
                     >
+
                         ${
                             status === "inactive"
                                 ? "Activate"
                                 : "Deactivate"
                         }
+
                     </button>
 
 
@@ -2034,6 +2211,12 @@ if (studentList) {
         "click",
         async event => {
 
+            const viewButton =
+                event.target.closest(
+                    "[data-view-student]"
+                );
+
+
             const editButton =
                 event.target.closest(
                     "[data-edit-student]"
@@ -2052,9 +2235,21 @@ if (studentList) {
                 );
 
 
+            if (viewButton) {
+
+                viewStudent(
+                    viewButton.dataset
+                        .viewStudent
+                );
+
+                return;
+
+            }
+
+
             if (editButton) {
 
-                await editStudent(
+                openEditStudentModal(
                     editButton.dataset
                         .editStudent
                 );
@@ -2093,10 +2288,10 @@ if (studentList) {
 
 
 /* =========================================================
-   EDIT STUDENT
+   VIEW STUDENT
 ========================================================= */
 
-async function editStudent(
+function viewStudent(
     studentDocumentId
 ) {
 
@@ -2115,185 +2310,470 @@ async function editStudent(
     }
 
 
-    const newName =
-        prompt(
-            "Enter student's full name:",
-            student.fullName || ""
+    const dob =
+        formatDateOfBirth(
+            student.dateOfBirth
         );
 
 
-    if (newName === null) {
+    alert(
 
-        return;
+        `STUDENT PROFILE\n\n` +
 
-    }
+        `Student ID: ${
+            student.studentId || "Not provided"
+        }\n\n` +
 
+        `Full Name: ${
+            student.fullName || "Not provided"
+        }\n\n` +
 
-    const cleanName =
-        newName.trim();
+        `Date of Birth: ${
+            dob
+        }\n\n` +
 
+        `Address: ${
+            student.address || "Not provided"
+        }\n\n` +
 
-    if (!cleanName) {
+        `Parent / Guardian Telephone: ${
+            student.parentTelephone || "Not provided"
+        }\n\n` +
 
-        alert(
-            "Student name cannot be empty."
-        );
+        `Class: ${
+            student.className ||
+            selectedClass?.className ||
+            "Not provided"
+        }\n\n` +
 
-        return;
-
-    }
-
-
-    const newStudentId =
-        prompt(
-            "Enter Student ID:",
-            student.studentId || ""
-        );
-
-
-    if (newStudentId === null) {
-
-        return;
-
-    }
-
-
-    const cleanStudentId =
-        newStudentId.trim();
-
-
-    if (!cleanStudentId) {
-
-        alert(
-            "Student ID cannot be empty."
-        );
-
-        return;
-
-    }
-
-
-    try {
-
-        /*
-           Check duplicate ID if ID changed.
-        */
-
-        if (
-            cleanStudentId !==
+        `Status: ${
             String(
-                student.studentId ||
-                ""
-            )
-        ) {
+                student.status ||
+                "active"
+            ).toUpperCase()
+        }`
 
-            const studentsRef =
-                collection(
-                    db,
-                    "students"
+    );
+
+}
+
+
+/* =========================================================
+   OPEN EDIT STUDENT MODAL
+========================================================= */
+
+function openEditStudentModal(
+    studentDocumentId
+) {
+
+    const student =
+        selectedStudents.find(
+            item =>
+                item.id ===
+                studentDocumentId
+        );
+
+
+    if (!student) {
+
+        return;
+
+    }
+
+
+    editingStudentId =
+        studentDocumentId;
+
+
+    if (editStudentId) {
+
+        editStudentId.value =
+            student.studentId ||
+            "";
+
+    }
+
+
+    if (editStudentName) {
+
+        editStudentName.value =
+            student.fullName ||
+            "";
+
+    }
+
+
+    if (editStudentDob) {
+
+        editStudentDob.value =
+            student.dateOfBirth ||
+            "";
+
+    }
+
+
+    if (editStudentAddress) {
+
+        editStudentAddress.value =
+            student.address ||
+            "";
+
+    }
+
+
+    if (editParentTelephone) {
+
+        editParentTelephone.value =
+            student.parentTelephone ||
+            "";
+
+    }
+
+
+    if (studentModal) {
+
+        studentModal.classList.add(
+            "show"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CLOSE EDIT STUDENT MODAL
+========================================================= */
+
+function closeEditStudentModal() {
+
+    editingStudentId =
+        null;
+
+
+    if (studentModal) {
+
+        studentModal.classList.remove(
+            "show"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CLOSE MODAL BUTTONS
+========================================================= */
+
+if (closeStudentModal) {
+
+    closeStudentModal.addEventListener(
+        "click",
+        closeEditStudentModal
+    );
+
+}
+
+
+if (cancelStudentEdit) {
+
+    cancelStudentEdit.addEventListener(
+        "click",
+        closeEditStudentModal
+    );
+
+}
+
+
+if (studentModal) {
+
+    studentModal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                studentModal
+            ) {
+
+                closeEditStudentModal();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   EDIT STUDENT FORM
+========================================================= */
+
+if (editStudentForm) {
+
+    editStudentForm.addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+
+            if (!editingStudentId) {
+
+                return;
+
+            }
+
+
+            const student =
+                selectedStudents.find(
+                    item =>
+                        item.id ===
+                        editingStudentId
                 );
 
 
-            const duplicateQuery =
-                query(
-
-                    studentsRef,
-
-                    where(
-                        "organizationId",
-                        "==",
-                        currentOrganization.id
-                    ),
-
-                    where(
-                        "studentId",
-                        "==",
-                        cleanStudentId
-                    )
-
-                );
-
-
-            const duplicateSnapshot =
-                await getDocs(
-                    duplicateQuery
-                );
-
-
-            const duplicate =
-                duplicateSnapshot.docs.find(
-                    document =>
-                        document.id !==
-                        studentDocumentId
-                );
-
-
-            if (duplicate) {
+            if (!student) {
 
                 alert(
-                    "This Student ID already exists in this organization."
+                    "Student record could not be found."
                 );
 
                 return;
 
             }
 
-        }
+
+            const cleanStudentId =
+                String(
+                    editStudentId?.value ||
+                    ""
+                ).trim();
 
 
-        await updateDoc(
-            doc(
-                db,
-                "students",
-                studentDocumentId
-            ),
-            {
+            const cleanName =
+                String(
+                    editStudentName?.value ||
+                    ""
+                ).trim();
 
-                fullName:
-                    cleanName,
 
-                studentId:
-                    cleanStudentId,
+            const dateOfBirth =
+                String(
+                    editStudentDob?.value ||
+                    ""
+                ).trim();
 
-                updatedAt:
-                    serverTimestamp()
+
+            const address =
+                String(
+                    editStudentAddress?.value ||
+                    ""
+                ).trim();
+
+
+            const parentTelephone =
+                String(
+                    editParentTelephone?.value ||
+                    ""
+                ).trim();
+
+
+            if (
+                !cleanStudentId ||
+                !cleanName ||
+                !dateOfBirth ||
+                !address ||
+                !parentTelephone
+            ) {
+
+                alert(
+                    "Please complete all student information."
+                );
+
+                return;
 
             }
-        );
 
 
-        await loadStudents();
-
-        renderStudents();
-
-
-        await loadClasses();
-
-        renderClasses();
-
-        updateStatistics();
+            const today =
+                new Date()
+                    .toISOString()
+                    .split("T")[0];
 
 
-        alert(
-            "Student updated successfully."
-        );
+            if (
+                dateOfBirth >
+                today
+            ) {
 
-    }
+                alert(
+                    "Date of birth cannot be in the future."
+                );
 
-    catch (error) {
+                return;
 
-        console.error(
-            "❌ Edit student error:",
-            error
-        );
+            }
 
 
-        alert(
-            error.message ||
-            "Unable to update student."
-        );
+            setButtonLoading(
+                saveStudentButton,
+                "Saving..."
+            );
 
-    }
+
+            try {
+
+                /*
+                   Check duplicate Student ID
+                   if the ID changed.
+                */
+
+                if (
+                    cleanStudentId !==
+                    String(
+                        student.studentId ||
+                        ""
+                    )
+                ) {
+
+                    const studentsRef =
+                        collection(
+                            db,
+                            "students"
+                        );
+
+
+                    const duplicateQuery =
+                        query(
+
+                            studentsRef,
+
+                            where(
+                                "organizationId",
+                                "==",
+                                currentOrganization.id
+                            ),
+
+                            where(
+                                "studentId",
+                                "==",
+                                cleanStudentId
+                            )
+
+                        );
+
+
+                    const duplicateSnapshot =
+                        await getDocs(
+                            duplicateQuery
+                        );
+
+
+                    const duplicate =
+                        duplicateSnapshot.docs.find(
+                            document =>
+                                document.id !==
+                                editingStudentId
+                        );
+
+
+                    if (duplicate) {
+
+                        throw new Error(
+                            "This Student ID already exists in this organization."
+                        );
+
+                    }
+
+                }
+
+
+                await updateDoc(
+                    doc(
+                        db,
+                        "students",
+                        editingStudentId
+                    ),
+                    {
+
+                        studentId:
+                            cleanStudentId,
+
+                        fullName:
+                            cleanName,
+
+                        dateOfBirth:
+                            dateOfBirth,
+
+                        address:
+                            address,
+
+                        parentTelephone:
+                            parentTelephone,
+
+                        updatedAt:
+                            serverTimestamp()
+
+                    }
+                );
+
+
+                console.log(
+                    "✅ Student updated:",
+                    editingStudentId
+                );
+
+
+                await loadStudents();
+
+                renderStudents();
+
+
+                await loadClasses();
+
+                renderClasses();
+
+                updateStatistics();
+
+
+                closeEditStudentModal();
+
+
+                alert(
+                    `${cleanName}'s information was updated successfully.`
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "❌ Edit student error:",
+                    error
+                );
+
+
+                alert(
+                    error.message ||
+                    "Unable to update student."
+                );
+
+            }
+
+            finally {
+
+                resetButton(
+                    saveStudentButton,
+                    "Save Changes"
+                );
+
+            }
+
+        }
+    );
 
 }
 
@@ -2430,7 +2910,7 @@ async function removeStudent(
 
     const confirmed =
         confirm(
-            `Remove ${student.fullName} from ${selectedClass.className}?`
+            `Remove ${student.fullName} from ${selectedClass.className}?\n\nThis will permanently delete the student record.`
         );
 
 
@@ -2470,7 +2950,6 @@ async function removeStudent(
 
 
         updateSelectedClassStudentCount();
-
 
         renderStudents();
 
@@ -2868,6 +3347,95 @@ function getGradeNumber(
     return Number(
         match[1]
     );
+
+}
+
+
+/* =========================================================
+   FORMAT DATE OF BIRTH
+========================================================= */
+
+function formatDateOfBirth(
+    dateValue
+) {
+
+    if (!dateValue) {
+
+        return "Not provided";
+
+    }
+
+
+    /*
+       Stored as YYYY-MM-DD.
+       We split it manually to avoid
+       timezone shifting.
+    */
+
+    const parts =
+        String(
+            dateValue
+        ).split("-");
+
+
+    if (
+        parts.length !== 3
+    ) {
+
+        return String(
+            dateValue
+        );
+
+    }
+
+
+    const year =
+        parts[0];
+
+    const month =
+        parts[1];
+
+    const day =
+        parts[2];
+
+
+    const months = [
+
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+
+    ];
+
+
+    const monthNumber =
+        Number(
+            month
+        );
+
+
+    if (
+        monthNumber < 1 ||
+        monthNumber > 12
+    ) {
+
+        return String(
+            dateValue
+        );
+
+    }
+
+
+    return `${day} ${months[monthNumber - 1]} ${year}`;
 
 }
 
