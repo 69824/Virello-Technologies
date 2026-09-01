@@ -32,7 +32,8 @@
 
         button,
         input,
-        select {
+        select,
+        textarea {
             font: inherit;
         }
 
@@ -40,12 +41,12 @@
             cursor: pointer;
         }
 
-        /* =========================================
+        /* =====================================================
            HEADER
-        ========================================= */
+        ===================================================== */
 
         .topbar {
-            height: 72px;
+            min-height: 72px;
 
             background: #ffffff;
 
@@ -139,9 +140,13 @@
             font-weight: 600;
         }
 
-        /* =========================================
+        .logout-button:hover {
+            background: #fecaca;
+        }
+
+        /* =====================================================
            PAGE
-        ========================================= */
+        ===================================================== */
 
         .page {
             max-width: 1400px;
@@ -189,9 +194,9 @@
             font-weight: 700;
         }
 
-        /* =========================================
+        /* =====================================================
            STATS
-        ========================================= */
+        ===================================================== */
 
         .stats {
             display: grid;
@@ -228,9 +233,9 @@
             margin-top: 7px;
         }
 
-        /* =========================================
+        /* =====================================================
            MAIN GRID
-        ========================================= */
+        ===================================================== */
 
         .content-grid {
             display: grid;
@@ -271,9 +276,9 @@
             margin-bottom: 20px;
         }
 
-        /* =========================================
+        /* =====================================================
            FORMS
-        ========================================= */
+        ===================================================== */
 
         .form-group {
             margin-bottom: 15px;
@@ -290,7 +295,8 @@
         }
 
         .form-group input,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
 
             border: 1px solid #d8dee9;
@@ -304,13 +310,32 @@
             outline: none;
         }
 
+        .form-group textarea {
+            resize: vertical;
+
+            min-height: 85px;
+        }
+
         .form-group input:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             border-color: #4f46e5;
 
             box-shadow:
                 0 0 0 3px
                 rgba(79, 70, 229, 0.10);
+        }
+
+        .required {
+            color: #dc2626;
+        }
+
+        .optional {
+            color: #94a3b8;
+
+            font-size: 11px;
+
+            font-weight: 500;
         }
 
         .primary-button {
@@ -335,9 +360,9 @@
             background: #1e3a8a;
         }
 
-        /* =========================================
+        /* =====================================================
            CLASS LIST
-        ========================================= */
+        ===================================================== */
 
         .class-list {
             display: grid;
@@ -411,6 +436,8 @@
             gap: 7px;
 
             margin-top: 12px;
+
+            flex-wrap: wrap;
         }
 
         .small-button {
@@ -441,9 +468,13 @@
             background: #fff7f7;
         }
 
-        /* =========================================
+        .danger-button:hover {
+            background: #fee2e2;
+        }
+
+        /* =====================================================
            STUDENT PANEL
-        ========================================= */
+        ===================================================== */
 
         .student-header {
             display: flex;
@@ -471,21 +502,39 @@
             font-size: 14px;
 
             color: #475569;
+
+            white-space: nowrap;
         }
+
+        /* =====================================================
+           ADD STUDENT FORM
+        ===================================================== */
 
         .student-form {
             display: grid;
 
             grid-template-columns:
-                170px 1fr 150px;
+                160px
+                1fr
+                170px
+                1fr
+                180px;
 
             gap: 10px;
 
             margin-bottom: 20px;
+
+            padding: 18px;
+
+            background: #f8fafc;
+
+            border: 1px solid #e5e7eb;
+
+            border-radius: 12px;
         }
 
         .student-form input,
-        .student-form select {
+        .student-form textarea {
             width: 100%;
 
             border: 1px solid #d8dee9;
@@ -493,6 +542,41 @@
             border-radius: 8px;
 
             padding: 10px;
+
+            background: #ffffff;
+
+            outline: none;
+        }
+
+        .student-form textarea {
+            resize: vertical;
+
+            min-height: 42px;
+        }
+
+        .student-form input:focus,
+        .student-form textarea:focus {
+            border-color: #4f46e5;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(79, 70, 229, 0.10);
+        }
+
+        .student-form .field {
+            min-width: 0;
+        }
+
+        .student-form .field label {
+            display: block;
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+            margin-bottom: 5px;
+
+            color: #475569;
         }
 
         .student-form button {
@@ -505,7 +589,61 @@
             border-radius: 8px;
 
             font-weight: 700;
+
+            min-height: 42px;
+
+            align-self: end;
         }
+
+        .student-form button:hover {
+            background: #1e3a8a;
+        }
+
+        /* =====================================================
+           SEARCH
+        ===================================================== */
+
+        .student-tools {
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 15px;
+
+            margin-bottom: 15px;
+        }
+
+        .search-box {
+            width: min(360px, 100%);
+
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+
+            border: 1px solid #d8dee9;
+
+            border-radius: 8px;
+
+            padding: 10px 12px;
+
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: #4f46e5;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(79, 70, 229, 0.10);
+        }
+
+        /* =====================================================
+           STUDENT LIST
+        ===================================================== */
 
         .student-list {
             border-top: 1px solid #edf0f5;
@@ -515,13 +653,18 @@
             display: grid;
 
             grid-template-columns:
-                50px 1fr 150px 90px;
+                40px
+                minmax(180px, 1.4fr)
+                130px
+                125px
+                180px
+                190px;
 
             gap: 12px;
 
             align-items: center;
 
-            padding: 13px 0;
+            padding: 15px 0;
 
             border-bottom: 1px solid #edf0f5;
         }
@@ -544,6 +687,28 @@
             color: #64748b;
 
             font-size: 12px;
+
+            margin-top: 3px;
+        }
+
+        .student-dob {
+            font-size: 12px;
+
+            color: #475569;
+        }
+
+        .student-address {
+            font-size: 12px;
+
+            color: #475569;
+
+            line-height: 1.4;
+        }
+
+        .student-parent {
+            font-size: 12px;
+
+            color: #475569;
         }
 
         .student-status {
@@ -560,12 +725,28 @@
             font-size: 11px;
 
             font-weight: 700;
+
+            margin-top: 6px;
+        }
+
+        .student-status.inactive {
+            background: #fee2e2;
+
+            color: #991b1b;
+        }
+
+        .student-actions {
+            display: flex;
+
+            gap: 5px;
+
+            flex-wrap: wrap;
         }
 
         .remove-student {
-            border: 0;
+            border: 1px solid #fecaca;
 
-            background: #fee2e2;
+            background: #fff7f7;
 
             color: #b91c1c;
 
@@ -578,6 +759,10 @@
             font-weight: 700;
         }
 
+        .remove-student:hover {
+            background: #fee2e2;
+        }
+
         .empty {
             padding: 45px 20px;
 
@@ -588,9 +773,195 @@
             font-size: 14px;
         }
 
-        /* =========================================
+        /* =====================================================
+           MODAL
+        ===================================================== */
+
+        .modal-overlay {
+            position: fixed;
+
+            inset: 0;
+
+            background:
+                rgba(15, 23, 42, 0.55);
+
+            display: none;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 20px;
+
+            z-index: 200;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            width: min(650px, 100%);
+
+            max-height: 90vh;
+
+            overflow-y: auto;
+
+            background: #ffffff;
+
+            border-radius: 15px;
+
+            box-shadow:
+                0 20px 60px
+                rgba(15, 23, 42, 0.25);
+
+            padding: 25px;
+        }
+
+        .modal-header {
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 15px;
+
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-modal {
+            border: 0;
+
+            background: #f1f5f9;
+
+            color: #475569;
+
+            width: 34px;
+
+            height: 34px;
+
+            border-radius: 8px;
+
+            font-size: 20px;
+
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            background: #e2e8f0;
+        }
+
+        .modal-grid {
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap: 15px;
+        }
+
+        .modal-field {
+            margin-bottom: 2px;
+        }
+
+        .modal-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .modal-field label {
+            display: block;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            margin-bottom: 6px;
+
+            color: #475569;
+        }
+
+        .modal-field input,
+        .modal-field textarea {
+            width: 100%;
+
+            border: 1px solid #d8dee9;
+
+            border-radius: 8px;
+
+            padding: 11px;
+
+            outline: none;
+        }
+
+        .modal-field textarea {
+            min-height: 90px;
+
+            resize: vertical;
+        }
+
+        .modal-field input:focus,
+        .modal-field textarea:focus {
+            border-color: #4f46e5;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(79, 70, 229, 0.10);
+        }
+
+        .modal-actions {
+            display: flex;
+
+            justify-content: flex-end;
+
+            gap: 10px;
+
+            margin-top: 22px;
+        }
+
+        .secondary-button {
+            border: 1px solid #dbe1ea;
+
+            background: #ffffff;
+
+            color: #334155;
+
+            padding: 10px 16px;
+
+            border-radius: 8px;
+
+            font-weight: 600;
+        }
+
+        .secondary-button:hover {
+            background: #f8fafc;
+        }
+
+        .modal-save {
+            border: 0;
+
+            background: #172554;
+
+            color: #ffffff;
+
+            padding: 10px 18px;
+
+            border-radius: 8px;
+
+            font-weight: 700;
+        }
+
+        .modal-save:hover {
+            background: #1e3a8a;
+        }
+
+        /* =====================================================
            LOADING / ERROR
-        ========================================= */
+        ===================================================== */
 
         .loading-screen,
         .error-screen {
@@ -658,9 +1029,37 @@
             border-radius: 8px;
         }
 
-        /* =========================================
+        /* =====================================================
            RESPONSIVE
-        ========================================= */
+        ===================================================== */
+
+        @media (max-width: 1200px) {
+
+            .student-row {
+                grid-template-columns:
+                    35px
+                    1.5fr
+                    110px
+                    120px
+                    1fr
+                    170px;
+            }
+
+            .student-form {
+                grid-template-columns:
+                    1fr 1.5fr 1fr;
+
+            }
+
+            .student-form .field:nth-child(4) {
+                grid-column: span 2;
+            }
+
+            .student-form button {
+                grid-column: span 1;
+            }
+
+        }
 
         @media (max-width: 900px) {
 
@@ -673,11 +1072,38 @@
             }
 
             .student-form {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .student-form .field:nth-child(4) {
+                grid-column: auto;
             }
 
             .student-form button {
+                grid-column: 1 / -1;
+
                 padding: 11px;
+            }
+
+            .student-row {
+                grid-template-columns:
+                    35px 1fr 1fr;
+
+                gap: 10px;
+            }
+
+            .student-row .student-actions {
+                grid-column: 2 / -1;
+            }
+
+            .student-tools {
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+            .search-box {
+                width: 100%;
             }
 
         }
@@ -700,14 +1126,39 @@
                 flex-direction: column;
             }
 
-            .student-row {
-                grid-template-columns:
-                    35px 1fr 80px;
-
+            .student-form {
+                grid-template-columns: 1fr;
             }
 
-            .student-row .student-id {
-                display: none;
+            .student-form .field:nth-child(4) {
+                grid-column: auto;
+            }
+
+            .student-form button {
+                grid-column: auto;
+            }
+
+            .student-row {
+                grid-template-columns:
+                    30px 1fr;
+            }
+
+            .student-row > div:nth-child(3),
+            .student-row > div:nth-child(4),
+            .student-row > div:nth-child(5) {
+                grid-column: 2;
+            }
+
+            .student-row .student-actions {
+                grid-column: 2;
+            }
+
+            .modal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-field.full {
+                grid-column: auto;
             }
 
         }
@@ -719,9 +1170,9 @@
 <body>
 
 
-<!-- ================================================
+<!-- =====================================================
      LOADING
-================================================= -->
+===================================================== -->
 
 <div
     id="loadingScreen"
@@ -743,9 +1194,9 @@
 </div>
 
 
-<!-- ================================================
+<!-- =====================================================
      ERROR
-================================================= -->
+===================================================== -->
 
 <div
     id="errorScreen"
@@ -773,9 +1224,9 @@
 </div>
 
 
-<!-- ================================================
+<!-- =====================================================
      TOP BAR
-================================================= -->
+===================================================== -->
 
 <header class="topbar">
 
@@ -821,12 +1272,16 @@
 </header>
 
 
-<!-- ================================================
+<!-- =====================================================
      PAGE
-================================================= -->
+===================================================== -->
 
 <main class="page">
 
+
+    <!-- =================================================
+         PAGE HEADING
+    ================================================== -->
 
     <div class="page-heading">
 
@@ -838,7 +1293,7 @@
 
             <p>
                 Create Grade 1–9 classes, assign Form Masters,
-                and manage your students.
+                and manage complete student registration records.
             </p>
 
         </div>
@@ -854,9 +1309,9 @@
     </div>
 
 
-    <!-- ============================================
+    <!-- =================================================
          STATS
-    ============================================= -->
+    ================================================== -->
 
     <section class="stats">
 
@@ -901,16 +1356,16 @@
     </section>
 
 
-    <!-- ============================================
+    <!-- =================================================
          CONTENT
-    ============================================= -->
+    ================================================== -->
 
     <section class="content-grid">
 
 
-        <!-- ========================================
+        <!-- =============================================
              CREATE CLASS
-        ========================================= -->
+        ============================================== -->
 
         <div class="card">
 
@@ -1014,9 +1469,9 @@
         </div>
 
 
-        <!-- ========================================
+        <!-- =============================================
              CLASS LIST
-        ========================================= -->
+        ============================================== -->
 
         <div class="card">
 
@@ -1039,9 +1494,9 @@
     </section>
 
 
-    <!-- ============================================
+    <!-- =================================================
          STUDENTS
-    ============================================= -->
+    ================================================== -->
 
     <section
         id="studentCard"
@@ -1073,29 +1528,125 @@
         </div>
 
 
-        <!-- ========================================
+        <!-- =================================================
              ADD STUDENT
-        ========================================= -->
+        ================================================== -->
+
+        <div class="student-tools">
+
+            <div>
+                <strong style="font-size:14px;">
+                    Student Registration
+                </strong>
+
+                <div
+                    style="
+                        color:#64748b;
+                        font-size:12px;
+                        margin-top:3px;
+                    "
+                >
+                    Record the child's basic information.
+                </div>
+            </div>
+
+
+            <div class="search-box">
+
+                <input
+                    type="search"
+                    id="studentSearch"
+                    placeholder="Search student name or ID..."
+                >
+
+            </div>
+
+        </div>
+
 
         <form
             id="studentForm"
             class="student-form"
         >
 
-            <input
-                type="text"
-                id="studentIdInput"
-                placeholder="Student ID"
-                required
-            >
+
+            <div class="field">
+
+                <label for="studentIdInput">
+                    Student ID *
+                </label>
+
+                <input
+                    type="text"
+                    id="studentIdInput"
+                    placeholder="Student ID"
+                    required
+                >
+
+            </div>
 
 
-            <input
-                type="text"
-                id="studentNameInput"
-                placeholder="Student full name"
-                required
-            >
+            <div class="field">
+
+                <label for="studentNameInput">
+                    Full Name *
+                </label>
+
+                <input
+                    type="text"
+                    id="studentNameInput"
+                    placeholder="Child's full name"
+                    required
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="studentDobInput">
+                    Date of Birth *
+                </label>
+
+                <input
+                    type="date"
+                    id="studentDobInput"
+                    required
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="studentAddressInput">
+                    Address *
+                </label>
+
+                <input
+                    type="text"
+                    id="studentAddressInput"
+                    placeholder="Home / residential address"
+                    required
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="parentTelephoneInput">
+                    Parent / Guardian Telephone *
+                </label>
+
+                <input
+                    type="tel"
+                    id="parentTelephoneInput"
+                    placeholder="e.g. 7XX XXXX"
+                    required
+                >
+
+            </div>
 
 
             <button
@@ -1108,9 +1659,9 @@
         </form>
 
 
-        <!-- ========================================
+        <!-- =================================================
              STUDENT LIST
-        ========================================= -->
+        ================================================== -->
 
         <div
             id="studentList"
@@ -1127,6 +1678,143 @@
 
 
 </main>
+
+
+<!-- =====================================================
+     EDIT STUDENT MODAL
+===================================================== -->
+
+<div
+    id="studentModal"
+    class="modal-overlay"
+>
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <h2>
+                Edit Student
+            </h2>
+
+            <button
+                type="button"
+                id="closeStudentModal"
+                class="close-modal"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="editStudentForm">
+
+            <div class="modal-grid">
+
+
+                <div class="modal-field">
+
+                    <label for="editStudentId">
+                        Student ID
+                    </label>
+
+                    <input
+                        type="text"
+                        id="editStudentId"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label for="editStudentName">
+                        Full Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="editStudentName"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label for="editStudentDob">
+                        Date of Birth
+                    </label>
+
+                    <input
+                        type="date"
+                        id="editStudentDob"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label for="editParentTelephone">
+                        Parent / Guardian Telephone
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="editParentTelephone"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="modal-field full">
+
+                    <label for="editStudentAddress">
+                        Address
+                    </label>
+
+                    <textarea
+                        id="editStudentAddress"
+                        required
+                    ></textarea>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    id="cancelStudentEdit"
+                    class="secondary-button"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    id="saveStudentButton"
+                    class="modal-save"
+                >
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
 
 
 <script
