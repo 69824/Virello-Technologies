@@ -8,19 +8,56 @@ js/results.js
 FIRESTORE:
 results/{resultId}
 
-GRADING SYSTEM:
+OFFICIAL GRADING SYSTEM:
 
 ALL SUBJECTS:
 All entered subjects remain visible on the report.
 
 OFFICIAL FINAL TERM GRADE:
-4 teacher-selected compulsory subjects
+
+4 COMPULSORY SUBJECTS
 +
-Best 2 subjects from remaining subjects
+BEST 2 SUBJECTS FROM ALL REMAINING SUBJECTS
 =
-6 subjects used for final grade.
+6 SUBJECTS COUNTED FOR OFFICIAL AGGREGATE
+
+IMPORTANT:
+
+The "best 2" subjects are selected by GRADE NUMBER.
+
+Grade 1 = Best
+Grade 2 = Second Best
+...
+Grade 9 = Fail
+
+Therefore:
+
+LOWEST TWO GRADE NUMBERS = BEST TWO SUBJECTS
+
+Example:
+
+Mathematics = Grade 7
+Science = Grade 3
+English = Grade 4
+SES = Grade 1
+PHE = Grade 4
+Art = Grade 2
+
+Compulsory:
+7 + 3 + 4 + 1 = 15
+
+Best 2:
+4 + 2 = 6
+
+FINAL AGGREGATE:
+15 + 6 = 21
+
+AVERAGE:
+
+Average remains a separate mark-based calculation.
 
 MARK STRUCTURE:
+
 Test = 25
 Exam = 75
 Total = 100
@@ -300,6 +337,20 @@ const CLASS_ORDER = [
 
 
 /* =========================================================
+MARK LIMITS
+========================================================= */
+
+const TEST_MAX =
+    25;
+
+const EXAM_MAX =
+    75;
+
+const TOTAL_MAX =
+    100;
+
+
+/* =========================================================
 DEFAULT SUBJECTS
 ========================================================= */
 
@@ -354,7 +405,8 @@ function startResults() {
                 }
 
 
-                currentUser = user;
+                currentUser =
+                    user;
 
 
                 if (adminName) {
@@ -1408,10 +1460,11 @@ function createDefaultSubjects() {
         (subject, index) => {
 
             /*
-             * First four are initially selected
-             * as compulsory subjects.
+             * First four subjects are initially
+             * selected as compulsory.
              *
-             * Teacher can change them.
+             * Teacher may change the compulsory
+             * selection.
              */
 
             addSubjectRow(
@@ -1698,7 +1751,7 @@ function addSubjectRow(
                 type="number"
                 class="ca-input"
                 min="0"
-                max="40"
+                max="${TEST_MAX}"
                 step="0.01"
                 placeholder="0"
             >
@@ -1712,7 +1765,7 @@ function addSubjectRow(
                 type="number"
                 class="exam-input"
                 min="0"
-                max="60"
+                max="${EXAM_MAX}"
                 step="0.01"
                 placeholder="0"
             >
@@ -1915,25 +1968,41 @@ CALCULATE ROW
 
 function calculateRow(row) {
 
+    const caInput =
+        row.querySelector(
+            ".ca-input"
+        );
+
+
+    const examInput =
+        row.querySelector(
+            ".exam-input"
+        );
+
+
     const ca =
-        numberValue(
-            row.querySelector(
-                ".ca-input"
-            ).value
+        clamp(
+            numberValue(
+                caInput.value
+            ),
+            0,
+            TEST_MAX
         );
 
 
     const exam =
-        numberValue(
-            row.querySelector(
-                ".exam-input"
-            ).value
+        clamp(
+            numberValue(
+                examInput.value
+            ),
+            0,
+            EXAM_MAX
         );
 
 
     const total =
         Math.min(
-            100,
+            TOTAL_MAX,
             ca + exam
         );
 
@@ -1960,6 +2029,38 @@ function calculateRow(row) {
         ".remark"
     ).textContent =
         grade.remark;
+
+}
+
+
+/* =========================================================
+CHECK WHETHER SUBJECT HAS MARKS
+========================================================= */
+
+function subjectHasMarks(row) {
+
+    const caValue =
+        String(
+            row.querySelector(
+                ".ca-input"
+            ).value ||
+            ""
+        ).trim();
+
+
+    const examValue =
+        String(
+            row.querySelector(
+                ".exam-input"
+            ).value ||
+            ""
+        ).trim();
+
+
+    return (
+        caValue !== "" ||
+        examValue !== ""
+    );
 
 }
 
@@ -2011,24 +2112,32 @@ function calculateOverall() {
 
 
             const ca =
-                numberValue(
-                    row.querySelector(
-                        ".ca-input"
-                    ).value
+                clamp(
+                    numberValue(
+                        row.querySelector(
+                            ".ca-input"
+                        ).value
+                    ),
+                    0,
+                    TEST_MAX
                 );
 
 
             const exam =
-                numberValue(
-                    row.querySelector(
-                        ".exam-input"
-                    ).value
+                clamp(
+                    numberValue(
+                        row.querySelector(
+                            ".exam-input"
+                        ).value
+                    ),
+                    0,
+                    EXAM_MAX
                 );
 
 
             totalMarks +=
                 Math.min(
-                    100,
+                    TOTAL_MAX,
                     ca + exam
                 );
 
@@ -2052,22 +2161,38 @@ function calculateOverall() {
         );
 
 
-    overallSubjects.textContent =
-        subjectCount;
+    if (overallSubjects) {
+
+        overallSubjects.textContent =
+            subjectCount;
+
+    }
 
 
-    overallMarks.textContent =
-        totalMarks.toFixed(2);
+    if (overallMarks) {
+
+        overallMarks.textContent =
+            totalMarks.toFixed(2);
+
+    }
 
 
-    overallAverage.textContent =
-        `${average.toFixed(2)}%`;
+    if (overallAverage) {
+
+        overallAverage.textContent =
+            `${average.toFixed(2)}%`;
+
+    }
 
 
-    overallGrade.textContent =
-        subjectCount
-            ? grade.grade
-            : "—";
+    if (overallGrade) {
+
+        overallGrade.textContent =
+            subjectCount
+                ? grade.grade
+                : "—";
+
+    }
 
 
     calculateFinalTermGrade();
@@ -2076,7 +2201,20 @@ function calculateOverall() {
 
 
 /* =========================================================
-CALCULATE FINAL TERM GRADE
+CALCULATE OFFICIAL FINAL TERM GRADE
+=========================================================
+
+RULE:
+
+1. Exactly 4 compulsory subjects.
+2. Remaining subjects are candidates.
+3. Each candidate already has a grade number.
+4. Grade 1 is better than Grade 2.
+5. Therefore the LOWEST grade numbers are selected.
+6. If grade numbers are equal, higher marks win.
+7. Final Aggregate = sum of the six grade numbers.
+8. Final Average = average of marks from the six
+   counted subjects.
 ========================================================= */
 
 function calculateFinalTermGrade() {
@@ -2085,21 +2223,32 @@ function calculateFinalTermGrade() {
 
         return {
 
-            valid: false,
+            valid:
+                false,
 
-            compulsorySubjects: [],
+            compulsorySubjects:
+                [],
 
-            bestAdditionalSubjects: [],
+            bestAdditionalSubjects:
+                [],
 
-            subjectsCounted: [],
+            subjectsCounted:
+                [],
 
-            totalMarks: 0,
+            totalMarks:
+                0,
 
-            average: 0,
+            average:
+                0,
 
-            grade: calculateGrade(0).grade,
+            aggregate:
+                0,
 
-            remark: calculateGrade(0).remark
+            grade:
+                "—",
+
+            remark:
+                "Incomplete"
 
         };
 
@@ -2118,7 +2267,7 @@ function calculateFinalTermGrade() {
 
 
     rows.forEach(
-        row => {
+        (row, rowIndex) => {
 
             const subjectName =
                 row.querySelector(
@@ -2132,24 +2281,32 @@ function calculateFinalTermGrade() {
 
 
             const ca =
-                numberValue(
-                    row.querySelector(
-                        ".ca-input"
-                    ).value
+                clamp(
+                    numberValue(
+                        row.querySelector(
+                            ".ca-input"
+                        ).value
+                    ),
+                    0,
+                    TEST_MAX
                 );
 
 
             const exam =
-                numberValue(
-                    row.querySelector(
-                        ".exam-input"
-                    ).value
+                clamp(
+                    numberValue(
+                        row.querySelector(
+                            ".exam-input"
+                        ).value
+                    ),
+                    0,
+                    EXAM_MAX
                 );
 
 
             const total =
                 Math.min(
-                    100,
+                    TOTAL_MAX,
                     ca + exam
                 );
 
@@ -2166,9 +2323,17 @@ function calculateFinalTermGrade() {
                 ).checked;
 
 
+            const hasMarks =
+                subjectHasMarks(
+                    row
+                );
+
+
             subjects.push({
 
                 row,
+
+                rowIndex,
 
                 subject:
                     subjectName,
@@ -2182,16 +2347,28 @@ function calculateFinalTermGrade() {
                 grade:
                     grade.grade,
 
+                gradeNumber:
+                    Number(
+                        grade.grade
+                    ),
+
                 remark:
                     grade.remark,
 
-                isCompulsory
+                isCompulsory,
+
+                hasMarks
 
             });
 
         }
     );
 
+
+    /*
+     * EXACTLY the subjects selected by
+     * the teacher as compulsory.
+     */
 
     const compulsorySubjects =
         subjects.filter(
@@ -2200,34 +2377,86 @@ function calculateFinalTermGrade() {
         );
 
 
+    /*
+     * Remaining subjects are candidates
+     * for the automatic best-two selection.
+     *
+     * Subjects without entered marks are
+     * NOT eligible.
+     */
+
     const nonCompulsorySubjects =
         subjects.filter(
             item =>
-                !item.isCompulsory
+                !item.isCompulsory &&
+                item.hasMarks
         );
 
 
     /*
-     * Best 2 remaining subjects.
+     * =====================================================
+     * BEST TWO SELECTION
+     * =====================================================
      *
-     * Highest total mark wins.
+     * Grade 1 is the best grade.
      *
-     * If marks are equal, the earlier
-     * subject remains first.
+     * Therefore:
+     *
+     * Grade 1 beats Grade 2
+     * Grade 2 beats Grade 3
+     * ...
+     * Grade 8 beats Grade 9
+     *
+     * So we sort ASCENDING by grade number.
+     *
+     * If two subjects have the same grade,
+     * the higher mark wins.
+     *
+     * Example:
+     *
+     * PHE = 74 = Grade 4
+     * ART = 73 = Grade 4
+     *
+     * Both are Grade 4.
+     *
+     * PHE wins the tie because 74 > 73.
+     * =====================================================
      */
 
     const bestAdditionalSubjects =
         [...nonCompulsorySubjects]
         .sort(
-            (a, b) =>
-                b.total -
-                a.total
+            (a, b) => {
+
+                if (
+                    a.gradeNumber !==
+                    b.gradeNumber
+                ) {
+
+                    return (
+                        a.gradeNumber -
+                        b.gradeNumber
+                    );
+
+                }
+
+
+                return (
+                    b.total -
+                    a.total
+                );
+
+            }
         )
         .slice(
             0,
             2
         );
 
+
+    /*
+     * These are the six official subjects.
+     */
 
     const subjectsCounted = [
 
@@ -2238,23 +2467,75 @@ function calculateFinalTermGrade() {
     ];
 
 
+    /*
+     * The official calculation is valid only
+     * when exactly 4 compulsory subjects and
+     * exactly 2 additional subjects exist.
+     */
+
     const valid =
         compulsorySubjects.length === 4 &&
         bestAdditionalSubjects.length === 2;
 
 
-    let totalMarks =
-        0;
+    /*
+     * =====================================================
+     * OFFICIAL AGGREGATE
+     * =====================================================
+     *
+     * The aggregate is NOT calculated from marks.
+     *
+     * It is the SUM OF THE SIX GRADE NUMBERS.
+     *
+     * Example:
+     *
+     * 7 + 3 + 4 + 1 + 4 + 2
+     *
+     * = 21
+     * =====================================================
+     */
+
+    const aggregate =
+        subjectsCounted.reduce(
+            (sum, item) => {
+
+                return (
+                    sum +
+                    Number(
+                        item.gradeNumber
+                    )
+                );
+
+            },
+            0
+        );
 
 
-    subjectsCounted.forEach(
-        item => {
+    /*
+     * =====================================================
+     * FINAL AVERAGE
+     * =====================================================
+     *
+     * Average remains a MARK calculation.
+     *
+     * It does not determine the official aggregate.
+     * =====================================================
+     */
 
-            totalMarks +=
-                item.total;
+    const totalMarks =
+        subjectsCounted.reduce(
+            (sum, item) => {
 
-        }
-    );
+                return (
+                    sum +
+                    Number(
+                        item.total
+                    )
+                );
+
+            },
+            0
+        );
 
 
     const average =
@@ -2264,14 +2545,24 @@ function calculateFinalTermGrade() {
             : 0;
 
 
-    const grade =
+    /*
+     * The remark remains based on the
+     * mark-based final average.
+     *
+     * The official grade itself is the
+     * aggregate number.
+     */
+
+    const averageGrade =
         calculateGrade(
             average
         );
 
 
     /*
-     * Update row visual indicators.
+     * =====================================================
+     * UPDATE ROW VISUAL INDICATORS
+     * =====================================================
      */
 
     subjects.forEach(
@@ -2341,14 +2632,28 @@ function calculateFinalTermGrade() {
     );
 
 
+    /*
+     * Update final calculation UI.
+     */
+
     updateFinalCalculationUI(
+
         compulsorySubjects,
+
         bestAdditionalSubjects,
+
         subjectsCounted,
+
         totalMarks,
+
         average,
-        grade,
+
+        aggregate,
+
+        averageGrade,
+
         valid
+
     );
 
 
@@ -2366,11 +2671,19 @@ function calculateFinalTermGrade() {
 
         average,
 
+        aggregate,
+
         grade:
-            grade.grade,
+            valid
+                ? String(
+                    aggregate
+                )
+                : "—",
 
         remark:
-            grade.remark
+            valid
+                ? averageGrade.remark
+                : "Incomplete"
 
     };
 
@@ -2382,13 +2695,23 @@ UPDATE FINAL CALCULATION UI
 ========================================================= */
 
 function updateFinalCalculationUI(
+
     compulsorySubjects,
+
     bestAdditionalSubjects,
+
     subjectsCounted,
+
     totalMarks,
+
     average,
-    grade,
+
+    aggregate,
+
+    averageGrade,
+
     valid
+
 ) {
 
     if (compulsorySubjectCount) {
@@ -2415,31 +2738,67 @@ function updateFinalCalculationUI(
     }
 
 
+    /*
+     * IMPORTANT:
+     *
+     * finalTotalMarks is being used as the
+     * FINAL AGGREGATE display.
+     *
+     * Example:
+     * 7 + 3 + 4 + 1 + 4 + 2 = 21
+     *
+     * Therefore it displays 21, not 486.
+     */
+
     if (finalTotalMarks) {
 
         finalTotalMarks.textContent =
-            totalMarks.toFixed(2);
+            valid
+                ? String(
+                    aggregate
+                )
+                : "—";
 
     }
 
+
+    /*
+     * Final average remains a percentage.
+     */
 
     if (finalAverage) {
 
         finalAverage.textContent =
-            `${average.toFixed(2)}%`;
+            subjectsCounted.length
+                ? `${average.toFixed(2)}%`
+                : "0%";
 
     }
 
+
+    /*
+     * Final grade is the official aggregate.
+     *
+     * Example:
+     * Aggregate = 21
+     * Final Grade = 21
+     */
 
     if (finalGrade) {
 
         finalGrade.textContent =
             valid
-                ? grade.grade
+                ? String(
+                    aggregate
+                )
                 : "—";
 
     }
 
+
+    /* =====================================================
+    COMPULSORY SUBJECT LIST
+    ===================================================== */
 
     if (selectedCompulsorySubjects) {
 
@@ -2477,6 +2836,10 @@ function updateFinalCalculationUI(
                         </span>
 
                         <strong>
+                            Grade ${escapeHTML(
+                                item.grade
+                            )}
+                            ·
                             ${item.total.toFixed(2)}
                         </strong>
 
@@ -2494,6 +2857,10 @@ function updateFinalCalculationUI(
 
     }
 
+
+    /* =====================================================
+    BEST TWO SUBJECT LIST
+    ===================================================== */
 
     if (selectedBestSubjects) {
 
@@ -2531,6 +2898,10 @@ function updateFinalCalculationUI(
                         </span>
 
                         <strong>
+                            Grade ${escapeHTML(
+                                item.grade
+                            )}
+                            ·
                             ${item.total.toFixed(2)}
                         </strong>
 
@@ -2549,6 +2920,10 @@ function updateFinalCalculationUI(
     }
 
 
+    /* =====================================================
+    FINAL STATUS
+    ===================================================== */
+
     if (finalCalculationStatus) {
 
         finalCalculationStatus.className =
@@ -2563,7 +2938,7 @@ function updateFinalCalculationUI(
 
 
             finalCalculationStatus.textContent =
-                "Ready — 6 subjects selected";
+                `Ready — Aggregate ${aggregate}`;
 
         }
 
@@ -2581,6 +2956,34 @@ function updateFinalCalculationUI(
 
         }
 
+        else if (
+            compulsorySubjects.length < 4
+        ) {
+
+            finalCalculationStatus.classList.add(
+                "warning"
+            );
+
+
+            finalCalculationStatus.textContent =
+                `Need ${4 - compulsorySubjects.length} more compulsory subject(s)`;
+
+        }
+
+        else if (
+            bestAdditionalSubjects.length < 2
+        ) {
+
+            finalCalculationStatus.classList.add(
+                "warning"
+            );
+
+
+            finalCalculationStatus.textContent =
+                "Need at least 2 additional subjects with marks";
+
+        }
+
         else {
 
             finalCalculationStatus.classList.add(
@@ -2595,6 +2998,10 @@ function updateFinalCalculationUI(
 
     }
 
+
+    /* =====================================================
+    FINAL WARNING / INFORMATION
+    ===================================================== */
 
     if (finalCalculationWarning) {
 
@@ -2615,7 +3022,7 @@ function updateFinalCalculationUI(
         ) {
 
             finalCalculationWarning.textContent =
-                "At least 2 additional subjects are required so the system can select the best 2.";
+                "At least 2 additional subjects with marks are required so the system can automatically select the best 2 grade numbers.";
 
             finalCalculationWarning.style.display =
                 "block";
@@ -2625,7 +3032,7 @@ function updateFinalCalculationUI(
         else {
 
             finalCalculationWarning.textContent =
-                "Calculation complete. The official final grade is based on the 4 compulsory subjects and the best 2 remaining subjects.";
+                `Calculation complete. The official aggregate is ${aggregate}. It is calculated by adding the 4 compulsory grade numbers and the 2 lowest grade numbers from the remaining subjects. Final average: ${average.toFixed(2)}%.`;
 
             finalCalculationWarning.style.display =
                 "block";
@@ -2724,9 +3131,10 @@ async function saveResult() {
 
 
     /*
-     * The school rule requires
-     * exactly 4 compulsory subjects
-     * and 2 additional subjects.
+     * School rule:
+     *
+     * Exactly 4 compulsory subjects
+     * and exactly 2 additional subjects.
      */
 
     if (
@@ -2747,7 +3155,7 @@ async function saveResult() {
     ) {
 
         alert(
-            "At least 2 non-compulsory subjects with marks are required so the system can select the best 2."
+            "At least 2 additional subjects with marks are required so the system can select the best 2."
         );
 
         return;
@@ -2784,8 +3192,9 @@ async function saveResult() {
 
 
     /*
-     * Convert calculation subjects
-     * to clean Firestore-safe objects.
+     * =====================================================
+     * CLEAN COMPULSORY SUBJECT DATA
+     * =====================================================
      */
 
     const compulsorySubjects =
@@ -2795,6 +3204,16 @@ async function saveResult() {
                 subject:
                     item.subject,
 
+                ca:
+                    Number(
+                        item.ca.toFixed(2)
+                    ),
+
+                exam:
+                    Number(
+                        item.exam.toFixed(2)
+                    ),
+
                 total:
                     Number(
                         item.total.toFixed(2)
@@ -2803,12 +3222,23 @@ async function saveResult() {
                 grade:
                     item.grade,
 
+                gradeNumber:
+                    Number(
+                        item.gradeNumber
+                    ),
+
                 remark:
                     item.remark
 
             })
         );
 
+
+    /*
+     * =====================================================
+     * CLEAN BEST TWO DATA
+     * =====================================================
+     */
 
     const bestAdditionalSubjects =
         calculation.bestAdditionalSubjects.map(
@@ -2817,6 +3247,16 @@ async function saveResult() {
                 subject:
                     item.subject,
 
+                ca:
+                    Number(
+                        item.ca.toFixed(2)
+                    ),
+
+                exam:
+                    Number(
+                        item.exam.toFixed(2)
+                    ),
+
                 total:
                     Number(
                         item.total.toFixed(2)
@@ -2824,6 +3264,11 @@ async function saveResult() {
 
                 grade:
                     item.grade,
+
+                gradeNumber:
+                    Number(
+                        item.gradeNumber
+                    ),
 
                 remark:
                     item.remark
@@ -2832,12 +3277,28 @@ async function saveResult() {
         );
 
 
+    /*
+     * =====================================================
+     * CLEAN SIX COUNTED SUBJECTS
+     * =====================================================
+     */
+
     const finalSubjects =
         calculation.subjectsCounted.map(
             item => ({
 
                 subject:
                     item.subject,
+
+                ca:
+                    Number(
+                        item.ca.toFixed(2)
+                    ),
+
+                exam:
+                    Number(
+                        item.exam.toFixed(2)
+                    ),
 
                 total:
                     Number(
@@ -2847,22 +3308,43 @@ async function saveResult() {
                 grade:
                     item.grade,
 
+                gradeNumber:
+                    Number(
+                        item.gradeNumber
+                    ),
+
                 remark:
                     item.remark,
 
                 isCompulsory:
-                    item.isCompulsory
+                    item.isCompulsory,
+
+                selectedForFinalCalculation:
+                    true
 
             })
         );
 
 
     /*
-     * Official result data.
+     * =====================================================
+     * OFFICIAL RESULT DATA
+     * =====================================================
      *
-     * totalMarks / average / overallGrade
-     * now represent the school's OFFICIAL
-     * 6-subject final calculation.
+     * IMPORTANT:
+     *
+     * overallGrade = aggregate.
+     *
+     * Example:
+     *
+     * Grades:
+     * 7 + 3 + 4 + 1 + 4 + 2
+     *
+     * overallGrade = "21"
+     *
+     * overallRemark is based on the mark average
+     * and remains separate from the aggregate.
+     * =====================================================
      */
 
     const resultData = {
@@ -2894,6 +3376,10 @@ async function saveResult() {
         term:
             term,
 
+        /*
+         * ALL SUBJECTS
+         */
+
         subjects:
             subjects,
 
@@ -2901,7 +3387,48 @@ async function saveResult() {
             subjects.length,
 
         /*
+         * ALL-SUBJECT MARK TOTAL
+         */
+
+        allSubjectsTotalMarks:
+            Number(
+                subjects.reduce(
+                    (sum, item) =>
+                        sum +
+                        Number(
+                            item.total ||
+                            0
+                        ),
+                    0
+                ).toFixed(2)
+            ),
+
+        allSubjectsAverage:
+            Number(
+                (
+                    subjects.length
+                        ? subjects.reduce(
+                            (sum, item) =>
+                                sum +
+                                Number(
+                                    item.total ||
+                                    0
+                                ),
+                            0
+                        ) /
+                        subjects.length
+                        : 0
+                ).toFixed(2)
+            ),
+
+        /*
+         * =================================================
          * OFFICIAL FINAL CALCULATION
+         * =================================================
+         */
+
+        /*
+         * Total marks of the six counted subjects.
          */
 
         totalMarks:
@@ -2909,26 +3436,76 @@ async function saveResult() {
                 calculation.totalMarks.toFixed(2)
             ),
 
+        /*
+         * Average of the six counted subjects.
+         */
+
         average:
             Number(
                 calculation.average.toFixed(2)
             ),
 
+        /*
+         * OFFICIAL AGGREGATE.
+         *
+         * Example:
+         * 7 + 3 + 4 + 1 + 4 + 2 = 21
+         */
+
+        aggregate:
+            Number(
+                calculation.aggregate
+            ),
+
+        /*
+         * Keep overallGrade for compatibility
+         * with the existing result/report system.
+         *
+         * It now contains the aggregate.
+         */
+
         overallGrade:
             calculation.grade,
+
+        /*
+         * Remark remains based on mark average.
+         */
 
         overallRemark:
             calculation.remark,
 
         /*
-         * Store the exact calculation
-         * for future report-card rendering.
+         * =================================================
+         * FINAL CALCULATION OBJECT
+         * =================================================
          */
 
         finalCalculation: {
 
             rule:
-                "4 compulsory subjects + best 2 additional subjects",
+                "4 compulsory grade numbers + best 2 lowest grade numbers from remaining subjects",
+
+            compulsoryRule:
+                "Exactly 4 teacher-selected compulsory subjects",
+
+            additionalRule:
+                "Automatically select the 2 remaining subjects with the lowest grade numbers; if tied, higher total mark wins",
+
+            gradeSystem:
+                "Grade 1 is best and Grade 9 is lowest",
+
+            markStructure: {
+
+                test:
+                    25,
+
+                exam:
+                    75,
+
+                total:
+                    100
+
+            },
 
             compulsorySubjects:
                 compulsorySubjects,
@@ -2942,18 +3519,46 @@ async function saveResult() {
             subjectsCount:
                 finalSubjects.length,
 
+            /*
+             * Sum of marks from the six counted subjects.
+             */
+
             totalMarks:
                 Number(
                     calculation.totalMarks.toFixed(2)
                 ),
+
+            /*
+             * Mark-based average.
+             */
 
             average:
                 Number(
                     calculation.average.toFixed(2)
                 ),
 
+            /*
+             * Official aggregate.
+             */
+
+            aggregate:
+                Number(
+                    calculation.aggregate
+                ),
+
+            /*
+             * Keep grade for compatibility.
+             *
+             * This is the aggregate, not a 1-9
+             * subject grade.
+             */
+
             grade:
                 calculation.grade,
+
+            /*
+             * Average-based remark.
+             */
 
             remark:
                 calculation.remark
@@ -2982,6 +3587,10 @@ async function saveResult() {
 
     };
 
+
+    /*
+     * Add parent UID when available.
+     */
 
     if (parentUid) {
 
@@ -3115,9 +3724,9 @@ async function saveResult() {
 
             isPublished
 
-                ? `Academic result saved and published for ${studentDisplayName}.`
+                ? `Academic result saved and published for ${studentDisplayName}. Aggregate: ${calculation.aggregate}. Average: ${calculation.average.toFixed(2)}%.`
 
-                : `Academic result saved as a draft for ${studentDisplayName}.`
+                : `Academic result saved as a draft for ${studentDisplayName}. Aggregate: ${calculation.aggregate}. Average: ${calculation.average.toFixed(2)}%.`
 
         );
 
@@ -3182,24 +3791,32 @@ function collectSubjects() {
 
 
             const ca =
-                numberValue(
-                    row.querySelector(
-                        ".ca-input"
-                    ).value
+                clamp(
+                    numberValue(
+                        row.querySelector(
+                            ".ca-input"
+                        ).value
+                    ),
+                    0,
+                    TEST_MAX
                 );
 
 
             const exam =
-                numberValue(
-                    row.querySelector(
-                        ".exam-input"
-                    ).value
+                clamp(
+                    numberValue(
+                        row.querySelector(
+                            ".exam-input"
+                        ).value
+                    ),
+                    0,
+                    EXAM_MAX
                 );
 
 
             const total =
                 Math.min(
-                    100,
+                    TOTAL_MAX,
                     ca + exam
                 );
 
@@ -3238,6 +3855,11 @@ function collectSubjects() {
 
                 grade:
                     grade.grade,
+
+                gradeNumber:
+                    Number(
+                        grade.grade
+                    ),
 
                 remark:
                     grade.remark,
@@ -3525,6 +4147,18 @@ function renderExistingResults() {
                 ).toFixed(2);
 
 
+            /*
+             * Support both new aggregate
+             * field and older overallGrade.
+             */
+
+            const aggregate =
+                result.aggregate ??
+                result.finalCalculation?.aggregate ??
+                result.overallGrade ??
+                "—";
+
+
             const studentNameValue =
                 result.studentName ||
                 "Unnamed Student";
@@ -3603,8 +4237,7 @@ function renderExistingResults() {
 
                     <span class="grade-badge">
                         ${escapeHTML(
-                            result.overallGrade ||
-                            "—"
+                            aggregate
                         )}
                     </span>
 
@@ -3896,20 +4529,28 @@ async function publishExistingResult(
 ) {
 
     /*
-     * Before publishing, verify that the result
-     * has the required final calculation.
+     * Verify the required final calculation.
      */
 
+    const finalCalculation =
+        result.finalCalculation;
+
+
     const hasValidFinalCalculation =
-        result.finalCalculation &&
+
+        finalCalculation &&
+
         Array.isArray(
-            result.finalCalculation.compulsorySubjects
+            finalCalculation.compulsorySubjects
         ) &&
-        result.finalCalculation.compulsorySubjects.length === 4 &&
+
+        finalCalculation.compulsorySubjects.length === 4 &&
+
         Array.isArray(
-            result.finalCalculation.bestAdditionalSubjects
+            finalCalculation.bestAdditionalSubjects
         ) &&
-        result.finalCalculation.bestAdditionalSubjects.length === 2;
+
+        finalCalculation.bestAdditionalSubjects.length === 2;
 
 
     if (!hasValidFinalCalculation) {
@@ -3923,9 +4564,36 @@ async function publishExistingResult(
     }
 
 
+    /*
+     * New calculation validation.
+     *
+     * Ensure the aggregate exists.
+     */
+
+    const aggregate =
+        finalCalculation.aggregate ??
+        result.aggregate ??
+        result.overallGrade;
+
+
+    if (
+        aggregate === undefined ||
+        aggregate === null ||
+        aggregate === ""
+    ) {
+
+        alert(
+            "This result does not contain a valid final aggregate. Please edit and save the result before publishing."
+        );
+
+        return;
+
+    }
+
+
     const confirmed =
         window.confirm(
-            `Publish the academic result for ${result.studentName || "this student"}?`
+            `Publish the academic result for ${result.studentName || "this student"}?\n\nFinal Aggregate: ${aggregate}\nAverage: ${Number(result.average || 0).toFixed(2)}%`
         );
 
 
@@ -4539,6 +5207,27 @@ function numberValue(
 
 
 /* =========================================================
+CLAMP
+========================================================= */
+
+function clamp(
+    value,
+    minimum,
+    maximum
+) {
+
+    return Math.min(
+        maximum,
+        Math.max(
+            minimum,
+            value
+        )
+    );
+
+}
+
+
+/* =========================================================
 TIMESTAMP
 ========================================================= */
 
@@ -4794,4 +5483,8 @@ READY
 
 console.log(
     "Virello Academic Results Management loaded successfully."
+);
+
+console.log(
+    "Official grading rule: 4 compulsory subjects + best 2 lowest grade numbers."
 );
