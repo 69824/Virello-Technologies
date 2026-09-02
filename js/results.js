@@ -11,6 +11,7 @@ import {
     addDoc,
     updateDoc,
     doc,
+    getDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
@@ -28,21 +29,24 @@ const REQUIRED_BEST_ADDITIONAL = 2;
 const REQUIRED_FINAL_SUBJECTS = 6;
 
 /*
-    IMPORTANT:
+    TEST = 25%
+    EXAM = 75%
 
-    Test = 25%
-    Exam = 75%
-
-    Teacher enters both Test and Exam as marks out of 100.
+    Teacher enters Test and Exam as marks out of 100.
 
     Example:
-        Test = 80
-        Exam = 70
 
-        Test contribution = 80 × 25% = 20
-        Exam contribution = 70 × 75% = 52.5
+    Test = 80
+    Exam = 70
 
-        Total = 72.5
+    Test contribution:
+    80 × 0.25 = 20
+
+    Exam contribution:
+    70 × 0.75 = 52.5
+
+    Final subject mark:
+    20 + 52.5 = 72.5
 */
 
 const TEST_WEIGHT = 0.25;
@@ -166,7 +170,7 @@ const totalClasses =
 
 
 /* ============================================================
-   ALL SUBJECTS SUMMARY DOM
+   ALL SUBJECTS SUMMARY
 ============================================================ */
 
 const overallSubjects =
@@ -183,7 +187,7 @@ const overallGrade =
 
 
 /* ============================================================
-   FINAL CALCULATION DOM
+   FINAL CALCULATION
 ============================================================ */
 
 const finalCalculationStatus =
@@ -215,7 +219,7 @@ const finalCalculationWarning =
 
 
 /* ============================================================
-   EXISTING RESULTS DOM
+   EXISTING RESULTS
 ============================================================ */
 
 const existingResultsBody =
@@ -242,19 +246,26 @@ const CLASS_ORDER = [
     "Nursery 1",
     "Nursery 2",
     "Nursery 3",
+
     "Grade 1",
     "Grade 2",
     "Grade 3",
+
     "Grade 4A",
     "Grade 4B",
+
     "Grade 5A",
     "Grade 5B",
+
     "Grade 6A",
     "Grade 6B",
+
     "Grade 7A",
     "Grade 7B",
+
     "Grade 8A",
     "Grade 8B",
+
     "Grade 9A",
     "Grade 9B"
 ];
@@ -282,44 +293,53 @@ const DEFAULT_SUBJECTS = [
 
 
 /* ============================================================
-   INITIALIZATION
+   START
 ============================================================ */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-    attachEvents();
+        attachEvents();
 
-    onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(
+            auth,
+            async (user) => {
 
-        if (!user) {
-            showError(
-                "You are not logged in. Please log in again."
-            );
-            return;
-        }
+                if (!user) {
 
-        currentUser = user;
+                    showError(
+                        "You are not logged in. Please log in again."
+                    );
 
-        try {
+                    return;
+                }
 
-            await initializePage();
+                currentUser = user;
 
-        } catch (error) {
+                try {
 
-            console.error(
-                "Results initialization error:",
-                error
-            );
+                    await initializePage();
 
-            showError(
-                error.message ||
-                "Unable to load Academic Results Management."
-            );
-        }
+                } catch (error) {
 
-    });
+                    console.error(
+                        "Results initialization error:",
+                        error
+                    );
 
-});
+                    showError(
+                        error?.message ||
+                        "Unable to load Academic Results Management."
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
 
 
 /* ============================================================
@@ -329,55 +349,70 @@ document.addEventListener("DOMContentLoaded", () => {
 function attachEvents() {
 
     if (logoutButton) {
+
         logoutButton.addEventListener(
             "click",
             handleLogout
         );
+
     }
 
     if (classSelect) {
+
         classSelect.addEventListener(
             "change",
             handleClassChange
         );
+
     }
 
     if (loadResultButton) {
+
         loadResultButton.addEventListener(
             "click",
             loadSelectedResult
         );
+
     }
 
     if (addSubjectButton) {
+
         addSubjectButton.addEventListener(
             "click",
             () => addSubjectRow()
         );
+
     }
 
     if (clearResultButton) {
+
         clearResultButton.addEventListener(
             "click",
             clearEditor
         );
+
     }
 
     if (saveResultButton) {
+
         saveResultButton.addEventListener(
             "click",
             () => saveResult("draft")
         );
+
     }
 
     if (publishResultButton) {
+
         publishResultButton.addEventListener(
             "click",
             () => saveResult("published")
         );
+
     }
 
     if (subjectTableBody) {
+
         subjectTableBody.addEventListener(
             "input",
             handleSubjectInput
@@ -392,56 +427,93 @@ function attachEvents() {
             "click",
             handleSubjectClick
         );
+
     }
 
     if (resultClassFilter) {
+
         resultClassFilter.addEventListener(
             "change",
             renderExistingResults
         );
+
     }
 
     if (resultTermFilter) {
+
         resultTermFilter.addEventListener(
             "change",
             renderExistingResults
         );
+
     }
 
     if (resultSearch) {
+
         resultSearch.addEventListener(
             "input",
             renderExistingResults
         );
+
     }
 
 }
 
 
 /* ============================================================
-   PAGE INITIALIZATION
+   INITIALIZE PAGE
 ============================================================ */
 
 async function initializePage() {
 
     if (!currentUser) {
-        throw new Error("Authentication session not found.");
+
+        throw new Error(
+            "Authentication session not found."
+        );
+
     }
 
-    /*
-        The exact organization lookup can vary between Virello
-        installations.
 
-        We first attempt to read the user profile.
-    */
+    /* --------------------------------------------------------
+       LOAD ORGANIZATION
+    -------------------------------------------------------- */
 
-    const profile = await loadUserProfile();
+    const profile =
+        await loadUserProfile();
+
 
     currentOrganization =
-        profile.organization ||
-        profile.organizationId ||
-        profile.orgId ||
-        null;
+        await resolveOrganization(
+            profile
+        );
+
+
+    if (!currentOrganization) {
+
+        throw new Error(
+            "Your account is authenticated, but no Virello organization could be identified for this account."
+        );
+
+    }
+
+
+    const organizationId =
+        getOrganizationId();
+
+
+    if (!organizationId) {
+
+        throw new Error(
+            "Organization ID could not be determined."
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       USER NAME
+    -------------------------------------------------------- */
 
     if (adminName) {
 
@@ -454,14 +526,27 @@ async function initializePage() {
 
     }
 
+
+    /* --------------------------------------------------------
+       ORGANIZATION NAME
+    -------------------------------------------------------- */
+
     if (organizationName) {
 
         organizationName.textContent =
             profile.organizationName ||
             profile.schoolName ||
+            currentOrganization.name ||
+            currentOrganization.organizationName ||
+            currentOrganization.schoolName ||
             "Star Preparatory School";
 
     }
+
+
+    /* --------------------------------------------------------
+       LOAD DATA
+    -------------------------------------------------------- */
 
     await loadClasses();
 
@@ -473,72 +558,522 @@ async function initializePage() {
 
     updateStatistics();
 
+
+    /* --------------------------------------------------------
+       SHOW PAGE
+    -------------------------------------------------------- */
+
     if (loadingScreen) {
-        loadingScreen.style.display = "none";
+
+        loadingScreen.style.display =
+            "none";
+
     }
 
     if (errorScreen) {
-        errorScreen.style.display = "none";
+
+        errorScreen.style.display =
+            "none";
+
     }
 
     if (mainContent) {
-        mainContent.classList.remove("hidden");
+
+        mainContent.classList.remove(
+            "hidden"
+        );
+
+        mainContent.style.display =
+            "";
+
     }
 
 }
 
 
 /* ============================================================
-   USER PROFILE
+   LOAD USER PROFILE
 ============================================================ */
+
+/*
+    IMPORTANT FIX:
+
+    The old version queried:
+
+        users
+        staff
+        teachers
+        admins
+
+    That caused:
+
+        Missing or insufficient permissions
+
+    This version NEVER queries users or admins.
+
+    It checks only collections that are already allowed
+    by your existing Virello rules:
+
+        staff
+        teachers
+
+    It also supports direct UID document lookup.
+*/
 
 async function loadUserProfile() {
 
-    const possibleCollections = [
-        "users",
-        "staff",
-        "teachers",
-        "admins"
-    ];
+    const uid =
+        currentUser.uid;
 
-    for (const collectionName of possibleCollections) {
 
-        try {
+    /* --------------------------------------------------------
+       1. STAFF COLLECTION
+    -------------------------------------------------------- */
 
-            const q = query(
-                collection(db, collectionName),
-                where("uid", "==", currentUser.uid)
+    try {
+
+        const staffQuery =
+            query(
+                collection(
+                    db,
+                    "staff"
+                ),
+                where(
+                    "uid",
+                    "==",
+                    uid
+                )
             );
 
-            const snapshot =
-                await getDocs(q);
-
-            if (!snapshot.empty) {
-
-                return {
-                    id: snapshot.docs[0].id,
-                    ...snapshot.docs[0].data()
-                };
-
-            }
-
-        } catch (error) {
-
-            console.warn(
-                `Unable to read ${collectionName}:`,
-                error
+        const staffSnapshot =
+            await getDocs(
+                staffQuery
             );
+
+        if (!staffSnapshot.empty) {
+
+            return {
+                id:
+                    staffSnapshot.docs[0].id,
+
+                ...staffSnapshot.docs[0].data(),
+
+                uid
+            };
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Staff profile lookup failed:",
+            error
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       2. STAFF DOCUMENT WITH UID AS DOCUMENT ID
+    -------------------------------------------------------- */
+
+    try {
+
+        const staffRef =
+            doc(
+                db,
+                "staff",
+                uid
+            );
+
+        const staffDoc =
+            await getDoc(
+                staffRef
+            );
+
+        if (staffDoc.exists()) {
+
+            return {
+                id:
+                    staffDoc.id,
+
+                ...staffDoc.data(),
+
+                uid
+            };
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Direct staff profile lookup failed:",
+            error
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       3. TEACHERS COLLECTION
+    -------------------------------------------------------- */
+
+    try {
+
+        const teacherQuery =
+            query(
+                collection(
+                    db,
+                    "teachers"
+                ),
+                where(
+                    "uid",
+                    "==",
+                    uid
+                )
+            );
+
+        const teacherSnapshot =
+            await getDocs(
+                teacherQuery
+            );
+
+        if (!teacherSnapshot.empty) {
+
+            return {
+                id:
+                    teacherSnapshot.docs[0].id,
+
+                ...teacherSnapshot.docs[0].data(),
+
+                uid
+            };
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Teacher profile lookup failed:",
+            error
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       4. TEACHER DOCUMENT WITH UID AS DOCUMENT ID
+    -------------------------------------------------------- */
+
+    try {
+
+        const teacherRef =
+            doc(
+                db,
+                "teachers",
+                uid
+            );
+
+        const teacherDoc =
+            await getDoc(
+                teacherRef
+            );
+
+        if (teacherDoc.exists()) {
+
+            return {
+                id:
+                    teacherDoc.id,
+
+                ...teacherDoc.data(),
+
+                uid
+            };
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Direct teacher profile lookup failed:",
+            error
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       5. AUTH USER FALLBACK
+    -------------------------------------------------------- */
+
+    return {
+
+        uid,
+
+        name:
+            currentUser.displayName ||
+            currentUser.email ||
+            "Administrator",
+
+        email:
+            currentUser.email || ""
+
+    };
+
+}
+
+
+/* ============================================================
+   RESOLVE ORGANIZATION
+============================================================ */
+
+async function resolveOrganization(
+    profile
+) {
+
+    /*
+        First attempt:
+        organization information stored directly
+        in the staff/teacher profile.
+    */
+
+    const directOrganization =
+        extractOrganizationFromProfile(
+            profile
+        );
+
+    if (directOrganization) {
+
+        return normalizeOrganization(
+            directOrganization
+        );
+
+    }
+
+
+    /*
+        Second attempt:
+        organizationId field directly.
+    */
+
+    const directId =
+        profile?.organizationId ||
+        profile?.orgId ||
+        profile?.schoolId;
+
+    if (directId) {
+
+        return {
+
+            id:
+                typeof directId === "string"
+                    ? directId
+                    : directId.id,
+
+            name:
+                profile.organizationName ||
+                profile.schoolName ||
+                "Star Preparatory School"
+
+        };
+
+    }
+
+
+    /*
+        Third attempt:
+        Find an organization owned by this Firebase user.
+    */
+
+    try {
+
+        const organizationQuery =
+            query(
+                collection(
+                    db,
+                    "organizations"
+                ),
+                where(
+                    "ownerUid",
+                    "==",
+                    currentUser.uid
+                )
+            );
+
+        const snapshot =
+            await getDocs(
+                organizationQuery
+            );
+
+        if (!snapshot.empty) {
+
+            const organizationDoc =
+                snapshot.docs[0];
+
+            return {
+
+                id:
+                    organizationDoc.id,
+
+                ...organizationDoc.data()
+
+            };
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Organization owner lookup failed:",
+            error
+        );
+
+    }
+
+
+    /*
+        Final fallback.
+
+        If the project has a single school organization
+        stored in the profile under another common field,
+        attempt to resolve it.
+    */
+
+    const possibleId =
+        profile?.school?.id ||
+        profile?.organization?.id ||
+        profile?.organization?.uid ||
+        profile?.schoolOrganizationId;
+
+    if (possibleId) {
+
+        return {
+
+            id:
+                possibleId,
+
+            name:
+                profile?.school?.name ||
+                profile?.organization?.name ||
+                profile?.schoolName ||
+                "Star Preparatory School"
+
+        };
+
+    }
+
+
+    return null;
+
+}
+
+
+/* ============================================================
+   EXTRACT ORGANIZATION FROM PROFILE
+============================================================ */
+
+function extractOrganizationFromProfile(
+    profile
+) {
+
+    if (!profile) {
+        return null;
+    }
+
+
+    const organization =
+        profile.organization;
+
+
+    if (organization) {
+
+        if (
+            typeof organization ===
+            "string"
+        ) {
+
+            return {
+                id:
+                    organization,
+
+                name:
+                    profile.organizationName ||
+                    profile.schoolName ||
+                    "Star Preparatory School"
+
+            };
+
+        }
+
+
+        if (
+            typeof organization ===
+            "object"
+        ) {
+
+            return {
+
+                ...organization,
+
+                id:
+                    organization.id ||
+                    organization.uid ||
+                    organization.organizationId ||
+                    null
+
+            };
 
         }
 
     }
 
+
+    return null;
+
+}
+
+
+/* ============================================================
+   NORMALIZE ORGANIZATION
+============================================================ */
+
+function normalizeOrganization(
+    organization
+) {
+
+    if (!organization) {
+        return null;
+    }
+
+
+    if (
+        typeof organization ===
+        "string"
+    ) {
+
+        return {
+
+            id:
+                organization,
+
+            name:
+                "Star Preparatory School"
+
+        };
+
+    }
+
+
     return {
-        uid: currentUser.uid,
-        name:
-            currentUser.displayName ||
-            currentUser.email ||
-            "Administrator"
+
+        ...organization,
+
+        id:
+            organization.id ||
+            organization.uid ||
+            organization.organizationId ||
+            null
+
     };
 
 }
@@ -557,42 +1092,51 @@ async function loadClasses() {
         "schoolClasses"
     ];
 
-    for (const collectionName of possibleCollections) {
+
+    for (
+        const collectionName
+        of possibleCollections
+    ) {
 
         try {
 
-            let q;
+            const organizationId =
+                getOrganizationId();
 
-            if (currentOrganization) {
+            if (!organizationId) {
+                continue;
+            }
 
-                q = query(
-                    collection(db, collectionName),
+
+            const q =
+                query(
+                    collection(
+                        db,
+                        collectionName
+                    ),
                     where(
                         "organizationId",
                         "==",
-                        getOrganizationId()
+                        organizationId
                     )
                 );
 
-            } else {
-
-                q = collection(
-                    db,
-                    collectionName
-                );
-
-            }
 
             const snapshot =
                 await getDocs(q);
 
+
             if (!snapshot.empty) {
 
                 classes =
-                    snapshot.docs.map((item) => ({
-                        id: item.id,
-                        ...item.data()
-                    }));
+                    snapshot.docs.map(
+                        (item) => ({
+                            id:
+                                item.id,
+
+                            ...item.data()
+                        })
+                    );
 
                 break;
 
@@ -609,22 +1153,28 @@ async function loadClasses() {
 
     }
 
+
+    /*
+        If the school does not have a classes collection,
+        use the official Virello class structure.
+    */
+
     if (!classes.length) {
 
-        /*
-            If no separate classes collection exists,
-            build the class list from the official school
-            class structure.
-        */
+        classes =
+            CLASS_ORDER.map(
+                (name, index) => ({
 
-        classes = CLASS_ORDER.map(
-            (name, index) => ({
-                id: `class-${index + 1}`,
-                name
-            })
-        );
+                    id:
+                        `class-${index + 1}`,
+
+                    name
+
+                })
+            );
 
     }
+
 
     classes.sort(
         (a, b) =>
@@ -643,64 +1193,131 @@ async function loadClasses() {
    LOAD STUDENTS
 ============================================================ */
 
+/*
+    IMPORTANT:
+
+    We do NOT query students unless an organization ID
+    has already been identified.
+
+    This prevents an unrestricted collection query.
+*/
+
 async function loadStudents() {
 
     students = [];
 
-    const possibleCollections = [
-        "students",
-        "schoolStudents"
-    ];
 
-    for (const collectionName of possibleCollections) {
+    const organizationId =
+        getOrganizationId();
 
-        try {
 
-            let q;
+    if (!organizationId) {
 
-            if (currentOrganization) {
+        throw new Error(
+            "Cannot load students because no organization is associated with your account."
+        );
 
-                q = query(
-                    collection(db, collectionName),
-                    where(
-                        "organizationId",
-                        "==",
-                        getOrganizationId()
-                    )
-                );
+    }
 
-            } else {
 
-                q = collection(
+    /*
+        Try students first.
+    */
+
+    try {
+
+        const q =
+            query(
+                collection(
                     db,
-                    collectionName
-                );
-
-            }
-
-            const snapshot =
-                await getDocs(q);
-
-            if (!snapshot.empty) {
-
-                students =
-                    snapshot.docs.map((item) => ({
-                        id: item.id,
-                        ...item.data()
-                    }));
-
-                break;
-
-            }
-
-        } catch (error) {
-
-            console.warn(
-                `Unable to load ${collectionName}:`,
-                error
+                    "students"
+                ),
+                where(
+                    "organizationId",
+                    "==",
+                    organizationId
+                )
             );
 
+
+        const snapshot =
+            await getDocs(q);
+
+
+        if (!snapshot.empty) {
+
+            students =
+                snapshot.docs.map(
+                    (item) => ({
+
+                        id:
+                            item.id,
+
+                        ...item.data()
+
+                    })
+                );
+
+            return;
+
         }
+
+    } catch (error) {
+
+        console.warn(
+            "Students collection unavailable:",
+            error
+        );
+
+    }
+
+
+    /*
+        Fallback to schoolStudents.
+    */
+
+    try {
+
+        const q =
+            query(
+                collection(
+                    db,
+                    "schoolStudents"
+                ),
+                where(
+                    "organizationId",
+                    "==",
+                    organizationId
+                )
+            );
+
+
+        const snapshot =
+            await getDocs(q);
+
+
+        if (!snapshot.empty) {
+
+            students =
+                snapshot.docs.map(
+                    (item) => ({
+
+                        id:
+                            item.id,
+
+                        ...item.data()
+
+                    })
+                );
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "schoolStudents collection unavailable:",
+            error
+        );
 
     }
 
@@ -715,13 +1332,24 @@ async function loadResults() {
 
     allResults = [];
 
+
+    const organizationId =
+        getOrganizationId();
+
+
+    if (!organizationId) {
+
+        throw new Error(
+            "Cannot load results because no organization is associated with your account."
+        );
+
+    }
+
+
     try {
 
-        let q;
-
-        if (currentOrganization) {
-
-            q = query(
+        const q =
+            query(
                 collection(
                     db,
                     RESULTS_COLLECTION
@@ -729,27 +1357,27 @@ async function loadResults() {
                 where(
                     "organizationId",
                     "==",
-                    getOrganizationId()
+                    organizationId
                 )
             );
 
-        } else {
-
-            q = collection(
-                db,
-                RESULTS_COLLECTION
-            );
-
-        }
 
         const snapshot =
             await getDocs(q);
 
+
         allResults =
-            snapshot.docs.map((item) => ({
-                id: item.id,
-                ...item.data()
-            }));
+            snapshot.docs.map(
+                (item) => ({
+
+                    id:
+                        item.id,
+
+                    ...item.data()
+
+                })
+            );
+
 
     } catch (error) {
 
@@ -758,7 +1386,12 @@ async function loadResults() {
             error
         );
 
-        throw error;
+        throw new Error(
+            `Unable to load academic results: ${
+                error?.message ||
+                "Missing or insufficient permissions."
+            }`
+        );
 
     }
 
@@ -776,48 +1409,76 @@ function populateClassSelectors() {
         classSelect.innerHTML =
             `<option value="">Select class</option>`;
 
-        classes.forEach((classItem) => {
 
-            const name =
-                getClassName(classItem);
+        classes.forEach(
+            (classItem) => {
 
-            const option =
-                document.createElement("option");
+                const name =
+                    getClassName(
+                        classItem
+                    );
 
-            option.value =
-                classItem.id || name;
 
-            option.textContent =
-                name;
+                const option =
+                    document.createElement(
+                        "option"
+                    );
 
-            classSelect.appendChild(option);
 
-        });
+                option.value =
+                    classItem.id ||
+                    name;
+
+
+                option.textContent =
+                    name;
+
+
+                classSelect.appendChild(
+                    option
+                );
+
+            }
+        );
 
     }
+
 
     if (resultClassFilter) {
 
         resultClassFilter.innerHTML =
             `<option value="">All Classes</option>`;
 
-        classes.forEach((classItem) => {
 
-            const name =
-                getClassName(classItem);
+        classes.forEach(
+            (classItem) => {
 
-            const option =
-                document.createElement("option");
+                const name =
+                    getClassName(
+                        classItem
+                    );
 
-            option.value =
-                name;
 
-            option.textContent =
-                name;
+                const option =
+                    document.createElement(
+                        "option"
+                    );
 
-            resultClassFilter.appendChild(option);
 
-        });
+                option.value =
+                    name;
+
+
+                option.textContent =
+                    name;
+
+
+                resultClassFilter.appendChild(
+                    option
+                );
+
+            }
+        );
 
     }
 
@@ -830,15 +1491,23 @@ function populateClassSelectors() {
 
 function handleClassChange() {
 
+    if (!studentSelect) {
+        return;
+    }
+
+
     const selectedValue =
-        classSelect.value;
+        classSelect?.value || "";
+
 
     studentSelect.innerHTML =
         `<option value="">Select student</option>`;
 
+
     if (!selectedValue) {
         return;
     }
+
 
     const selectedClass =
         classes.find(
@@ -847,10 +1516,12 @@ function handleClassChange() {
                 String(selectedValue)
         );
 
+
     const className =
         selectedClass
             ? getClassName(selectedClass)
             : selectedValue;
+
 
     const classStudents =
         students
@@ -865,20 +1536,32 @@ function handleClassChange() {
                 compareStudentNames
             );
 
-    classStudents.forEach((student) => {
 
-        const option =
-            document.createElement("option");
+    classStudents.forEach(
+        (student) => {
 
-        option.value =
-            student.id;
+            const option =
+                document.createElement(
+                    "option"
+                );
 
-        option.textContent =
-            getStudentName(student);
 
-        studentSelect.appendChild(option);
+            option.value =
+                student.id;
 
-    });
+
+            option.textContent =
+                getStudentName(
+                    student
+                );
+
+
+            studentSelect.appendChild(
+                option
+            );
+
+        }
+    );
 
 }
 
@@ -892,34 +1575,52 @@ async function loadSelectedResult() {
     try {
 
         const studentId =
-            studentSelect.value;
+            studentSelect?.value ||
+            "";
+
 
         const academicYearValue =
-            academicYear.value.trim();
+            academicYear?.value.trim() ||
+            "";
+
 
         const termValue =
-            termSelect.value;
+            termSelect?.value ||
+            "";
+
 
         if (!studentId) {
 
-            alert("Please select a student.");
+            alert(
+                "Please select a student."
+            );
 
             return;
+
         }
+
 
         if (!academicYearValue) {
 
-            alert("Please enter the academic year.");
+            alert(
+                "Please enter the academic year."
+            );
 
             return;
+
         }
+
 
         if (!termValue) {
 
-            alert("Please select a term.");
+            alert(
+                "Please select the term."
+            );
 
             return;
+
         }
+
 
         selectedStudent =
             students.find(
@@ -928,19 +1629,27 @@ async function loadSelectedResult() {
                     String(studentId)
             );
 
+
         if (!selectedStudent) {
 
             selectedStudent =
-                findStudentInAllClasses(studentId);
+                findStudentInAllClasses(
+                    studentId
+                );
 
         }
+
 
         if (!selectedStudent) {
 
-            alert("Student record could not be found.");
+            alert(
+                "Student record could not be found."
+            );
 
             return;
+
         }
+
 
         const existing =
             allResults.find(
@@ -949,21 +1658,30 @@ async function loadSelectedResult() {
                     String(
                         result.studentId ||
                         result.studentDocumentId
-                    ) === String(studentId)
+                    ) ===
+                    String(studentId)
 
-                    && String(
+                    &&
+
+                    String(
                         result.academicYear
-                    ) === String(academicYearValue)
+                    ) ===
+                    String(academicYearValue)
 
-                    && String(
+                    &&
+
+                    String(
                         result.term
-                    ) === String(termValue)
+                    ) ===
+                    String(termValue)
             );
+
 
         if (existing) {
 
             currentResult =
                 existing;
+
 
             renderResultIntoEditor(
                 existing
@@ -971,7 +1689,9 @@ async function loadSelectedResult() {
 
         } else {
 
-            currentResult = null;
+            currentResult =
+                null;
+
 
             showResultEditor();
 
@@ -981,13 +1701,19 @@ async function loadSelectedResult() {
 
         }
 
-        resultEditor.style.display =
-            "block";
 
-        resultEditor.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
+        if (resultEditor) {
+
+            resultEditor.style.display =
+                "block";
+
+
+            resultEditor.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        }
 
     } catch (error) {
 
@@ -996,8 +1722,9 @@ async function loadSelectedResult() {
             error
         );
 
+
         alert(
-            error.message ||
+            error?.message ||
             "Unable to load result."
         );
 
@@ -1016,23 +1743,35 @@ function showResultEditor() {
         return;
     }
 
+
     resultEditor.style.display =
         "block";
+
 
     if (!selectedStudent) {
         return;
     }
 
+
     const studentFullName =
-        getStudentName(selectedStudent);
+        getStudentName(
+            selectedStudent
+        );
+
 
     const studentClass =
-        getStudentClass(selectedStudent);
+        getStudentClass(
+            selectedStudent
+        );
+
 
     if (studentName) {
+
         studentName.textContent =
             studentFullName;
+
     }
+
 
     if (studentDetails) {
 
@@ -1040,17 +1779,21 @@ function showResultEditor() {
             selectedStudent.gender ||
             "";
 
+
         const dateOfBirth =
             selectedStudent.dateOfBirth ||
             selectedStudent.dob ||
             "";
 
-        const details = [
-            gender,
-            dateOfBirth
-        ]
-            .filter(Boolean)
-            .join(" • ");
+
+        const details =
+            [
+                gender,
+                dateOfBirth
+            ]
+                .filter(Boolean)
+                .join(" • ");
+
 
         studentDetails.textContent =
             details ||
@@ -1058,15 +1801,18 @@ function showResultEditor() {
 
     }
 
+
     if (displayStudentId) {
 
         displayStudentId.textContent =
             selectedStudent.studentId ||
             selectedStudent.admissionNumber ||
+            selectedStudent.studentNumber ||
             selectedStudent.id ||
             "-";
 
     }
+
 
     if (displayClass) {
 
@@ -1077,18 +1823,20 @@ function showResultEditor() {
 
     }
 
+
     if (displayAcademicYear) {
 
         displayAcademicYear.textContent =
-            academicYear.value.trim() ||
+            academicYear?.value.trim() ||
             "-";
 
     }
 
+
     if (displayTerm) {
 
         displayTerm.textContent =
-            termSelect.value ||
+            termSelect?.value ||
             "-";
 
     }
@@ -1102,13 +1850,20 @@ function showResultEditor() {
 
 function clearEditor() {
 
-    if (!confirm(
-        "Clear the current result and start again?"
-    )) {
+    if (
+        !confirm(
+            "Clear the current result and start again?"
+        )
+    ) {
+
         return;
+
     }
 
-    currentResult = null;
+
+    currentResult =
+        null;
+
 
     clearEditorFields();
 
@@ -1126,20 +1881,36 @@ function clearEditor() {
 function clearEditorFields() {
 
     if (subjectTableBody) {
-        subjectTableBody.innerHTML = "";
+
+        subjectTableBody.innerHTML =
+            "";
+
     }
+
 
     if (positionInput) {
-        positionInput.value = "";
+
+        positionInput.value =
+            "";
+
     }
+
 
     if (teacherComment) {
-        teacherComment.value = "";
+
+        teacherComment.value =
+            "";
+
     }
 
+
     if (principalComment) {
-        principalComment.value = "";
+
+        principalComment.value =
+            "";
+
     }
+
 
     if (resultStatus) {
 
@@ -1148,7 +1919,6 @@ function clearEditorFields() {
 
     }
 
-    showResultEditor();
 
     resetCalculationDisplay();
 
@@ -1165,7 +1935,10 @@ function createDefaultSubjects() {
         return;
     }
 
-    subjectTableBody.innerHTML = "";
+
+    subjectTableBody.innerHTML =
+        "";
+
 
     DEFAULT_SUBJECTS.forEach(
         (subject, index) => {
@@ -1174,11 +1947,13 @@ function createDefaultSubjects() {
                 subject,
                 0,
                 0,
-                index < REQUIRED_COMPULSORY_SUBJECTS
+                index <
+                REQUIRED_COMPULSORY_SUBJECTS
             );
 
         }
     );
+
 
     calculateOverall();
 
@@ -1200,23 +1975,32 @@ function addSubjectRow(
         return;
     }
 
+
     const row =
-        document.createElement("tr");
+        document.createElement(
+            "tr"
+        );
+
 
     row.dataset.compulsory =
-        isCompulsory ? "true" : "false";
+        isCompulsory
+            ? "true"
+            : "false";
+
 
     row.innerHTML = `
 
         <td class="row-number"></td>
 
         <td>
+
             <input
                 type="text"
                 class="subject-name-input"
                 value="${escapeAttribute(subject)}"
                 placeholder="Subject name"
             >
+
         </td>
 
         <td class="compulsory-cell">
@@ -1281,9 +2065,16 @@ function addSubjectRow(
 
     `;
 
-    subjectTableBody.appendChild(row);
 
-    calculateSubjectRow(row);
+    subjectTableBody.appendChild(
+        row
+    );
+
+
+    calculateSubjectRow(
+        row
+    );
+
 
     enforceCompulsoryLimit();
 
@@ -1293,31 +2084,47 @@ function addSubjectRow(
 
 
 /* ============================================================
-   SUBJECT INPUT HANDLER
+   SUBJECT INPUT
 ============================================================ */
 
-function handleSubjectInput(event) {
+function handleSubjectInput(
+    event
+) {
 
     const row =
-        event.target.closest("tr");
+        event.target.closest(
+            "tr"
+        );
+
 
     if (!row) {
         return;
     }
 
+
     if (
+
         event.target.classList.contains(
             "subject-name-input"
-        ) ||
+        )
+
+        ||
+
         event.target.classList.contains(
             "test-input"
-        ) ||
+        )
+
+        ||
+
         event.target.classList.contains(
             "exam-input"
         )
+
     ) {
 
-        calculateSubjectRow(row);
+        calculateSubjectRow(
+            row
+        );
 
         calculateOverall();
 
@@ -1327,10 +2134,12 @@ function handleSubjectInput(event) {
 
 
 /* ============================================================
-   SUBJECT CHANGE HANDLER
+   SUBJECT CHANGE
 ============================================================ */
 
-function handleSubjectChange(event) {
+function handleSubjectChange(
+    event
+) {
 
     if (
         event.target.classList.contains(
@@ -1348,10 +2157,12 @@ function handleSubjectChange(event) {
 
 
 /* ============================================================
-   SUBJECT CLICK HANDLER
+   SUBJECT CLICK
 ============================================================ */
 
-function handleSubjectClick(event) {
+function handleSubjectClick(
+    event
+) {
 
     if (
         event.target.classList.contains(
@@ -1360,7 +2171,10 @@ function handleSubjectClick(event) {
     ) {
 
         const row =
-            event.target.closest("tr");
+            event.target.closest(
+                "tr"
+            );
+
 
         if (row) {
 
@@ -1383,22 +2197,39 @@ function handleSubjectClick(event) {
    CALCULATE SUBJECT ROW
 ============================================================ */
 
-function calculateSubjectRow(row) {
+function calculateSubjectRow(
+    row
+) {
 
     const testInput =
-        row.querySelector(".test-input");
+        row.querySelector(
+            ".test-input"
+        );
+
 
     const examInput =
-        row.querySelector(".exam-input");
+        row.querySelector(
+            ".exam-input"
+        );
+
 
     const totalCell =
-        row.querySelector(".total-cell");
+        row.querySelector(
+            ".total-cell"
+        );
+
 
     const gradeCell =
-        row.querySelector(".grade-cell");
+        row.querySelector(
+            ".grade-cell"
+        );
+
 
     const remarkCell =
-        row.querySelector(".remark-cell");
+        row.querySelector(
+            ".remark-cell"
+        );
+
 
     if (
         !testInput ||
@@ -1407,8 +2238,11 @@ function calculateSubjectRow(row) {
         !gradeCell ||
         !remarkCell
     ) {
+
         return;
+
     }
+
 
     const test =
         clampNumber(
@@ -1417,6 +2251,7 @@ function calculateSubjectRow(row) {
             100
         );
 
+
     const exam =
         clampNumber(
             examInput.value,
@@ -1424,45 +2259,41 @@ function calculateSubjectRow(row) {
             100
         );
 
-    /*
-        TEST 25%
-
-        Example:
-        Test 80 / 100
-
-        80 × 0.25 = 20
-    */
 
     const testContribution =
-        test * TEST_WEIGHT;
+        test *
+        TEST_WEIGHT;
 
-    /*
-        EXAM 75%
-
-        Example:
-        Exam 70 / 100
-
-        70 × 0.75 = 52.5
-    */
 
     const examContribution =
-        exam * EXAM_WEIGHT;
+        exam *
+        EXAM_WEIGHT;
+
 
     const total =
         testContribution +
         examContribution;
 
+
     const gradeInfo =
-        calculateGrade(total);
+        calculateGrade(
+            total
+        );
+
 
     totalCell.textContent =
-        formatNumber(total);
+        formatNumber(
+            total
+        );
+
 
     gradeCell.textContent =
         gradeInfo.grade;
 
+
     remarkCell.textContent =
         gradeInfo.remark;
+
 
     updateRowNumbers();
 
@@ -1479,6 +2310,7 @@ function enforceCompulsoryLimit() {
         return;
     }
 
+
     const checkboxes =
         Array.from(
             subjectTableBody.querySelectorAll(
@@ -1486,27 +2318,34 @@ function enforceCompulsoryLimit() {
             )
         );
 
-    let checkedCount = 0;
 
-    checkboxes.forEach((checkbox) => {
+    let checkedCount =
+        0;
 
-        if (checkbox.checked) {
 
-            checkedCount++;
+    checkboxes.forEach(
+        (checkbox) => {
 
-            if (
-                checkedCount >
-                REQUIRED_COMPULSORY_SUBJECTS
-            ) {
+            if (checkbox.checked) {
 
-                checkbox.checked =
-                    false;
+                checkedCount++;
+
+
+                if (
+                    checkedCount >
+                    REQUIRED_COMPULSORY_SUBJECTS
+                ) {
+
+                    checkbox.checked =
+                        false;
+
+                }
 
             }
 
         }
+    );
 
-    });
 
     updateCountedSubjectRows();
 
@@ -1523,90 +2362,121 @@ function collectSubjects() {
         return [];
     }
 
+
     const rows =
         Array.from(
-            subjectTableBody.querySelectorAll("tr")
+            subjectTableBody.querySelectorAll(
+                "tr"
+            )
         );
 
-    return rows.map((row, index) => {
 
-        const subjectInput =
-            row.querySelector(
-                ".subject-name-input"
-            );
+    return rows.map(
+        (row, index) => {
 
-        const testInput =
-            row.querySelector(
-                ".test-input"
-            );
+            const subjectInput =
+                row.querySelector(
+                    ".subject-name-input"
+                );
 
-        const examInput =
-            row.querySelector(
-                ".exam-input"
-            );
 
-        const compulsoryInput =
-            row.querySelector(
-                ".compulsory-input"
-            );
+            const testInput =
+                row.querySelector(
+                    ".test-input"
+                );
 
-        const test =
-            clampNumber(
-                testInput?.value,
-                0,
-                100
-            );
 
-        const exam =
-            clampNumber(
-                examInput?.value,
-                0,
-                100
-            );
+            const examInput =
+                row.querySelector(
+                    ".exam-input"
+                );
 
-        const total =
-            (test * TEST_WEIGHT) +
-            (exam * EXAM_WEIGHT);
 
-        const gradeInfo =
-            calculateGrade(total);
+            const compulsoryInput =
+                row.querySelector(
+                    ".compulsory-input"
+                );
 
-        return {
 
-            index,
+            const test =
+                clampNumber(
+                    testInput?.value,
+                    0,
+                    100
+                );
 
-            subject:
-                subjectInput?.value.trim() ||
-                `Subject ${index + 1}`,
 
-            test,
+            const exam =
+                clampNumber(
+                    examInput?.value,
+                    0,
+                    100
+                );
 
-            exam,
 
-            /*
-                Keep CA field for compatibility
-                with older result structures.
+            const testWeighted =
+                test *
+                TEST_WEIGHT;
 
-                This value represents Test.
-            */
-            ca: test,
 
-            total,
+            const examWeighted =
+                exam *
+                EXAM_WEIGHT;
 
-            grade:
-                gradeInfo.grade,
 
-            remark:
-                gradeInfo.remark,
+            const total =
+                testWeighted +
+                examWeighted;
 
-            isCompulsory:
-                Boolean(
-                    compulsoryInput?.checked
-                )
 
-        };
+            const gradeInfo =
+                calculateGrade(
+                    total
+                );
 
-    });
+
+            return {
+
+                index,
+
+                subject:
+                    subjectInput?.value.trim() ||
+                    `Subject ${index + 1}`,
+
+                test,
+
+                exam,
+
+                testWeighted,
+
+                examWeighted,
+
+                /*
+                    Legacy compatibility.
+                    Older code used "ca".
+                    Here CA represents Test.
+                */
+
+                ca:
+                    test,
+
+                total,
+
+                grade:
+                    gradeInfo.grade,
+
+                remark:
+                    gradeInfo.remark,
+
+                isCompulsory:
+                    Boolean(
+                        compulsoryInput?.checked
+                    )
+
+            };
+
+        }
+    );
 
 }
 
@@ -1625,6 +2495,7 @@ function calculateFinalTermGrade(
                 item.isCompulsory === true
         );
 
+
     const nonCompulsorySubjects =
         subjects
             .filter(
@@ -1633,20 +2504,27 @@ function calculateFinalTermGrade(
             )
             .map(
                 (item, index) => ({
+
                     ...item,
+
                     originalIndex:
                         item.index ??
                         index
+
                 })
             )
             .sort(
                 (a, b) =>
+
                     Number(b.total) -
                     Number(a.total)
+
                     ||
+
                     Number(a.originalIndex) -
                     Number(b.originalIndex)
             );
+
 
     const bestAdditionalSubjects =
         nonCompulsorySubjects.slice(
@@ -1654,18 +2532,22 @@ function calculateFinalTermGrade(
             REQUIRED_BEST_ADDITIONAL
         );
 
+
     const subjectsCounted = [
         ...compulsorySubjects,
         ...bestAdditionalSubjects
     ];
 
+
     const validCompulsory =
         compulsorySubjects.length ===
         REQUIRED_COMPULSORY_SUBJECTS;
 
+
     const validAdditional =
         bestAdditionalSubjects.length ===
         REQUIRED_BEST_ADDITIONAL;
+
 
     const validFinal =
         validCompulsory &&
@@ -1673,12 +2555,18 @@ function calculateFinalTermGrade(
         subjectsCounted.length ===
         REQUIRED_FINAL_SUBJECTS;
 
+
     const finalTotal =
         subjectsCounted.reduce(
             (sum, item) =>
-                sum + Number(item.total || 0),
+                sum +
+                Number(
+                    item.total ||
+                    0
+                ),
             0
         );
+
 
     const finalAverage =
         subjectsCounted.length
@@ -1686,10 +2574,12 @@ function calculateFinalTermGrade(
               subjectsCounted.length
             : 0;
 
+
     const gradeInfo =
         calculateGrade(
             finalAverage
         );
+
 
     return {
 
@@ -1729,31 +2619,35 @@ function calculateOverall() {
     const subjects =
         collectSubjects();
 
+
     /*
-        ALL SUBJECTS SUMMARY
-
-        This is informational only.
-
-        It does NOT determine the official
-        final term grade.
+        ALL SUBJECTS INFORMATIONAL SUMMARY
     */
 
     const allTotal =
         subjects.reduce(
             (sum, item) =>
-                sum + Number(item.total || 0),
+                sum +
+                Number(
+                    item.total ||
+                    0
+                ),
             0
         );
 
+
     const allAverage =
         subjects.length
-            ? allTotal / subjects.length
+            ? allTotal /
+              subjects.length
             : 0;
+
 
     const allGradeInfo =
         calculateGrade(
             allAverage
         );
+
 
     if (overallSubjects) {
 
@@ -1762,12 +2656,16 @@ function calculateOverall() {
 
     }
 
+
     if (overallMarks) {
 
         overallMarks.textContent =
-            formatNumber(allTotal);
+            formatNumber(
+                allTotal
+            );
 
     }
+
 
     if (overallAverage) {
 
@@ -1775,6 +2673,7 @@ function calculateOverall() {
             `${formatNumber(allAverage)}%`;
 
     }
+
 
     if (overallGrade) {
 
@@ -1787,13 +2686,14 @@ function calculateOverall() {
 
 
     /*
-        OFFICIAL FINAL TERM CALCULATION
+        OFFICIAL FINAL CALCULATION
     */
 
     const finalCalculation =
         calculateFinalTermGrade(
             subjects
         );
+
 
     renderFinalCalculation(
         finalCalculation
@@ -1814,6 +2714,7 @@ function renderFinalCalculation(
         return;
     }
 
+
     const {
         compulsorySubjects,
         bestAdditionalSubjects,
@@ -1825,12 +2726,14 @@ function renderFinalCalculation(
         remark
     } = calculation;
 
+
     if (compulsorySubjectCount) {
 
         compulsorySubjectCount.textContent =
             `${compulsorySubjects.length} / ${REQUIRED_COMPULSORY_SUBJECTS}`;
 
     }
+
 
     if (bestAdditionalCount) {
 
@@ -1839,6 +2742,7 @@ function renderFinalCalculation(
 
     }
 
+
     if (finalSubjectsCount) {
 
         finalSubjectsCount.textContent =
@@ -1846,12 +2750,16 @@ function renderFinalCalculation(
 
     }
 
+
     if (finalTotalMarks) {
 
         finalTotalMarks.textContent =
-            formatNumber(finalTotal);
+            formatNumber(
+                finalTotal
+            );
 
     }
+
 
     if (finalAverage) {
 
@@ -1861,13 +2769,11 @@ function renderFinalCalculation(
     }
 
 
-    /*
-        COMPULSORY SUBJECT LIST
-    */
-
     if (selectedCompulsorySubjects) {
 
-        selectedCompulsorySubjects.innerHTML = "";
+        selectedCompulsorySubjects.innerHTML =
+            "";
+
 
         if (!compulsorySubjects.length) {
 
@@ -1880,13 +2786,18 @@ function renderFinalCalculation(
                 (item) => {
 
                     const li =
-                        document.createElement("li");
+                        document.createElement(
+                            "li"
+                        );
+
 
                     li.textContent =
                         `${item.subject} — ${formatNumber(item.total)} (${item.grade})`;
 
-                    selectedCompulsorySubjects
-                        .appendChild(li);
+
+                    selectedCompulsorySubjects.appendChild(
+                        li
+                    );
 
                 }
             );
@@ -1896,13 +2807,11 @@ function renderFinalCalculation(
     }
 
 
-    /*
-        BEST TWO SUBJECT LIST
-    */
-
     if (selectedBestSubjects) {
 
-        selectedBestSubjects.innerHTML = "";
+        selectedBestSubjects.innerHTML =
+            "";
+
 
         if (!bestAdditionalSubjects.length) {
 
@@ -1915,13 +2824,18 @@ function renderFinalCalculation(
                 (item) => {
 
                     const li =
-                        document.createElement("li");
+                        document.createElement(
+                            "li"
+                        );
+
 
                     li.textContent =
                         `${item.subject} — ${formatNumber(item.total)} (${item.grade})`;
 
-                    selectedBestSubjects
-                        .appendChild(li);
+
+                    selectedBestSubjects.appendChild(
+                        li
+                    );
 
                 }
             );
@@ -1931,19 +2845,17 @@ function renderFinalCalculation(
     }
 
 
-    /*
-        STATUS
-    */
-
     if (finalCalculationStatus) {
 
         finalCalculationStatus.className =
             "final-calculation-status";
 
+
         if (validFinal) {
 
             finalCalculationStatus.textContent =
-                `READY — ${grade} (${remark})`;
+                `READY — Grade ${grade} (${remark})`;
+
 
             finalCalculationStatus.classList.add(
                 "ready"
@@ -1954,6 +2866,7 @@ function renderFinalCalculation(
             finalCalculationStatus.textContent =
                 "INCOMPLETE";
 
+
             finalCalculationStatus.classList.add(
                 "warning"
             );
@@ -1963,10 +2876,6 @@ function renderFinalCalculation(
     }
 
 
-    /*
-        WARNING
-    */
-
     if (finalCalculationWarning) {
 
         if (validFinal) {
@@ -1974,12 +2883,14 @@ function renderFinalCalculation(
             finalCalculationWarning.style.display =
                 "none";
 
+
             finalCalculationWarning.textContent =
                 "";
 
         } else {
 
             const messages = [];
+
 
             if (
                 compulsorySubjects.length !==
@@ -1992,19 +2903,22 @@ function renderFinalCalculation(
 
             }
 
+
             if (
                 bestAdditionalSubjects.length <
                 REQUIRED_BEST_ADDITIONAL
             ) {
 
                 messages.push(
-                    `Enter at least ${REQUIRED_BEST_ADDITIONAL} non-compulsory subjects so the best 2 can be selected.`
+                    `At least ${REQUIRED_BEST_ADDITIONAL} non-compulsory subjects are required.`
                 );
 
             }
 
+
             finalCalculationWarning.textContent =
                 messages.join(" ");
+
 
             finalCalculationWarning.style.display =
                 "block";
@@ -2012,6 +2926,7 @@ function renderFinalCalculation(
         }
 
     }
+
 
     updateCountedSubjectRows();
 
@@ -2028,13 +2943,16 @@ function updateCountedSubjectRows() {
         return;
     }
 
+
     const subjects =
         collectSubjects();
+
 
     const calculation =
         calculateFinalTermGrade(
             subjects
         );
+
 
     const countedIndexes =
         new Set(
@@ -2044,6 +2962,7 @@ function updateCountedSubjectRows() {
             )
         );
 
+
     const compulsoryIndexes =
         new Set(
             calculation.compulsorySubjects.map(
@@ -2051,6 +2970,7 @@ function updateCountedSubjectRows() {
                     item.index
             )
         );
+
 
     const bestIndexes =
         new Set(
@@ -2060,85 +2980,101 @@ function updateCountedSubjectRows() {
             )
         );
 
+
     const rows =
         Array.from(
-            subjectTableBody.querySelectorAll("tr")
+            subjectTableBody.querySelectorAll(
+                "tr"
+            )
         );
 
-    rows.forEach((row, index) => {
 
-        row.classList.remove(
-            "subject-row-counted"
-        );
+    rows.forEach(
+        (row, index) => {
 
-        const subjectInput =
-            row.querySelector(
-                ".subject-name-input"
-            );
-
-        if (!subjectInput) {
-            return;
-        }
-
-        const oldBadges =
-            row.querySelectorAll(
-                ".counted-badge"
-            );
-
-        oldBadges.forEach(
-            (badge) => badge.remove()
-        );
-
-        const indicator =
-            row.querySelector(
-                ".counted-indicator"
-            );
-
-        if (indicator) {
-            indicator.remove();
-        }
-
-        if (
-            countedIndexes.has(index)
-        ) {
-
-            row.classList.add(
+            row.classList.remove(
                 "subject-row-counted"
             );
 
-            const badge =
-                document.createElement("span");
 
-            badge.className =
-                "counted-badge";
-
-            if (
-                bestIndexes.has(index)
-            ) {
-
-                badge.classList.add(
-                    "best-badge"
+            const subjectInput =
+                row.querySelector(
+                    ".subject-name-input"
                 );
 
-                badge.textContent =
-                    "BEST 2";
 
-            } else if (
-                compulsoryIndexes.has(index)
+            if (!subjectInput) {
+                return;
+            }
+
+
+            row.querySelectorAll(
+                ".counted-badge"
+            ).forEach(
+                (badge) =>
+                    badge.remove()
+            );
+
+
+            row.querySelectorAll(
+                ".counted-indicator"
+            ).forEach(
+                (indicator) =>
+                    indicator.remove()
+            );
+
+
+            if (
+                countedIndexes.has(index)
             ) {
 
-                badge.textContent =
-                    "COMPULSORY";
+                row.classList.add(
+                    "subject-row-counted"
+                );
+
+
+                const badge =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                badge.className =
+                    "counted-badge";
+
+
+                if (
+                    bestIndexes.has(index)
+                ) {
+
+                    badge.classList.add(
+                        "best-badge"
+                    );
+
+
+                    badge.textContent =
+                        "BEST 2";
+
+                } else if (
+                    compulsoryIndexes.has(index)
+                ) {
+
+                    badge.textContent =
+                        "COMPULSORY";
+
+                }
+
+
+                subjectInput
+                    .parentElement
+                    .appendChild(
+                        badge
+                    );
 
             }
 
-            subjectInput
-                .parentElement
-                .appendChild(badge);
-
         }
-
-    });
+    );
 
 }
 
@@ -2153,10 +3089,14 @@ function updateRowNumbers() {
         return;
     }
 
+
     const rows =
         Array.from(
-            subjectTableBody.querySelectorAll("tr")
+            subjectTableBody.querySelectorAll(
+                "tr"
+            )
         );
+
 
     rows.forEach(
         (row, index) => {
@@ -2166,9 +3106,12 @@ function updateRowNumbers() {
                     ".row-number"
                 );
 
+
             if (number) {
+
                 number.textContent =
                     index + 1;
+
             }
 
         }
@@ -2197,11 +3140,31 @@ async function saveResult(
 
         }
 
+
+        const organizationId =
+            getOrganizationId();
+
+
+        if (!organizationId) {
+
+            alert(
+                "Your organization could not be identified. Please log out and log in again."
+            );
+
+            return;
+
+        }
+
+
         const academicYearValue =
-            academicYear.value.trim();
+            academicYear?.value.trim() ||
+            "";
+
 
         const termValue =
-            termSelect.value;
+            termSelect?.value ||
+            "";
+
 
         if (!academicYearValue) {
 
@@ -2213,6 +3176,7 @@ async function saveResult(
 
         }
 
+
         if (!termValue) {
 
             alert(
@@ -2223,8 +3187,10 @@ async function saveResult(
 
         }
 
+
         const subjects =
             collectSubjects();
+
 
         if (!subjects.length) {
 
@@ -2236,53 +3202,58 @@ async function saveResult(
 
         }
 
+
         const finalCalculation =
             calculateFinalTermGrade(
                 subjects
             );
 
-        /*
-            The official result MUST contain:
 
-            4 compulsory subjects
-            +
-            2 best additional subjects
-            =
-            6 final subjects
-        */
-
-        if (!finalCalculation.validFinal) {
+        if (
+            !finalCalculation.validFinal
+        ) {
 
             alert(
+
                 "The result cannot be saved because the official final calculation is incomplete.\n\n" +
+
                 `You must select exactly ${REQUIRED_COMPULSORY_SUBJECTS} compulsory subjects and have at least ${REQUIRED_BEST_ADDITIONAL} additional subjects.`
+
             );
 
             return;
 
         }
 
+
         const allTotal =
             subjects.reduce(
                 (sum, item) =>
-                    sum + Number(item.total || 0),
+                    sum +
+                    Number(
+                        item.total ||
+                        0
+                    ),
                 0
             );
 
+
         const allAverage =
             subjects.length
-                ? allTotal / subjects.length
+                ? allTotal /
+                  subjects.length
                 : 0;
+
 
         const allGradeInfo =
             calculateGrade(
                 allAverage
             );
 
+
         const resultData = {
 
-            organizationId:
-                getOrganizationId(),
+            organizationId,
 
             studentId:
                 selectedStudent.id,
@@ -2291,11 +3262,14 @@ async function saveResult(
                 selectedStudent.id,
 
             studentName:
-                getStudentName(selectedStudent),
+                getStudentName(
+                    selectedStudent
+                ),
 
             studentNumber:
                 selectedStudent.studentId ||
                 selectedStudent.admissionNumber ||
+                selectedStudent.studentNumber ||
                 "",
 
             classId:
@@ -2303,7 +3277,9 @@ async function saveResult(
 
             className:
                 getSelectedClassName() ||
-                getStudentClass(selectedStudent),
+                getStudentClass(
+                    selectedStudent
+                ),
 
             academicYear:
                 academicYearValue,
@@ -2311,21 +3287,10 @@ async function saveResult(
             term:
                 termValue,
 
-            /*
-                ALL entered subjects remain stored.
-            */
-
             subjects,
 
             subjectCount:
                 subjects.length,
-
-            /*
-                OFFICIAL FINAL VALUES
-
-                These are based ONLY on the
-                4 compulsory + best 2 = 6 subjects.
-            */
 
             totalMarks:
                 roundNumber(
@@ -2342,10 +3307,6 @@ async function saveResult(
 
             overallRemark:
                 finalCalculation.remark,
-
-            /*
-                Detailed official calculation
-            */
 
             finalCalculation: {
 
@@ -2400,21 +3361,20 @@ async function saveResult(
 
             },
 
-            /*
-                Informational summary for all
-                entered subjects.
-            */
-
             allSubjectsSummary: {
 
                 subjectCount:
                     subjects.length,
 
                 totalMarks:
-                    roundNumber(allTotal),
+                    roundNumber(
+                        allTotal
+                    ),
 
                 average:
-                    roundNumber(allAverage),
+                    roundNumber(
+                        allAverage
+                    ),
 
                 grade:
                     allGradeInfo.grade,
@@ -2425,13 +3385,16 @@ async function saveResult(
             },
 
             position:
-                positionInput?.value.trim() || "",
+                positionInput?.value.trim() ||
+                "",
 
             teacherComment:
-                teacherComment?.value.trim() || "",
+                teacherComment?.value.trim() ||
+                "",
 
             principalComment:
-                principalComment?.value.trim() || "",
+                principalComment?.value.trim() ||
+                "",
 
             status,
 
@@ -2442,7 +3405,8 @@ async function saveResult(
                 currentUser.uid,
 
             updatedByEmail:
-                currentUser.email || "",
+                currentUser.email ||
+                "",
 
             parentUid:
                 selectedStudent.parentUid ||
@@ -2452,9 +3416,9 @@ async function saveResult(
         };
 
 
-        /*
-            UPDATE EXISTING RESULT
-        */
+        /* ----------------------------------------------------
+           UPDATE
+        ---------------------------------------------------- */
 
         if (currentResult?.id) {
 
@@ -2467,24 +3431,33 @@ async function saveResult(
                 resultData
             );
 
+
             const updatedResult = {
+
                 ...currentResult,
+
                 ...resultData,
-                id: currentResult.id
+
+                id:
+                    currentResult.id
+
             };
+
 
             replaceLocalResult(
                 updatedResult
             );
+
 
             currentResult =
                 updatedResult;
 
         }
 
-        /*
-            CREATE NEW RESULT
-        */
+
+        /* ----------------------------------------------------
+           CREATE
+        ---------------------------------------------------- */
 
         else {
 
@@ -2499,9 +3472,11 @@ async function saveResult(
                     currentUser.uid,
 
                 createdByEmail:
-                    currentUser.email || ""
+                    currentUser.email ||
+                    ""
 
             };
+
 
             const resultRef =
                 await addDoc(
@@ -2512,10 +3487,16 @@ async function saveResult(
                     newData
                 );
 
+
             currentResult = {
-                id: resultRef.id,
+
+                id:
+                    resultRef.id,
+
                 ...resultData
+
             };
+
 
             allResults.push(
                 currentResult
@@ -2533,15 +3514,18 @@ async function saveResult(
 
         }
 
+
         updateStatistics();
 
         renderExistingResults();
+
 
         alert(
             status === "published"
                 ? "Result saved and published successfully."
                 : "Result saved as draft successfully."
         );
+
 
     } catch (error) {
 
@@ -2550,8 +3534,9 @@ async function saveResult(
             error
         );
 
+
         alert(
-            error.message ||
+            error?.message ||
             "Unable to save result."
         );
 
@@ -2561,7 +3546,7 @@ async function saveResult(
 
 
 /* ============================================================
-   RENDER EXISTING RESULT INTO EDITOR
+   RENDER EXISTING RESULT
 ============================================================ */
 
 function renderResultIntoEditor(
@@ -2575,40 +3560,50 @@ function renderResultIntoEditor(
             result.studentDocumentId
         );
 
+
     if (!selectedStudent) {
 
         selectedStudent = {
+
             id:
                 result.studentId ||
                 result.studentDocumentId,
 
             studentId:
-                result.studentNumber || "",
+                result.studentNumber ||
+                "",
 
             name:
                 result.studentName,
 
             class:
                 result.className
+
         };
 
     }
 
+
     showResultEditor();
+
 
     if (academicYear) {
 
         academicYear.value =
-            result.academicYear || "";
+            result.academicYear ||
+            "";
 
     }
+
 
     if (termSelect) {
 
         termSelect.value =
-            result.term || "";
+            result.term ||
+            "";
 
     }
+
 
     if (resultStatus) {
 
@@ -2619,59 +3614,65 @@ function renderResultIntoEditor(
 
     }
 
+
     if (positionInput) {
 
         positionInput.value =
-            result.position || "";
+            result.position ||
+            "";
 
     }
+
 
     if (teacherComment) {
 
         teacherComment.value =
-            result.teacherComment || "";
+            result.teacherComment ||
+            "";
 
     }
+
 
     if (principalComment) {
 
         principalComment.value =
-            result.principalComment || "";
+            result.principalComment ||
+            "";
 
     }
 
+
     if (subjectTableBody) {
 
-        subjectTableBody.innerHTML = "";
+        subjectTableBody.innerHTML =
+            "";
+
 
         const subjects =
-            Array.isArray(result.subjects)
+            Array.isArray(
+                result.subjects
+            )
                 ? result.subjects
                 : [];
 
+
+        const legacyCompulsory =
+            getLegacyCompulsorySubjects(
+                result
+            );
+
+
         subjects.forEach(
-            (subject, index) => {
+            (subject) => {
 
                 let isCompulsory =
                     subject.isCompulsory === true;
 
-                /*
-                    Legacy compatibility.
-
-                    Older results may not have isCompulsory.
-                    If finalCalculation exists, use it to identify
-                    the official compulsory subjects.
-                */
 
                 if (
                     typeof subject.isCompulsory !==
                     "boolean"
                 ) {
-
-                    const legacyCompulsory =
-                        getLegacyCompulsorySubjects(
-                            result
-                        );
 
                     isCompulsory =
                         legacyCompulsory.has(
@@ -2682,31 +3683,36 @@ function renderResultIntoEditor(
 
                 }
 
-                /*
-                    Older records may have "ca".
-                    In this version CA is treated as Test.
-                */
 
                 const test =
                     subject.test ??
                     subject.ca ??
                     0;
 
+
                 const exam =
                     subject.exam ??
                     0;
 
+
                 addSubjectRow(
-                    subject.subject || "",
+
+                    subject.subject ||
+                    "",
+
                     test,
+
                     exam,
+
                     isCompulsory
+
                 );
 
             }
         );
 
     }
+
 
     calculateOverall();
 
@@ -2723,6 +3729,7 @@ function getLegacyCompulsorySubjects(
 
     const names =
         new Set();
+
 
     if (
         result?.finalCalculation
@@ -2749,6 +3756,7 @@ function getLegacyCompulsorySubjects(
 
     }
 
+
     if (!names.size) {
 
         [
@@ -2757,13 +3765,19 @@ function getLegacyCompulsorySubjects(
             "SCIENCE",
             "SOCIAL & ENV. STUDIES"
         ].forEach(
-            (name) =>
+            (name) => {
+
                 names.add(
-                    normalizeSubjectName(name)
-                )
+                    normalizeSubjectName(
+                        name
+                    )
+                );
+
+            }
         );
 
     }
+
 
     return names;
 
@@ -2781,16 +3795,105 @@ async function publishExistingResult(
     try {
 
         const subjects =
-            Array.isArray(result.subjects)
+            Array.isArray(
+                result.subjects
+            )
                 ? result.subjects
                 : [];
 
-        const calculation =
-            calculateFinalTermGrade(
-                subjects
+
+        /*
+            Existing database records may contain old
+            subject structures.
+
+            Normalize them before calculation.
+        */
+
+        const normalizedSubjects =
+            subjects.map(
+                (subject, index) => {
+
+                    const test =
+                        Number(
+                            subject.test ??
+                            subject.ca ??
+                            0
+                        );
+
+
+                    const exam =
+                        Number(
+                            subject.exam ??
+                            0
+                        );
+
+
+                    const total =
+                        (
+                            test *
+                            TEST_WEIGHT
+                        ) +
+                        (
+                            exam *
+                            EXAM_WEIGHT
+                        );
+
+
+                    const gradeInfo =
+                        calculateGrade(
+                            total
+                        );
+
+
+                    return {
+
+                        index,
+
+                        subject:
+                            subject.subject ||
+                            `Subject ${index + 1}`,
+
+                        test,
+
+                        exam,
+
+                        testWeighted:
+                            test *
+                            TEST_WEIGHT,
+
+                        examWeighted:
+                            exam *
+                            EXAM_WEIGHT,
+
+                        ca:
+                            test,
+
+                        total,
+
+                        grade:
+                            gradeInfo.grade,
+
+                        remark:
+                            gradeInfo.remark,
+
+                        isCompulsory:
+                            subject.isCompulsory === true
+
+                    };
+
+                }
             );
 
-        if (!calculation.validFinal) {
+
+        const calculation =
+            calculateFinalTermGrade(
+                normalizedSubjects
+            );
+
+
+        if (
+            !calculation.validFinal
+        ) {
 
             alert(
                 "This result cannot be published because it does not have exactly 4 compulsory subjects and at least 2 additional subjects."
@@ -2799,6 +3902,7 @@ async function publishExistingResult(
             return;
 
         }
+
 
         const calculationData = {
 
@@ -2812,19 +3916,22 @@ async function publishExistingResult(
                 75,
 
             compulsorySubjects:
-                calculation.compulsorySubjects
+                calculation
+                    .compulsorySubjects
                     .map(
                         cleanCalculationSubject
                     ),
 
             bestAdditionalSubjects:
-                calculation.bestAdditionalSubjects
+                calculation
+                    .bestAdditionalSubjects
                     .map(
                         cleanCalculationSubject
                     ),
 
             subjectsCounted:
-                calculation.subjectsCounted
+                calculation
+                    .subjectsCounted
                     .map(
                         cleanCalculationSubject
                     ),
@@ -2849,6 +3956,7 @@ async function publishExistingResult(
                 calculation.remark
 
         };
+
 
         await updateDoc(
             doc(
@@ -2885,7 +3993,9 @@ async function publishExistingResult(
             }
         );
 
+
         const updated = {
+
             ...result,
 
             status:
@@ -2905,19 +4015,24 @@ async function publishExistingResult(
 
             finalCalculation:
                 calculationData
+
         };
+
 
         replaceLocalResult(
             updated
         );
 
+
         renderExistingResults();
 
         updateStatistics();
 
+
         alert(
             "Result published successfully."
         );
+
 
     } catch (error) {
 
@@ -2926,8 +4041,9 @@ async function publishExistingResult(
             error
         );
 
+
         alert(
-            error.message ||
+            error?.message ||
             "Unable to publish result."
         );
 
@@ -2946,11 +4062,16 @@ function renderExistingResults() {
         return;
     }
 
+
     const classFilter =
-        resultClassFilter?.value || "";
+        resultClassFilter?.value ||
+        "";
+
 
     const termFilter =
-        resultTermFilter?.value || "";
+        resultTermFilter?.value ||
+        "";
+
 
     const search =
         (
@@ -2960,8 +4081,10 @@ function renderExistingResults() {
             .trim()
             .toLowerCase();
 
+
     let filtered =
         [...allResults];
+
 
     if (classFilter) {
 
@@ -2978,16 +4101,23 @@ function renderExistingResults() {
 
     }
 
+
     if (termFilter) {
 
         filtered =
             filtered.filter(
                 (result) =>
-                    String(result.term || "") ===
-                    String(termFilter)
+                    String(
+                        result.term ||
+                        ""
+                    ) ===
+                    String(
+                        termFilter
+                    )
             );
 
     }
+
 
     if (search) {
 
@@ -2995,16 +4125,24 @@ function renderExistingResults() {
             filtered.filter(
                 (result) => {
 
-                    const text = [
-                        result.studentName,
-                        result.studentNumber,
-                        result.className,
-                        result.academicYear,
-                        result.term
-                    ]
-                        .filter(Boolean)
-                        .join(" ")
-                        .toLowerCase();
+                    const text =
+                        [
+
+                            result.studentName,
+
+                            result.studentNumber,
+
+                            result.className,
+
+                            result.academicYear,
+
+                            result.term
+
+                        ]
+                            .filter(Boolean)
+                            .join(" ")
+                            .toLowerCase();
+
 
                     return text.includes(
                         search
@@ -3014,6 +4152,7 @@ function renderExistingResults() {
             );
 
     }
+
 
     filtered.sort(
         (a, b) => {
@@ -3026,81 +4165,113 @@ function renderExistingResults() {
                     b.className
                 );
 
-            if (classDifference !== 0) {
+
+            if (
+                classDifference !==
+                0
+            ) {
+
                 return classDifference;
+
             }
 
+
             return String(
-                a.studentName || ""
+                a.studentName ||
+                ""
             ).localeCompare(
                 String(
-                    b.studentName || ""
+                    b.studentName ||
+                    ""
                 )
             );
 
         }
     );
 
-    existingResultsBody.innerHTML = "";
+
+    existingResultsBody.innerHTML =
+        "";
+
 
     if (!filtered.length) {
 
         if (existingResultsEmpty) {
+
             existingResultsEmpty.style.display =
                 "block";
+
         }
 
         return;
 
     }
 
+
     if (existingResultsEmpty) {
+
         existingResultsEmpty.style.display =
             "none";
+
     }
+
 
     filtered.forEach(
         (result) => {
 
             const row =
-                document.createElement("tr");
+                document.createElement(
+                    "tr"
+                );
+
 
             const subjectsCount =
-                Array.isArray(result.subjects)
+                Array.isArray(
+                    result.subjects
+                )
                     ? result.subjects.length
-                    : result.subjectCount || 0;
+                    : result.subjectCount ||
+                      0;
+
 
             const status =
-                result.status === "published"
+                result.status ===
+                "published"
                     ? "Published"
                     : "Draft";
+
 
             row.innerHTML = `
 
                 <td>
+
                     <strong>
                         ${escapeHtml(
                             result.studentName ||
                             "Unknown Student"
                         )}
                     </strong>
+
                 </td>
 
                 <td>
                     ${escapeHtml(
-                        result.className || "-"
+                        result.className ||
+                        "-"
                     )}
                 </td>
 
                 <td>
                     ${escapeHtml(
-                        result.academicYear || "-"
+                        result.academicYear ||
+                        "-"
                     )}
                 </td>
 
                 <td>
                     ${escapeHtml(
-                        result.term || "-"
+                        result.term ||
+                        "-"
                     )}
                 </td>
 
@@ -3110,32 +4281,39 @@ function renderExistingResults() {
 
                 <td>
                     ${formatNumber(
-                        result.totalMarks || 0
+                        result.totalMarks ||
+                        0
                     )}
                 </td>
 
                 <td>
                     ${formatNumber(
-                        result.average || 0
+                        result.average ||
+                        0
                     )}%
                 </td>
 
                 <td>
+
                     <strong>
                         ${escapeHtml(
-                            result.overallGrade || "-"
+                            result.overallGrade ||
+                            "-"
                         )}
                     </strong>
+
                 </td>
 
                 <td>
 
                     <span class="${
-                        status === "published"
+                        status === "Published"
                             ? "status-published"
                             : "status-draft"
                     }">
+
                         ${status}
+
                     </span>
 
                 </td>
@@ -3153,7 +4331,7 @@ function renderExistingResults() {
                     </button>
 
                     ${
-                        status !== "published"
+                        status !== "Published"
                             ? `
                                 <button
                                     type="button"
@@ -3164,7 +4342,7 @@ function renderExistingResults() {
                                 >
                                     Publish
                                 </button>
-                              `
+                            `
                             : ""
                     }
 
@@ -3172,12 +4350,14 @@ function renderExistingResults() {
 
             `;
 
+
             existingResultsBody.appendChild(
                 row
             );
 
         }
     );
+
 
     attachExistingResultActions();
 
@@ -3190,10 +4370,16 @@ function renderExistingResults() {
 
 function attachExistingResultActions() {
 
+    if (!existingResultsBody) {
+        return;
+    }
+
+
     const editButtons =
         existingResultsBody.querySelectorAll(
             ".edit-result-btn"
         );
+
 
     editButtons.forEach(
         (button) => {
@@ -3205,21 +4391,26 @@ function attachExistingResultActions() {
                     const result =
                         allResults.find(
                             (item) =>
-                                String(item.id) ===
+                                String(
+                                    item.id
+                                ) ===
                                 String(
                                     button.dataset.id
                                 )
                         );
 
+
                     if (!result) {
                         return;
                     }
+
 
                     selectedStudent =
                         findStudentInAllClasses(
                             result.studentId ||
                             result.studentDocumentId
                         );
+
 
                     if (
                         !selectedStudent
@@ -3245,18 +4436,25 @@ function attachExistingResultActions() {
 
                     }
 
+
                     selectStudentInForm(
                         selectedStudent
                     );
+
 
                     renderResultIntoEditor(
                         result
                     );
 
-                    resultEditor.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start"
-                    });
+
+                    if (resultEditor) {
+
+                        resultEditor.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start"
+                        });
+
+                    }
 
                 }
             );
@@ -3270,6 +4468,7 @@ function attachExistingResultActions() {
             ".publish-existing-btn"
         );
 
+
     publishButtons.forEach(
         (button) => {
 
@@ -3280,15 +4479,19 @@ function attachExistingResultActions() {
                     const result =
                         allResults.find(
                             (item) =>
-                                String(item.id) ===
+                                String(
+                                    item.id
+                                ) ===
                                 String(
                                     button.dataset.id
                                 )
                         );
 
+
                     if (!result) {
                         return;
                     }
+
 
                     publishExistingResult(
                         result
@@ -3315,8 +4518,12 @@ function selectStudentInForm(
         return;
     }
 
+
     const studentClass =
-        getStudentClass(student);
+        getStudentClass(
+            student
+        );
+
 
     const matchingClass =
         classes.find(
@@ -3329,6 +4536,7 @@ function selectStudentInForm(
                 )
         );
 
+
     if (
         matchingClass &&
         classSelect
@@ -3337,9 +4545,11 @@ function selectStudentInForm(
         classSelect.value =
             matchingClass.id;
 
+
         handleClassChange();
 
     }
+
 
     if (studentSelect) {
 
@@ -3348,6 +4558,7 @@ function selectStudentInForm(
 
     }
 
+
     selectedStudent =
         student;
 
@@ -3355,7 +4566,7 @@ function selectStudentInForm(
 
 
 /* ============================================================
-   UPDATE STATISTICS
+   STATISTICS
 ============================================================ */
 
 function updateStatistics() {
@@ -3367,12 +4578,14 @@ function updateStatistics() {
 
     }
 
+
     if (resultsEntered) {
 
         resultsEntered.textContent =
             allResults.length;
 
     }
+
 
     if (publishedResults) {
 
@@ -3385,12 +4598,14 @@ function updateStatistics() {
 
     }
 
+
     if (totalClasses) {
 
         totalClasses.textContent =
             classes.length;
 
     }
+
 
     renderExistingResults();
 
@@ -3408,9 +4623,14 @@ function replaceLocalResult(
     const index =
         allResults.findIndex(
             (result) =>
-                String(result.id) ===
-                String(updatedResult.id)
+                String(
+                    result.id
+                ) ===
+                String(
+                    updatedResult.id
+                )
         );
+
 
     if (index === -1) {
 
@@ -3421,6 +4641,7 @@ function replaceLocalResult(
         return;
 
     }
+
 
     allResults[index] =
         updatedResult;
@@ -3437,7 +4658,11 @@ function calculateGrade(
 ) {
 
     const score =
-        Number(mark || 0);
+        Number(
+            mark ||
+            0
+        );
+
 
     if (score >= 90) {
 
@@ -3448,6 +4673,7 @@ function calculateGrade(
 
     }
 
+
     if (score >= 81) {
 
         return {
@@ -3456,6 +4682,7 @@ function calculateGrade(
         };
 
     }
+
 
     if (score >= 76) {
 
@@ -3466,6 +4693,7 @@ function calculateGrade(
 
     }
 
+
     if (score >= 71) {
 
         return {
@@ -3474,6 +4702,7 @@ function calculateGrade(
         };
 
     }
+
 
     if (score >= 66) {
 
@@ -3484,6 +4713,7 @@ function calculateGrade(
 
     }
 
+
     if (score >= 56) {
 
         return {
@@ -3492,6 +4722,7 @@ function calculateGrade(
         };
 
     }
+
 
     if (score >= 50) {
 
@@ -3502,6 +4733,7 @@ function calculateGrade(
 
     }
 
+
     if (score >= 40) {
 
         return {
@@ -3511,16 +4743,21 @@ function calculateGrade(
 
     }
 
+
     return {
+
         grade: "9",
-        remark: "Fail"
+
+        remark:
+            "Fail"
+
     };
 
 }
 
 
 /* ============================================================
-   HELPER: CLEAN CALCULATION SUBJECT
+   CLEAN CALCULATION SUBJECT
 ============================================================ */
 
 function cleanCalculationSubject(
@@ -3541,12 +4778,39 @@ function cleanCalculationSubject(
 
         exam:
             roundNumber(
-                item.exam || 0
+                item.exam ??
+                0
+            ),
+
+        testWeighted:
+            roundNumber(
+                item.testWeighted ??
+                (
+                    Number(
+                        item.test ??
+                        item.ca ??
+                        0
+                    ) *
+                    TEST_WEIGHT
+                )
+            ),
+
+        examWeighted:
+            roundNumber(
+                item.examWeighted ??
+                (
+                    Number(
+                        item.exam ??
+                        0
+                    ) *
+                    EXAM_WEIGHT
+                )
             ),
 
         total:
             roundNumber(
-                item.total || 0
+                item.total ||
+                0
             ),
 
         grade:
@@ -3575,30 +4839,47 @@ function getOrganizationId() {
         return null;
     }
 
-    if (typeof currentOrganization === "string") {
+
+    if (
+        typeof currentOrganization ===
+        "string"
+    ) {
+
         return currentOrganization;
+
     }
 
+
     return (
+
         currentOrganization.id ||
+
         currentOrganization.uid ||
+
         currentOrganization.organizationId ||
+
         null
+
     );
 
 }
 
 
 /* ============================================================
-   CLASS HELPERS
+   SELECTED CLASS ID
 ============================================================ */
 
 function getSelectedClassId() {
 
-    return classSelect?.value || "";
+    return classSelect?.value ||
+        "";
 
 }
 
+
+/* ============================================================
+   SELECTED CLASS NAME
+============================================================ */
 
 function getSelectedClassName() {
 
@@ -3606,12 +4887,18 @@ function getSelectedClassName() {
         return "";
     }
 
+
     const selected =
         classes.find(
             (item) =>
-                String(item.id) ===
-                String(classSelect.value)
+                String(
+                    item.id
+                ) ===
+                String(
+                    classSelect.value
+                )
         );
+
 
     return selected
         ? getClassName(selected)
@@ -3619,6 +4906,10 @@ function getSelectedClassName() {
 
 }
 
+
+/* ============================================================
+   CLASS NAME
+============================================================ */
 
 function getClassName(
     classItem
@@ -3628,15 +4919,25 @@ function getClassName(
         return "";
     }
 
+
     return (
+
         classItem.name ||
+
         classItem.className ||
+
         classItem.title ||
+
         ""
+
     );
 
 }
 
+
+/* ============================================================
+   STUDENT CLASS
+============================================================ */
 
 function getStudentClass(
     student
@@ -3646,16 +4947,29 @@ function getStudentClass(
         return "";
     }
 
+
     return (
+
         student.className ||
+
         student.class ||
+
         student.grade ||
+
         student.form ||
+
+        student.classId ||
+
         ""
+
     );
 
 }
 
+
+/* ============================================================
+   STUDENT NAME
+============================================================ */
 
 function getStudentName(
     student
@@ -3665,9 +4979,13 @@ function getStudentName(
         return "Unknown Student";
     }
 
+
     return (
+
         student.name ||
+
         student.fullName ||
+
         [
             student.firstName,
             student.middleName,
@@ -3675,7 +4993,9 @@ function getStudentName(
         ]
             .filter(Boolean)
             .join(" ") ||
+
         "Unknown Student"
+
     );
 
 }
@@ -3691,13 +5011,33 @@ function findStudentInAllClasses(
 
     return students.find(
         (student) =>
-            String(student.id) ===
-            String(studentId)
-            ||
+
             String(
-                student.studentId || ""
+                student.id
             ) ===
-            String(studentId)
+            String(
+                studentId
+            )
+
+            ||
+
+            String(
+                student.studentId ||
+                ""
+            ) ===
+            String(
+                studentId
+            )
+
+            ||
+
+            String(
+                student.admissionNumber ||
+                ""
+            ) ===
+            String(
+                studentId
+            )
     );
 
 }
@@ -3712,11 +5052,15 @@ function normalizeClass(
 ) {
 
     return String(
-        value || ""
+        value ||
+        ""
     )
         .trim()
         .toLowerCase()
-        .replace(/\s+/g, " ");
+        .replace(
+            /\s+/g,
+            " "
+        );
 
 }
 
@@ -3730,17 +5074,21 @@ function normalizeSubjectName(
 ) {
 
     return String(
-        value || ""
+        value ||
+        ""
     )
         .trim()
         .toLowerCase()
-        .replace(/\s+/g, " ");
+        .replace(
+            /\s+/g,
+            " "
+        );
 
 }
 
 
 /* ============================================================
-   CLASS SORT
+   CLASS ORDER
 ============================================================ */
 
 function getClassOrder(
@@ -3752,12 +5100,16 @@ function getClassOrder(
             className
         );
 
+
     const index =
         CLASS_ORDER.findIndex(
             (name) =>
-                normalizeClass(name) ===
+                normalizeClass(
+                    name
+                ) ===
                 normalized
         );
+
 
     return index === -1
         ? 999
@@ -3796,9 +5148,17 @@ function clampNumber(
     const number =
         Number(value);
 
-    if (!Number.isFinite(number)) {
+
+    if (
+        !Number.isFinite(
+            number
+        )
+    ) {
+
         return 0;
+
     }
+
 
     return Math.min(
         max,
@@ -3811,17 +5171,28 @@ function clampNumber(
 }
 
 
+/* ============================================================
+   ROUND NUMBER
+============================================================ */
+
 function roundNumber(
     value
 ) {
 
     return Math.round(
-        Number(value || 0) *
+        Number(
+            value ||
+            0
+        ) *
         100
     ) / 100;
 
 }
 
+
+/* ============================================================
+   SAFE NUMBER
+============================================================ */
 
 function safeNumber(
     value
@@ -3830,19 +5201,27 @@ function safeNumber(
     const number =
         Number(value);
 
-    return Number.isFinite(number)
+
+    return Number.isFinite(
+        number
+    )
         ? number
         : 0;
 
 }
 
 
+/* ============================================================
+   FORMAT NUMBER
+============================================================ */
+
 function formatNumber(
     value
 ) {
 
     return Number(
-        value || 0
+        value ||
+        0
     ).toFixed(2);
 
 }
@@ -3855,70 +5234,110 @@ function formatNumber(
 function resetCalculationDisplay() {
 
     if (overallSubjects) {
-        overallSubjects.textContent = "0";
+
+        overallSubjects.textContent =
+            "0";
+
     }
+
 
     if (overallMarks) {
-        overallMarks.textContent = "0.00";
+
+        overallMarks.textContent =
+            "0.00";
+
     }
+
 
     if (overallAverage) {
-        overallAverage.textContent = "0.00%";
+
+        overallAverage.textContent =
+            "0.00%";
+
     }
+
 
     if (overallGrade) {
-        overallGrade.textContent = "-";
+
+        overallGrade.textContent =
+            "-";
+
     }
+
 
     if (compulsorySubjectCount) {
+
         compulsorySubjectCount.textContent =
             "0 / 4";
+
     }
+
 
     if (bestAdditionalCount) {
+
         bestAdditionalCount.textContent =
             "0 / 2";
+
     }
+
 
     if (finalSubjectsCount) {
+
         finalSubjectsCount.textContent =
             "0 / 6";
+
     }
+
 
     if (finalTotalMarks) {
+
         finalTotalMarks.textContent =
             "0.00";
+
     }
+
 
     if (finalAverage) {
+
         finalAverage.textContent =
             "0.00%";
+
     }
+
 
     if (selectedCompulsorySubjects) {
+
         selectedCompulsorySubjects.innerHTML =
             "<li>None selected</li>";
+
     }
 
+
     if (selectedBestSubjects) {
+
         selectedBestSubjects.innerHTML =
             "<li>None available</li>";
+
     }
+
 
     if (finalCalculationStatus) {
 
         finalCalculationStatus.className =
             "final-calculation-status";
 
+
         finalCalculationStatus.textContent =
             "Waiting";
 
     }
 
+
     if (finalCalculationWarning) {
 
         finalCalculationWarning.style.display =
             "none";
+
 
         finalCalculationWarning.textContent =
             "";
@@ -3936,10 +5355,14 @@ async function handleLogout() {
 
     try {
 
-        await signOut(auth);
+        await signOut(
+            auth
+        );
+
 
         window.location.href =
             "index.html";
+
 
     } catch (error) {
 
@@ -3947,6 +5370,7 @@ async function handleLogout() {
             "Logout error:",
             error
         );
+
 
         alert(
             "Unable to logout. Please try again."
@@ -3966,15 +5390,24 @@ function showError(
 ) {
 
     if (loadingScreen) {
+
         loadingScreen.style.display =
             "none";
+
     }
 
+
     if (mainContent) {
+
         mainContent.classList.add(
             "hidden"
         );
+
+        mainContent.style.display =
+            "none";
+
     }
+
 
     if (errorMessage) {
 
@@ -3982,6 +5415,7 @@ function showError(
             message;
 
     }
+
 
     if (errorScreen) {
 
@@ -4002,21 +5436,43 @@ function escapeHtml(
 ) {
 
     return String(
-        value ?? ""
+        value ??
+        ""
     )
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 
 }
 
+
+/* ============================================================
+   ATTRIBUTE ESCAPING
+============================================================ */
 
 function escapeAttribute(
     value
 ) {
 
-    return escapeHtml(value);
+    return escapeHtml(
+        value
+    );
 
 }
