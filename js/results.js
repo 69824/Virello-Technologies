@@ -28,12 +28,18 @@ Nursery 3
 Grade 1
 Grade 2
 Grade 3
-Grade 4
-Grade 5
-Grade 6
-Grade 7
-Grade 8
-Grade 9
+Grade 4A
+Grade 4B
+Grade 5A
+Grade 5B
+Grade 6A
+Grade 6B
+Grade 7A
+Grade 7B
+Grade 8A
+Grade 8B
+Grade 9A
+Grade 9B
 ========================================================= */
 
 /* =========================================================
@@ -225,13 +231,18 @@ const CLASS_ORDER = [
 "Grade 1",
 "Grade 2",
 "Grade 3",
-"Grade 4",
-"Grade 5",
-"Grade 6",
-"Grade 7",
-"Grade 8",
-"Grade 9"
-
+"Grade 4A",
+"Grade 4B",
+"Grade 5A",
+"Grade 5B",
+"Grade 6A",
+"Grade 6B",
+"Grade 7A",
+"Grade 7B",
+"Grade 8A",
+"Grade 8B",
+"Grade 9A",
+"Grade 9B"
 
 ];
 
