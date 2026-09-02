@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Result Portal | Star Preparatory School</title>
+
+    <meta
+        name="description"
+        content="Star Preparatory School online student result portal."
+    >
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary: #0b3d91;
+            --primary-dark: #082d6b;
+            --secondary: #f4b400;
+            --success: #16803c;
+            --danger: #c62828;
+            --text: #172033;
+            --muted: #667085;
+            --border: #e4e7ec;
+            --background: #f5f7fb;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #f5f7fb 0%,
+                    #eef3fb 100%
+                );
+
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* =========================
+           HEADER
+        ========================= */
+
+        .top-header {
+            background: var(--primary);
+            color: white;
+            padding: 18px 20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.12);
+        }
+
+        .header-inner {
+            max-width: 1150px;
+            margin: auto;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .school-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .school-logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+
+            background: white;
+            color: var(--primary);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .school-name {
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .school-motto {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+
+        .portal-label {
+            font-size: 14px;
+            font-weight: 700;
+            background: rgba(255,255,255,0.14);
+            padding: 9px 14px;
+            border-radius: 20px;
+        }
+
+        /* =========================
+           MAIN
+        ========================= */
+
+        .page-container {
+            width: min(1150px, 94%);
+            margin: 35px auto 60px;
+        }
+
+        /* =========================
+           SEARCH CARD
+        ========================= */
+
+        .search-card {
+            max-width: 720px;
+            margin: 0 auto 30px;
+
+            background: white;
+            border-radius: 18px;
+
+            padding: 32px;
+
+            box-shadow:
+                0 12px 35px rgba(15, 23, 42, 0.08);
+
+            border: 1px solid var(--border);
+        }
+
+        .search-title {
+            text-align: center;
+            font-size: 27px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .search-subtitle {
+            text-align: center;
+            color: var(--muted);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .search-form {
+            margin-top: 25px;
+        }
+
+        .input-label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .result-code-input {
+            width: 100%;
+            padding: 15px 16px;
+
+            border: 2px solid var(--border);
+            border-radius: 10px;
+
+            font-size: 16px;
+            outline: none;
+
+            transition: 0.2s;
+        }
+
+        .result-code-input:focus {
+            border-color: var(--primary);
+            box-shadow:
+                0 0 0 3px rgba(11, 61, 145, 0.10);
+        }
+
+        .search-button {
+            width: 100%;
+            margin-top: 14px;
+
+            padding: 15px;
+
+            border: none;
+            border-radius: 10px;
+
+            background: var(--primary);
+            color: white;
+
+            font-size: 16px;
+            font-weight: 800;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        .search-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .search-button:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .help-text {
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 12px;
+        }
+
+        /* =========================
+           ALERTS
+        ========================= */
+
+        .alert {
+            display: none;
+
+            max-width: 720px;
+            margin: 0 auto 25px;
+
+            padding: 15px 18px;
+            border-radius: 10px;
+
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .alert.error {
+            background: #fff0f0;
+            color: var(--danger);
+            border: 1px solid #ffcaca;
+        }
+
+        .alert.warning {
+            background: #fff8e6;
+            color: #8a5a00;
+            border: 1px solid #f4d98c;
+        }
+
+        .alert.success {
+            background: #ecfdf3;
+            color: var(--success);
+            border: 1px solid #b7ebc9;
+        }
+
+        /* =========================
+           RESULTS
+        ========================= */
+
+        #resultsContainer {
+            display: none;
+        }
+
+        .student-card {
+            background: white;
+            border-radius: 18px;
+
+            padding: 25px;
+
+            border: 1px solid var(--border);
+
+            box-shadow:
+                0 10px 30px rgba(15, 23, 42, 0.07);
+
+            margin-bottom: 25px;
+        }
+
+        .student-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+
+            flex-wrap: wrap;
+        }
+
+        .student-name {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .published-badge {
+            background: #e9f9ef;
+            color: var(--success);
+
+            padding: 8px 13px;
+            border-radius: 20px;
+
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .student-details {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+
+            gap: 14px;
+
+            margin-top: 22px;
+        }
+
+        .detail-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .detail-label {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        /* =========================
+           TERM SELECTOR
+        ========================= */
+
+        .term-selector {
+            background: white;
+            border-radius: 18px;
+
+            padding: 25px;
+
+            border: 1px solid var(--border);
+
+            box-shadow:
+                0 10px 30px rgba(15, 23, 42, 0.07);
+
+            margin-bottom: 25px;
+        }
+
+        .term-selector h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .term-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .term-button {
+            border: 1px solid var(--border);
+
+            background: white;
+            color: var(--text);
+
+            padding: 11px 16px;
+
+            border-radius: 8px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+        .term-button.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* =========================
+           RESULT CARD
+        ========================= */
+
+        .result-card {
+            background: white;
+            border-radius: 18px;
+
+            padding: 28px;
+
+            border: 1px solid var(--border);
+
+            box-shadow:
+                0 10px 30px rgba(15, 23, 42, 0.07);
+
+            margin-bottom: 25px;
+        }
+
+        .result-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 20px;
+            flex-wrap: wrap;
+
+            margin-bottom: 20px;
+        }
+
+        .result-card-title {
+            color: var(--primary);
+            font-size: 23px;
+            font-weight: 800;
+        }
+
+        .result-card-subtitle {
+            color: var(--muted);
+            margin-top: 5px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        .result-table th {
+            background: #f1f5f9;
+            color: #344054;
+
+            padding: 13px 12px;
+
+            text-align: left;
+
+            font-size: 13px;
+        }
+
+        .result-table td {
+            padding: 13px 12px;
+            border-top: 1px solid var(--border);
+
+            font-size: 14px;
+        }
+
+        .result-table tr:hover td {
+            background: #fafcff;
+        }
+
+        .grade-number {
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .remark {
+            color: var(--muted);
+        }
+
+        /* =========================
+           SUMMARY
+        ========================= */
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+
+            gap: 15px;
+
+            margin-top: 25px;
+        }
+
+        .summary-box {
+            padding: 20px;
+
+            background: #f8fafc;
+
+            border: 1px solid var(--border);
+
+            border-radius: 12px;
+
+            text-align: center;
+        }
+
+        .summary-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+
+            text-transform: uppercase;
+        }
+
+        .summary-value {
+            color: var(--primary);
+
+            font-size: 25px;
+            font-weight: 900;
+
+            margin-top: 7px;
+        }
+
+        /* =========================
+           COMMENTS
+        ========================= */
+
+        .comments-section {
+            margin-top: 25px;
+
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 15px;
+        }
+
+        .comment-box {
+            padding: 18px;
+
+            border-radius: 10px;
+
+            background: #f8fafc;
+
+            border: 1px solid var(--border);
+        }
+
+        .comment-title {
+            font-weight: 800;
+            color: var(--primary);
+
+            margin-bottom: 8px;
+        }
+
+        .comment-text {
+            line-height: 1.6;
+            color: #475467;
+        }
+
+        /* =========================
+           PRINT
+        ========================= */
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+
+            margin-top: 25px;
+        }
+
+        .print-button {
+            border: none;
+
+            background: var(--primary);
+            color: white;
+
+            padding: 12px 20px;
+
+            border-radius: 9px;
+
+            font-weight: 800;
+
+            cursor: pointer;
+        }
+
+        .new-search-button {
+            border: 1px solid var(--border);
+
+            background: white;
+            color: var(--text);
+
+            padding: 12px 20px;
+
+            border-radius: 9px;
+
+            font-weight: 800;
+
+            cursor: pointer;
+        }
+
+        /* =========================
+           LOADING
+        ========================= */
+
+        .loading {
+            display: none;
+
+            text-align: center;
+
+            padding: 25px;
+            color: var(--muted);
+        }
+
+        .spinner {
+            width: 35px;
+            height: 35px;
+
+            border: 4px solid #e5e7eb;
+            border-top-color: var(--primary);
+
+            border-radius: 50%;
+
+            animation: spin 0.8s linear infinite;
+
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+
+        footer {
+            text-align: center;
+
+            padding: 25px 15px;
+
+            color: var(--muted);
+
+            font-size: 13px;
+        }
+
+        footer strong {
+            color: var(--primary);
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+
+        @media (max-width: 800px) {
+
+            .student-details {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .summary-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .comments-section {
+                grid-template-columns: 1fr;
+            }
+
+            .header-inner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .school-brand {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 520px) {
+
+            .search-card,
+            .student-card,
+            .result-card,
+            .term-selector {
+                padding: 20px;
+            }
+
+            .student-details,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .student-name {
+                font-size: 22px;
+            }
+
+            .search-title {
+                font-size: 23px;
+            }
+        }
+
+        /* =========================
+           PRINT STYLE
+        ========================= */
+
+        @media print {
+
+            body {
+                background: white;
+            }
+
+            .top-header {
+                background: white;
+                color: black;
+
+                box-shadow: none;
+
+                border-bottom: 2px solid #000;
+            }
+
+            .school-logo {
+                border: 1px solid #000;
+            }
+
+            .portal-label,
+            .search-card,
+            .term-selector,
+            .action-buttons,
+            footer {
+                display: none !important;
+            }
+
+            .page-container {
+                width: 100%;
+                margin: 0;
+            }
+
+            #resultsContainer {
+                display: block !important;
+            }
+
+            .student-card,
+            .result-card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================
+         HEADER
+    ========================= -->
+
+    <header class="top-header">
+
+        <div class="header-inner">
+
+            <div class="school-brand">
+
+                <div class="school-logo">
+                    SP
+                </div>
+
+                <div>
+                    <div class="school-name">
+                        Star Preparatory School
+                    </div>
+
+                    <div class="school-motto">
+                        ARISE AND SHINE
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="portal-label">
+                STUDENT RESULT PORTAL
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <main class="page-container">
+
+        <!-- =========================
+             SEARCH
+        ========================= -->
+
+        <section class="search-card">
+
+            <h1 class="search-title">
+                Check Student Result
+            </h1>
+
+            <p class="search-subtitle">
+                Enter the Student ID or Result Access Code
+                provided by the school.
+            </p>
+
+            <form
+                id="resultSearchForm"
+                class="search-form"
+            >
+
+                <label
+                    class="input-label"
+                    for="resultCode"
+                >
+                    Student ID / Result Code
+                </label>
+
+                <input
+                    type="text"
+                    id="resultCode"
+                    class="result-code-input"
+                    placeholder="e.g. SP-260184"
+                    autocomplete="off"
+                    required
+                >
+
+                <button
+                    type="submit"
+                    id="searchButton"
+                    class="search-button"
+                >
+                    CHECK RESULT
+                </button>
+
+                <p class="help-text">
+                    Only results officially published by the school
+                    can be viewed.
+                </p>
+
+            </form>
+
+            <div
+                id="loading"
+                class="loading"
+            >
+                <div class="spinner"></div>
+                Searching for published result...
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             ALERT
+        ========================= -->
+
+        <div
+            id="alertBox"
+            class="alert"
+        ></div>
+
+
+        <!-- =========================
+             RESULTS
+        ========================= -->
+
+        <section id="resultsContainer">
+
+            <!-- STUDENT INFORMATION -->
+
+            <div class="student-card">
+
+                <div class="student-header">
+
+                    <div>
+                        <div
+                            id="studentName"
+                            class="student-name"
+                        >
+                            Student Name
+                        </div>
+                    </div>
+
+                    <div class="published-badge">
+                        ✓ PUBLISHED RESULT
+                    </div>
+
+                </div>
+
+
+                <div class="student-details">
+
+                    <div class="detail-box">
+
+                        <span class="detail-label">
+                            Student ID
+                        </span>
+
+                        <span
+                            id="studentId"
+                            class="detail-value"
+                        >
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-box">
+
+                        <span class="detail-label">
+                            Class
+                        </span>
+
+                        <span
+                            id="studentClass"
+                            class="detail-value"
+                        >
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-box">
+
+                        <span class="detail-label">
+                            Academic Year
+                        </span>
+
+                        <span
+                            id="academicYear"
+                            class="detail-value"
+                        >
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-box">
+
+                        <span class="detail-label">
+                            School
+                        </span>
+
+                        <span
+                            id="schoolName"
+                            class="detail-value"
+                        >
+                            Star Preparatory School
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TERM SELECTOR -->
+
+            <div class="term-selector">
+
+                <h3>
+                    Available Results
+                </h3>
+
+                <div
+                    id="termButtons"
+                    class="term-buttons"
+                ></div>
+
+            </div>
+
+
+            <!-- CURRENT RESULT -->
+
+            <div
+                id="resultDisplay"
+                class="result-card"
+            ></div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="action-buttons">
+
+                <button
+                    type="button"
+                    class="print-button"
+                    id="printButton"
+                >
+                    PRINT RESULT
+                </button>
+
+                <button
+                    type="button"
+                    class="new-search-button"
+                    id="newSearchButton"
+                >
+                    NEW SEARCH
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+        <strong>Virello Technologies</strong>
+        &nbsp; • &nbsp;
+        Digital School Management System
+        <br>
+        Star Preparatory School
+    </footer>
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================= -->
+
+    <script type="module" src="./js/result-portal.js"></script>
+
+</body>
+</html>
