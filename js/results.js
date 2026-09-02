@@ -2365,25 +2365,12 @@ function calculateFinalTermGrade() {
     );
 
 
-    /*
-     * EXACTLY the subjects selected by
-     * the teacher as compulsory.
-     */
-
     const compulsorySubjects =
         subjects.filter(
             item =>
                 item.isCompulsory
         );
 
-
-    /*
-     * Remaining subjects are candidates
-     * for the automatic best-two selection.
-     *
-     * Subjects without entered marks are
-     * NOT eligible.
-     */
 
     const nonCompulsorySubjects =
         subjects.filter(
@@ -2392,36 +2379,6 @@ function calculateFinalTermGrade() {
                 item.hasMarks
         );
 
-
-    /*
-     * =====================================================
-     * BEST TWO SELECTION
-     * =====================================================
-     *
-     * Grade 1 is the best grade.
-     *
-     * Therefore:
-     *
-     * Grade 1 beats Grade 2
-     * Grade 2 beats Grade 3
-     * ...
-     * Grade 8 beats Grade 9
-     *
-     * So we sort ASCENDING by grade number.
-     *
-     * If two subjects have the same grade,
-     * the higher mark wins.
-     *
-     * Example:
-     *
-     * PHE = 74 = Grade 4
-     * ART = 73 = Grade 4
-     *
-     * Both are Grade 4.
-     *
-     * PHE wins the tie because 74 > 73.
-     * =====================================================
-     */
 
     const bestAdditionalSubjects =
         [...nonCompulsorySubjects]
@@ -2454,10 +2411,6 @@ function calculateFinalTermGrade() {
         );
 
 
-    /*
-     * These are the six official subjects.
-     */
-
     const subjectsCounted = [
 
         ...compulsorySubjects,
@@ -2467,33 +2420,10 @@ function calculateFinalTermGrade() {
     ];
 
 
-    /*
-     * The official calculation is valid only
-     * when exactly 4 compulsory subjects and
-     * exactly 2 additional subjects exist.
-     */
-
     const valid =
         compulsorySubjects.length === 4 &&
         bestAdditionalSubjects.length === 2;
 
-
-    /*
-     * =====================================================
-     * OFFICIAL AGGREGATE
-     * =====================================================
-     *
-     * The aggregate is NOT calculated from marks.
-     *
-     * It is the SUM OF THE SIX GRADE NUMBERS.
-     *
-     * Example:
-     *
-     * 7 + 3 + 4 + 1 + 4 + 2
-     *
-     * = 21
-     * =====================================================
-     */
 
     const aggregate =
         subjectsCounted.reduce(
@@ -2510,17 +2440,6 @@ function calculateFinalTermGrade() {
             0
         );
 
-
-    /*
-     * =====================================================
-     * FINAL AVERAGE
-     * =====================================================
-     *
-     * Average remains a MARK calculation.
-     *
-     * It does not determine the official aggregate.
-     * =====================================================
-     */
 
     const totalMarks =
         subjectsCounted.reduce(
@@ -2545,25 +2464,11 @@ function calculateFinalTermGrade() {
             : 0;
 
 
-    /*
-     * The remark remains based on the
-     * mark-based final average.
-     *
-     * The official grade itself is the
-     * aggregate number.
-     */
-
     const averageGrade =
         calculateGrade(
             average
         );
 
-
-    /*
-     * =====================================================
-     * UPDATE ROW VISUAL INDICATORS
-     * =====================================================
-     */
 
     subjects.forEach(
         item => {
@@ -2631,10 +2536,6 @@ function calculateFinalTermGrade() {
         }
     );
 
-
-    /*
-     * Update final calculation UI.
-     */
 
     updateFinalCalculationUI(
 
@@ -2738,18 +2639,6 @@ function updateFinalCalculationUI(
     }
 
 
-    /*
-     * IMPORTANT:
-     *
-     * finalTotalMarks is being used as the
-     * FINAL AGGREGATE display.
-     *
-     * Example:
-     * 7 + 3 + 4 + 1 + 4 + 2 = 21
-     *
-     * Therefore it displays 21, not 486.
-     */
-
     if (finalTotalMarks) {
 
         finalTotalMarks.textContent =
@@ -2762,10 +2651,6 @@ function updateFinalCalculationUI(
     }
 
 
-    /*
-     * Final average remains a percentage.
-     */
-
     if (finalAverage) {
 
         finalAverage.textContent =
@@ -2775,14 +2660,6 @@ function updateFinalCalculationUI(
 
     }
 
-
-    /*
-     * Final grade is the official aggregate.
-     *
-     * Example:
-     * Aggregate = 21
-     * Final Grade = 21
-     */
 
     if (finalGrade) {
 
@@ -2795,10 +2672,6 @@ function updateFinalCalculationUI(
 
     }
 
-
-    /* =====================================================
-    COMPULSORY SUBJECT LIST
-    ===================================================== */
 
     if (selectedCompulsorySubjects) {
 
@@ -2858,10 +2731,6 @@ function updateFinalCalculationUI(
     }
 
 
-    /* =====================================================
-    BEST TWO SUBJECT LIST
-    ===================================================== */
-
     if (selectedBestSubjects) {
 
         selectedBestSubjects.innerHTML =
@@ -2919,10 +2788,6 @@ function updateFinalCalculationUI(
 
     }
 
-
-    /* =====================================================
-    FINAL STATUS
-    ===================================================== */
 
     if (finalCalculationStatus) {
 
@@ -2999,10 +2864,6 @@ function updateFinalCalculationUI(
     }
 
 
-    /* =====================================================
-    FINAL WARNING / INFORMATION
-    ===================================================== */
-
     if (finalCalculationWarning) {
 
         if (
@@ -3040,6 +2901,212 @@ function updateFinalCalculationUI(
         }
 
     }
+
+}
+
+
+/* =========================================================
+AUTOMATIC RESULT ACCESS CODE
+=========================================================
+
+PURPOSE:
+
+Each academic result receives its own random code.
+
+Example:
+
+VR-8K4P-29XQ
+
+The code:
+
+- Is generated automatically.
+- Is difficult to guess.
+- Is stored in Firestore.
+- Remains unchanged when the result is edited.
+- Is generated for older results that do not already
+  have a resultAccessCode.
+========================================================= */
+
+function generateResultAccessCode() {
+
+    const characters =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+
+    const getRandomCharacter =
+        () => {
+
+            if (
+                window.crypto &&
+                window.crypto.getRandomValues
+            ) {
+
+                const array =
+                    new Uint32Array(1);
+
+
+                window.crypto.getRandomValues(
+                    array
+                );
+
+
+                return characters[
+                    array[0] %
+                    characters.length
+                ];
+
+            }
+
+
+            return characters[
+                Math.floor(
+                    Math.random() *
+                    characters.length
+                )
+            ];
+
+        };
+
+
+    let firstPart =
+        "";
+
+    let secondPart =
+        "";
+
+
+    for (
+        let i = 0;
+        i < 4;
+        i++
+    ) {
+
+        firstPart +=
+            getRandomCharacter();
+
+    }
+
+
+    for (
+        let i = 0;
+        i < 4;
+        i++
+    ) {
+
+        secondPart +=
+            getRandomCharacter();
+
+    }
+
+
+    return `VR-${firstPart}-${secondPart}`;
+
+}
+
+
+/* =========================================================
+GENERATE UNIQUE RESULT ACCESS CODE
+========================================================= */
+
+async function generateUniqueResultAccessCode() {
+
+    let attempts =
+        0;
+
+
+    while (
+        attempts < 10
+    ) {
+
+        const code =
+            generateResultAccessCode();
+
+
+        const existingLocal =
+            allResults.find(
+                result =>
+                    result.resultAccessCode ===
+                    code
+            );
+
+
+        if (existingLocal) {
+
+            attempts++;
+
+            continue;
+
+        }
+
+
+        try {
+
+            const resultsRef =
+                collection(
+                    db,
+                    "results"
+                );
+
+
+            const codeQuery =
+                query(
+
+                    resultsRef,
+
+                    where(
+                        "resultAccessCode",
+                        "==",
+                        code
+                    )
+
+                );
+
+
+            const snapshot =
+                await getDocs(
+                    codeQuery
+                );
+
+
+            if (snapshot.empty) {
+
+                return code;
+
+            }
+
+        }
+
+        catch (error) {
+
+            /*
+             * If the lookup itself fails,
+             * the random space is still extremely
+             * large. We can safely use the locally
+             * generated code rather than preventing
+             * the teacher from saving the result.
+             */
+
+            console.warn(
+                "Result code uniqueness check failed. Using generated code.",
+                error
+            );
+
+
+            return code;
+
+        }
+
+
+        attempts++;
+
+    }
+
+
+    /*
+     * Extremely unlikely fallback.
+     */
+
+    return generateResultAccessCode();
 
 }
 
@@ -3122,20 +3189,9 @@ async function saveResult() {
     }
 
 
-    /*
-     * Calculate official final grade.
-     */
-
     const calculation =
         calculateFinalTermGrade();
 
-
-    /*
-     * School rule:
-     *
-     * Exactly 4 compulsory subjects
-     * and exactly 2 additional subjects.
-     */
 
     if (
         calculation.compulsorySubjects.length !== 4
@@ -3191,12 +3247,6 @@ async function saveResult() {
         publishResult.checked;
 
 
-    /*
-     * =====================================================
-     * CLEAN COMPULSORY SUBJECT DATA
-     * =====================================================
-     */
-
     const compulsorySubjects =
         calculation.compulsorySubjects.map(
             item => ({
@@ -3234,12 +3284,6 @@ async function saveResult() {
         );
 
 
-    /*
-     * =====================================================
-     * CLEAN BEST TWO DATA
-     * =====================================================
-     */
-
     const bestAdditionalSubjects =
         calculation.bestAdditionalSubjects.map(
             item => ({
@@ -3276,12 +3320,6 @@ async function saveResult() {
             })
         );
 
-
-    /*
-     * =====================================================
-     * CLEAN SIX COUNTED SUBJECTS
-     * =====================================================
-     */
 
     const finalSubjects =
         calculation.subjectsCounted.map(
@@ -3328,24 +3366,33 @@ async function saveResult() {
 
     /*
      * =====================================================
-     * OFFICIAL RESULT DATA
+     * RESULT ACCESS CODE
      * =====================================================
      *
      * IMPORTANT:
      *
-     * overallGrade = aggregate.
+     * Existing results keep their original code.
      *
-     * Example:
+     * New results receive a new random code.
      *
-     * Grades:
-     * 7 + 3 + 4 + 1 + 4 + 2
-     *
-     * overallGrade = "21"
-     *
-     * overallRemark is based on the mark average
-     * and remains separate from the aggregate.
+     * Older results without a code receive one
+     * the next time they are saved.
      * =====================================================
      */
+
+    let resultAccessCode =
+        currentResult?.resultAccessCode ||
+        currentResult?.resultCode ||
+        null;
+
+
+    if (!resultAccessCode) {
+
+        resultAccessCode =
+            await generateUniqueResultAccessCode();
+
+    }
+
 
     const resultData = {
 
@@ -3375,6 +3422,15 @@ async function saveResult() {
 
         term:
             term,
+
+        /*
+         * =================================================
+         * AUTOMATIC RESULT ACCESS CODE
+         * =================================================
+         */
+
+        resultAccessCode:
+            resultAccessCode,
 
         /*
          * ALL SUBJECTS
@@ -3427,49 +3483,23 @@ async function saveResult() {
          * =================================================
          */
 
-        /*
-         * Total marks of the six counted subjects.
-         */
-
         totalMarks:
             Number(
                 calculation.totalMarks.toFixed(2)
             ),
-
-        /*
-         * Average of the six counted subjects.
-         */
 
         average:
             Number(
                 calculation.average.toFixed(2)
             ),
 
-        /*
-         * OFFICIAL AGGREGATE.
-         *
-         * Example:
-         * 7 + 3 + 4 + 1 + 4 + 2 = 21
-         */
-
         aggregate:
             Number(
                 calculation.aggregate
             ),
 
-        /*
-         * Keep overallGrade for compatibility
-         * with the existing result/report system.
-         *
-         * It now contains the aggregate.
-         */
-
         overallGrade:
             calculation.grade,
-
-        /*
-         * Remark remains based on mark average.
-         */
 
         overallRemark:
             calculation.remark,
@@ -3519,46 +3549,23 @@ async function saveResult() {
             subjectsCount:
                 finalSubjects.length,
 
-            /*
-             * Sum of marks from the six counted subjects.
-             */
-
             totalMarks:
                 Number(
                     calculation.totalMarks.toFixed(2)
                 ),
-
-            /*
-             * Mark-based average.
-             */
 
             average:
                 Number(
                     calculation.average.toFixed(2)
                 ),
 
-            /*
-             * Official aggregate.
-             */
-
             aggregate:
                 Number(
                     calculation.aggregate
                 ),
 
-            /*
-             * Keep grade for compatibility.
-             *
-             * This is the aggregate, not a 1-9
-             * subject grade.
-             */
-
             grade:
                 calculation.grade,
-
-            /*
-             * Average-based remark.
-             */
 
             remark:
                 calculation.remark
@@ -3631,6 +3638,27 @@ async function saveResult() {
 
 
         if (existing) {
+
+            /*
+             * IMPORTANT:
+             *
+             * If the existing Firestore result has
+             * an old resultAccessCode, preserve it.
+             */
+
+            const existingCode =
+                existing.resultAccessCode ||
+                existing.resultCode ||
+                null;
+
+
+            if (existingCode) {
+
+                resultData.resultAccessCode =
+                    existingCode;
+
+            }
+
 
             await updateDoc(
 
@@ -3724,9 +3752,9 @@ async function saveResult() {
 
             isPublished
 
-                ? `Academic result saved and published for ${studentDisplayName}. Aggregate: ${calculation.aggregate}. Average: ${calculation.average.toFixed(2)}%.`
+                ? `Academic result saved and published for ${studentDisplayName}.\n\nResult Access Code: ${resultAccessCode}\n\nAggregate: ${calculation.aggregate}\nAverage: ${calculation.average.toFixed(2)}%.`
 
-                : `Academic result saved as a draft for ${studentDisplayName}. Aggregate: ${calculation.aggregate}. Average: ${calculation.average.toFixed(2)}%.`
+                : `Academic result saved as a draft for ${studentDisplayName}.\n\nResult Access Code: ${resultAccessCode}\n\nAggregate: ${calculation.aggregate}\nAverage: ${calculation.average.toFixed(2)}%.`
 
         );
 
@@ -4147,11 +4175,6 @@ function renderExistingResults() {
                 ).toFixed(2);
 
 
-            /*
-             * Support both new aggregate
-             * field and older overallGrade.
-             */
-
             const aggregate =
                 result.aggregate ??
                 result.finalCalculation?.aggregate ??
@@ -4528,10 +4551,6 @@ async function publishExistingResult(
     result
 ) {
 
-    /*
-     * Verify the required final calculation.
-     */
-
     const finalCalculation =
         result.finalCalculation;
 
@@ -4563,12 +4582,6 @@ async function publishExistingResult(
 
     }
 
-
-    /*
-     * New calculation validation.
-     *
-     * Ensure the aggregate exists.
-     */
 
     const aggregate =
         finalCalculation.aggregate ??
@@ -4604,6 +4617,32 @@ async function publishExistingResult(
 
     try {
 
+        /*
+         * =================================================
+         * ENSURE RESULT HAS AN ACCESS CODE
+         * =================================================
+         *
+         * Older results may have been created before
+         * the Result Access Code system was added.
+         *
+         * Generate a code for such results before
+         * publishing them.
+         */
+
+        let resultAccessCode =
+            result.resultAccessCode ||
+            result.resultCode ||
+            null;
+
+
+        if (!resultAccessCode) {
+
+            resultAccessCode =
+                await generateUniqueResultAccessCode();
+
+        }
+
+
         await updateDoc(
 
             doc(
@@ -4616,6 +4655,9 @@ async function publishExistingResult(
 
                 status:
                     "published",
+
+                resultAccessCode:
+                    resultAccessCode,
 
                 updatedAt:
                     serverTimestamp(),
@@ -4643,7 +4685,10 @@ async function publishExistingResult(
                 ...allResults[index],
 
                 status:
-                    "published"
+                    "published",
+
+                resultAccessCode:
+                    resultAccessCode
 
             };
 
@@ -4659,6 +4704,10 @@ async function publishExistingResult(
             currentResult.status =
                 "published";
 
+
+            currentResult.resultAccessCode =
+                resultAccessCode;
+
         }
 
 
@@ -4668,7 +4717,7 @@ async function publishExistingResult(
 
 
         alert(
-            "Result published successfully. It is now available for parent viewing, subject to your Firestore parent-access rules."
+            `Result published successfully.\n\nResult Access Code: ${resultAccessCode}\n\nIt is now available for parent viewing, subject to your Firestore access rules.`
         );
 
     }
@@ -5487,4 +5536,8 @@ console.log(
 
 console.log(
     "Official grading rule: 4 compulsory subjects + best 2 lowest grade numbers."
+);
+
+console.log(
+    "Automatic random Result Access Code system enabled."
 );
