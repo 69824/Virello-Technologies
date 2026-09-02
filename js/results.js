@@ -1,7 +1,57 @@
+/* =========================================================
+VIRELLO TECHNOLOGIES
+ACADEMIC RESULTS MANAGEMENT
+
+FILE:
+js/results.js
+
+FIRESTORE:
+results/{resultId}
+
+GRADING SYSTEM:
+
+ALL SUBJECTS:
+All entered subjects remain visible on the report.
+
+OFFICIAL FINAL TERM GRADE:
+4 teacher-selected compulsory subjects
++
+Best 2 subjects from remaining subjects
+=
+6 subjects used for final grade.
+
+MARK STRUCTURE:
+Test = 25
+Exam = 75
+Total = 100
+
+GRADE SYSTEM:
+
+90 - 100 = Grade 1 - Excellent
+81 - 89  = Grade 2 - Very Good
+76 - 80  = Grade 3 - Good
+71 - 75  = Grade 4 - Credit
+66 - 70  = Grade 5 - Credit
+56 - 65  = Grade 6 - Credit
+50 - 55  = Grade 7 - Pass
+40 - 49  = Grade 8 - Pass
+0  - 39  = Grade 9 - Fail
+========================================================= */
+
+
+/* =========================================================
+FIREBASE AUTH
+========================================================= */
+
 import {
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+/* =========================================================
+FIRESTORE
+========================================================= */
 
 import {
     collection,
@@ -11,66 +61,42 @@ import {
     addDoc,
     updateDoc,
     doc,
-    getDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-import { auth, db } from "./firebase-config.js";
+
+/* =========================================================
+FIREBASE CONFIG
+========================================================= */
+
+import {
+    auth,
+    db
+} from "./firebase-config.js";
 
 
-/* ============================================================
-   CONFIGURATION
-============================================================ */
-
-const RESULTS_COLLECTION = "results";
-
-const REQUIRED_COMPULSORY_SUBJECTS = 4;
-const REQUIRED_BEST_ADDITIONAL = 2;
-const REQUIRED_FINAL_SUBJECTS = 6;
-
-/*
-    TEST = 25%
-    EXAM = 75%
-
-    Teacher enters Test and Exam as marks out of 100.
-
-    Example:
-
-    Test = 80
-    Exam = 70
-
-    Test contribution:
-    80 × 0.25 = 20
-
-    Exam contribution:
-    70 × 0.75 = 52.5
-
-    Final subject mark:
-    20 + 52.5 = 72.5
-*/
-
-const TEST_WEIGHT = 0.25;
-const EXAM_WEIGHT = 0.75;
-
-
-/* ============================================================
-   STATE
-============================================================ */
+/* =========================================================
+STATE
+========================================================= */
 
 let currentUser = null;
+
 let currentOrganization = null;
 
 let classes = [];
+
 let students = [];
+
 let allResults = [];
 
 let selectedStudent = null;
+
 let currentResult = null;
 
 
-/* ============================================================
-   DOM ELEMENTS
-============================================================ */
+/* =========================================================
+DOM
+========================================================= */
 
 const loadingScreen =
     document.getElementById("loadingScreen");
@@ -80,9 +106,6 @@ const errorScreen =
 
 const errorMessage =
     document.getElementById("errorMessage");
-
-const mainContent =
-    document.getElementById("mainContent");
 
 const adminName =
     document.getElementById("adminName");
@@ -144,7 +167,7 @@ const clearResultButton =
 const saveResultButton =
     document.getElementById("saveResultButton");
 
-const publishResultButton =
+const publishResult =
     document.getElementById("publishResult");
 
 const positionInput =
@@ -169,9 +192,9 @@ const totalClasses =
     document.getElementById("totalClasses");
 
 
-/* ============================================================
-   ALL SUBJECTS SUMMARY
-============================================================ */
+/* =========================================================
+ALL SUBJECTS SUMMARY DOM
+========================================================= */
 
 const overallSubjects =
     document.getElementById("overallSubjects");
@@ -186,9 +209,9 @@ const overallGrade =
     document.getElementById("overallGrade");
 
 
-/* ============================================================
-   FINAL CALCULATION
-============================================================ */
+/* =========================================================
+FINAL CALCULATION DOM
+========================================================= */
 
 const finalCalculationStatus =
     document.getElementById("finalCalculationStatus");
@@ -208,6 +231,9 @@ const finalTotalMarks =
 const finalAverage =
     document.getElementById("finalAverage");
 
+const finalGrade =
+    document.getElementById("finalGrade");
+
 const selectedCompulsorySubjects =
     document.getElementById("selectedCompulsorySubjects");
 
@@ -218,9 +244,9 @@ const finalCalculationWarning =
     document.getElementById("finalCalculationWarning");
 
 
-/* ============================================================
-   EXISTING RESULTS
-============================================================ */
+/* =========================================================
+EXISTING RESULTS DOM
+========================================================= */
 
 const existingResultsBody =
     document.getElementById("existingResultsBody");
@@ -238,11 +264,12 @@ const resultSearch =
     document.getElementById("resultSearch");
 
 
-/* ============================================================
-   CLASS ORDER
-============================================================ */
+/* =========================================================
+CLASS ORDER
+========================================================= */
 
 const CLASS_ORDER = [
+
     "Nursery 1",
     "Nursery 2",
     "Nursery 3",
@@ -268,14 +295,16 @@ const CLASS_ORDER = [
 
     "Grade 9A",
     "Grade 9B"
+
 ];
 
 
-/* ============================================================
-   DEFAULT SUBJECTS
-============================================================ */
+/* =========================================================
+DEFAULT SUBJECTS
+========================================================= */
 
 const DEFAULT_SUBJECTS = [
+
     "ENGLISH LANGUAGE",
     "MATHEMATICS",
     "SCIENCE",
@@ -289,1256 +318,740 @@ const DEFAULT_SUBJECTS = [
     "ISLAMIC RELIGIOUS STUDIES",
     "CHRISTIAN RELIGIOUS EDUCATION",
     "P.H.E"
+
 ];
 
 
-/* ============================================================
-   START
-============================================================ */
+/* =========================================================
+START
+========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
-
-        attachEvents();
-
-        onAuthStateChanged(
-            auth,
-            async (user) => {
-
-                if (!user) {
-
-                    showError(
-                        "You are not logged in. Please log in again."
-                    );
-
-                    return;
-                }
-
-                currentUser = user;
-
-                try {
-
-                    await initializePage();
-
-                } catch (error) {
-
-                    console.error(
-                        "Results initialization error:",
-                        error
-                    );
-
-                    showError(
-                        error?.message ||
-                        "Unable to load Academic Results Management."
-                    );
-
-                }
-
-            }
-        );
-
-    }
+    startResults
 );
 
 
-/* ============================================================
-   EVENT HANDLERS
-============================================================ */
+/* =========================================================
+AUTH
+========================================================= */
 
-function attachEvents() {
+function startResults() {
 
-    if (logoutButton) {
+    onAuthStateChanged(
+        auth,
+        async user => {
 
-        logoutButton.addEventListener(
-            "click",
-            handleLogout
-        );
+            try {
 
-    }
+                if (!user) {
 
-    if (classSelect) {
+                    window.location.href =
+                        "login.html";
 
-        classSelect.addEventListener(
-            "change",
-            handleClassChange
-        );
+                    return;
 
-    }
+                }
 
-    if (loadResultButton) {
 
-        loadResultButton.addEventListener(
-            "click",
-            loadSelectedResult
-        );
+                currentUser = user;
 
-    }
 
-    if (addSubjectButton) {
+                if (adminName) {
 
-        addSubjectButton.addEventListener(
-            "click",
-            () => addSubjectRow()
-        );
+                    adminName.textContent =
+                        user.displayName ||
+                        user.email ||
+                        "Administrator";
 
-    }
+                }
 
-    if (clearResultButton) {
 
-        clearResultButton.addEventListener(
-            "click",
-            clearEditor
-        );
+                await loadOrganization();
 
-    }
 
-    if (saveResultButton) {
+                if (!currentOrganization) {
 
-        saveResultButton.addEventListener(
-            "click",
-            () => saveResult("draft")
-        );
+                    return;
 
-    }
+                }
 
-    if (publishResultButton) {
 
-        publishResultButton.addEventListener(
-            "click",
-            () => saveResult("published")
-        );
+                await loadClasses();
 
-    }
+                populateClassSelect();
 
-    if (subjectTableBody) {
+                populateResultClassFilter();
 
-        subjectTableBody.addEventListener(
-            "input",
-            handleSubjectInput
-        );
+                await loadAllStudents();
 
-        subjectTableBody.addEventListener(
-            "change",
-            handleSubjectChange
-        );
+                await loadAllResults();
 
-        subjectTableBody.addEventListener(
-            "click",
-            handleSubjectClick
-        );
+                updateDashboardStatistics();
 
-    }
+                hideLoading();
 
-    if (resultClassFilter) {
-
-        resultClassFilter.addEventListener(
-            "change",
-            renderExistingResults
-        );
-
-    }
-
-    if (resultTermFilter) {
-
-        resultTermFilter.addEventListener(
-            "change",
-            renderExistingResults
-        );
-
-    }
-
-    if (resultSearch) {
-
-        resultSearch.addEventListener(
-            "input",
-            renderExistingResults
-        );
-
-    }
-
-}
-
-
-/* ============================================================
-   INITIALIZE PAGE
-============================================================ */
-
-async function initializePage() {
-
-    if (!currentUser) {
-
-        throw new Error(
-            "Authentication session not found."
-        );
-
-    }
-
-
-    /* --------------------------------------------------------
-       LOAD ORGANIZATION
-    -------------------------------------------------------- */
-
-    const profile =
-        await loadUserProfile();
-
-
-    currentOrganization =
-        await resolveOrganization(
-            profile
-        );
-
-
-    if (!currentOrganization) {
-
-        throw new Error(
-            "Your account is authenticated, but no Virello organization could be identified for this account."
-        );
-
-    }
-
-
-    const organizationId =
-        getOrganizationId();
-
-
-    if (!organizationId) {
-
-        throw new Error(
-            "Organization ID could not be determined."
-        );
-
-    }
-
-
-    /* --------------------------------------------------------
-       USER NAME
-    -------------------------------------------------------- */
-
-    if (adminName) {
-
-        adminName.textContent =
-            profile.name ||
-            profile.fullName ||
-            currentUser.displayName ||
-            currentUser.email ||
-            "Administrator";
-
-    }
-
-
-    /* --------------------------------------------------------
-       ORGANIZATION NAME
-    -------------------------------------------------------- */
-
-    if (organizationName) {
-
-        organizationName.textContent =
-            profile.organizationName ||
-            profile.schoolName ||
-            currentOrganization.name ||
-            currentOrganization.organizationName ||
-            currentOrganization.schoolName ||
-            "Star Preparatory School";
-
-    }
-
-
-    /* --------------------------------------------------------
-       LOAD DATA
-    -------------------------------------------------------- */
-
-    await loadClasses();
-
-    await loadStudents();
-
-    await loadResults();
-
-    populateClassSelectors();
-
-    updateStatistics();
-
-
-    /* --------------------------------------------------------
-       SHOW PAGE
-    -------------------------------------------------------- */
-
-    if (loadingScreen) {
-
-        loadingScreen.style.display =
-            "none";
-
-    }
-
-    if (errorScreen) {
-
-        errorScreen.style.display =
-            "none";
-
-    }
-
-    if (mainContent) {
-
-        mainContent.classList.remove(
-            "hidden"
-        );
-
-        mainContent.style.display =
-            "";
-
-    }
-
-}
-
-
-/* ============================================================
-   LOAD USER PROFILE
-============================================================ */
-
-/*
-    IMPORTANT FIX:
-
-    The old version queried:
-
-        users
-        staff
-        teachers
-        admins
-
-    That caused:
-
-        Missing or insufficient permissions
-
-    This version NEVER queries users or admins.
-
-    It checks only collections that are already allowed
-    by your existing Virello rules:
-
-        staff
-        teachers
-
-    It also supports direct UID document lookup.
-*/
-
-async function loadUserProfile() {
-
-    const uid =
-        currentUser.uid;
-
-
-    /* --------------------------------------------------------
-       1. STAFF COLLECTION
-    -------------------------------------------------------- */
-
-    try {
-
-        const staffQuery =
-            query(
-                collection(
-                    db,
-                    "staff"
-                ),
-                where(
-                    "uid",
-                    "==",
-                    uid
-                )
-            );
-
-        const staffSnapshot =
-            await getDocs(
-                staffQuery
-            );
-
-        if (!staffSnapshot.empty) {
-
-            return {
-                id:
-                    staffSnapshot.docs[0].id,
-
-                ...staffSnapshot.docs[0].data(),
-
-                uid
-            };
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "Staff profile lookup failed:",
-            error
-        );
-
-    }
-
-
-    /* --------------------------------------------------------
-       2. STAFF DOCUMENT WITH UID AS DOCUMENT ID
-    -------------------------------------------------------- */
-
-    try {
-
-        const staffRef =
-            doc(
-                db,
-                "staff",
-                uid
-            );
-
-        const staffDoc =
-            await getDoc(
-                staffRef
-            );
-
-        if (staffDoc.exists()) {
-
-            return {
-                id:
-                    staffDoc.id,
-
-                ...staffDoc.data(),
-
-                uid
-            };
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "Direct staff profile lookup failed:",
-            error
-        );
-
-    }
-
-
-    /* --------------------------------------------------------
-       3. TEACHERS COLLECTION
-    -------------------------------------------------------- */
-
-    try {
-
-        const teacherQuery =
-            query(
-                collection(
-                    db,
-                    "teachers"
-                ),
-                where(
-                    "uid",
-                    "==",
-                    uid
-                )
-            );
-
-        const teacherSnapshot =
-            await getDocs(
-                teacherQuery
-            );
-
-        if (!teacherSnapshot.empty) {
-
-            return {
-                id:
-                    teacherSnapshot.docs[0].id,
-
-                ...teacherSnapshot.docs[0].data(),
-
-                uid
-            };
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "Teacher profile lookup failed:",
-            error
-        );
-
-    }
-
-
-    /* --------------------------------------------------------
-       4. TEACHER DOCUMENT WITH UID AS DOCUMENT ID
-    -------------------------------------------------------- */
-
-    try {
-
-        const teacherRef =
-            doc(
-                db,
-                "teachers",
-                uid
-            );
-
-        const teacherDoc =
-            await getDoc(
-                teacherRef
-            );
-
-        if (teacherDoc.exists()) {
-
-            return {
-                id:
-                    teacherDoc.id,
-
-                ...teacherDoc.data(),
-
-                uid
-            };
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "Direct teacher profile lookup failed:",
-            error
-        );
-
-    }
-
-
-    /* --------------------------------------------------------
-       5. AUTH USER FALLBACK
-    -------------------------------------------------------- */
-
-    return {
-
-        uid,
-
-        name:
-            currentUser.displayName ||
-            currentUser.email ||
-            "Administrator",
-
-        email:
-            currentUser.email || ""
-
-    };
-
-}
-
-
-/* ============================================================
-   RESOLVE ORGANIZATION
-============================================================ */
-
-async function resolveOrganization(
-    profile
-) {
-
-    /*
-        First attempt:
-        organization information stored directly
-        in the staff/teacher profile.
-    */
-
-    const directOrganization =
-        extractOrganizationFromProfile(
-            profile
-        );
-
-    if (directOrganization) {
-
-        return normalizeOrganization(
-            directOrganization
-        );
-
-    }
-
-
-    /*
-        Second attempt:
-        organizationId field directly.
-    */
-
-    const directId =
-        profile?.organizationId ||
-        profile?.orgId ||
-        profile?.schoolId;
-
-    if (directId) {
-
-        return {
-
-            id:
-                typeof directId === "string"
-                    ? directId
-                    : directId.id,
-
-            name:
-                profile.organizationName ||
-                profile.schoolName ||
-                "Star Preparatory School"
-
-        };
-
-    }
-
-
-    /*
-        Third attempt:
-        Find an organization owned by this Firebase user.
-    */
-
-    try {
-
-        const organizationQuery =
-            query(
-                collection(
-                    db,
-                    "organizations"
-                ),
-                where(
-                    "ownerUid",
-                    "==",
-                    currentUser.uid
-                )
-            );
-
-        const snapshot =
-            await getDocs(
-                organizationQuery
-            );
-
-        if (!snapshot.empty) {
-
-            const organizationDoc =
-                snapshot.docs[0];
-
-            return {
-
-                id:
-                    organizationDoc.id,
-
-                ...organizationDoc.data()
-
-            };
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "Organization owner lookup failed:",
-            error
-        );
-
-    }
-
-
-    /*
-        Final fallback.
-
-        If the project has a single school organization
-        stored in the profile under another common field,
-        attempt to resolve it.
-    */
-
-    const possibleId =
-        profile?.school?.id ||
-        profile?.organization?.id ||
-        profile?.organization?.uid ||
-        profile?.schoolOrganizationId;
-
-    if (possibleId) {
-
-        return {
-
-            id:
-                possibleId,
-
-            name:
-                profile?.school?.name ||
-                profile?.organization?.name ||
-                profile?.schoolName ||
-                "Star Preparatory School"
-
-        };
-
-    }
-
-
-    return null;
-
-}
-
-
-/* ============================================================
-   EXTRACT ORGANIZATION FROM PROFILE
-============================================================ */
-
-function extractOrganizationFromProfile(
-    profile
-) {
-
-    if (!profile) {
-        return null;
-    }
-
-
-    const organization =
-        profile.organization;
-
-
-    if (organization) {
-
-        if (
-            typeof organization ===
-            "string"
-        ) {
-
-            return {
-                id:
-                    organization,
-
-                name:
-                    profile.organizationName ||
-                    profile.schoolName ||
-                    "Star Preparatory School"
-
-            };
-
-        }
-
-
-        if (
-            typeof organization ===
-            "object"
-        ) {
-
-            return {
-
-                ...organization,
-
-                id:
-                    organization.id ||
-                    organization.uid ||
-                    organization.organizationId ||
-                    null
-
-            };
-
-        }
-
-    }
-
-
-    return null;
-
-}
-
-
-/* ============================================================
-   NORMALIZE ORGANIZATION
-============================================================ */
-
-function normalizeOrganization(
-    organization
-) {
-
-    if (!organization) {
-        return null;
-    }
-
-
-    if (
-        typeof organization ===
-        "string"
-    ) {
-
-        return {
-
-            id:
-                organization,
-
-            name:
-                "Star Preparatory School"
-
-        };
-
-    }
-
-
-    return {
-
-        ...organization,
-
-        id:
-            organization.id ||
-            organization.uid ||
-            organization.organizationId ||
-            null
-
-    };
-
-}
-
-
-/* ============================================================
-   LOAD CLASSES
-============================================================ */
-
-async function loadClasses() {
-
-    classes = [];
-
-    const possibleCollections = [
-        "classes",
-        "schoolClasses"
-    ];
-
-
-    for (
-        const collectionName
-        of possibleCollections
-    ) {
-
-        try {
-
-            const organizationId =
-                getOrganizationId();
-
-            if (!organizationId) {
-                continue;
             }
 
+            catch (error) {
 
-            const q =
-                query(
-                    collection(
-                        db,
-                        collectionName
-                    ),
-                    where(
-                        "organizationId",
-                        "==",
-                        organizationId
-                    )
+                console.error(
+                    "Results initialization error:",
+                    error
                 );
 
-
-            const snapshot =
-                await getDocs(q);
-
-
-            if (!snapshot.empty) {
-
-                classes =
-                    snapshot.docs.map(
-                        (item) => ({
-                            id:
-                                item.id,
-
-                            ...item.data()
-                        })
-                    );
-
-                break;
+                showError(
+                    error.message ||
+                    "Unable to load academic results."
+                );
 
             }
 
-        } catch (error) {
-
-            console.warn(
-                `Unable to load ${collectionName}:`,
-                error
-            );
-
         }
-
-    }
-
-
-    /*
-        If the school does not have a classes collection,
-        use the official Virello class structure.
-    */
-
-    if (!classes.length) {
-
-        classes =
-            CLASS_ORDER.map(
-                (name, index) => ({
-
-                    id:
-                        `class-${index + 1}`,
-
-                    name
-
-                })
-            );
-
-    }
-
-
-    classes.sort(
-        (a, b) =>
-            getClassOrder(
-                getClassName(a)
-            ) -
-            getClassOrder(
-                getClassName(b)
-            )
     );
 
 }
 
 
-/* ============================================================
-   LOAD STUDENTS
-============================================================ */
+/* =========================================================
+LOAD ORGANIZATION
+========================================================= */
 
-/*
-    IMPORTANT:
+async function loadOrganization() {
 
-    We do NOT query students unless an organization ID
-    has already been identified.
+    const organizationsRef =
+        collection(
+            db,
+            "organizations"
+        );
 
-    This prevents an unrestricted collection query.
-*/
 
-async function loadStudents() {
+    const organizationQuery =
+        query(
+            organizationsRef,
+            where(
+                "ownerUid",
+                "==",
+                currentUser.uid
+            )
+        );
+
+
+    const snapshot =
+        await getDocs(
+            organizationQuery
+        );
+
+
+    if (snapshot.empty) {
+
+        showError(
+            "No organization was found for this administrator account."
+        );
+
+        return;
+
+    }
+
+
+    const organizationDocument =
+        snapshot.docs[0];
+
+
+    currentOrganization = {
+
+        id:
+            organizationDocument.id,
+
+        ...organizationDocument.data()
+
+    };
+
+
+    if (organizationName) {
+
+        organizationName.textContent =
+            currentOrganization.organizationName ||
+            currentOrganization.name ||
+            "Organization";
+
+    }
+
+}
+
+
+/* =========================================================
+LOAD CLASSES
+========================================================= */
+
+async function loadClasses() {
+
+    const classesRef =
+        collection(
+            db,
+            "classes"
+        );
+
+
+    const classQuery =
+        query(
+
+            classesRef,
+
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            )
+
+        );
+
+
+    const snapshot =
+        await getDocs(
+            classQuery
+        );
+
+
+    classes = [];
+
+
+    snapshot.forEach(
+        classDocument => {
+
+            classes.push({
+
+                id:
+                    classDocument.id,
+
+                ...classDocument.data()
+
+            });
+
+        }
+    );
+
+
+    classes.sort(
+        sortClasses
+    );
+
+
+    if (totalClasses) {
+
+        totalClasses.textContent =
+            classes.length;
+
+    }
+
+}
+
+
+/* =========================================================
+SORT CLASSES
+========================================================= */
+
+function sortClasses(a, b) {
+
+    const nameA =
+        normalizeClassName(
+            a.className ||
+            a.name ||
+            ""
+        );
+
+    const nameB =
+        normalizeClassName(
+            b.className ||
+            b.name ||
+            ""
+        );
+
+
+    const indexA =
+        CLASS_ORDER.indexOf(
+            nameA
+        );
+
+    const indexB =
+        CLASS_ORDER.indexOf(
+            nameB
+        );
+
+
+    if (
+        indexA !== -1 &&
+        indexB !== -1
+    ) {
+
+        return indexA - indexB;
+
+    }
+
+
+    if (indexA !== -1) {
+
+        return -1;
+
+    }
+
+
+    if (indexB !== -1) {
+
+        return 1;
+
+    }
+
+
+    return nameA.localeCompare(
+        nameB
+    );
+
+}
+
+
+/* =========================================================
+NORMALIZE CLASS NAME
+========================================================= */
+
+function normalizeClassName(name) {
+
+    const value =
+        String(
+            name ||
+            ""
+        )
+        .trim()
+        .replace(
+            /\s+/g,
+            " "
+        );
+
+
+    const lower =
+        value.toLowerCase();
+
+
+    const nurseryMatch =
+        lower.match(
+            /^nursery\s*(1|2|3)$/
+        );
+
+
+    if (nurseryMatch) {
+
+        return `Nursery ${nurseryMatch[1]}`;
+
+    }
+
+
+    const gradeSectionMatch =
+        lower.match(
+            /^grade\s*(1|2|3|4|5|6|7|8|9)\s*([ab])$/
+        );
+
+
+    if (gradeSectionMatch) {
+
+        return `Grade ${gradeSectionMatch[1]}${gradeSectionMatch[2].toUpperCase()}`;
+
+    }
+
+
+    const gradeMatch =
+        lower.match(
+            /^grade\s*(1|2|3|4|5|6|7|8|9)$/
+        );
+
+
+    if (gradeMatch) {
+
+        return `Grade ${gradeMatch[1]}`;
+
+    }
+
+
+    return value;
+
+}
+
+
+/* =========================================================
+CLASS SELECT
+========================================================= */
+
+function populateClassSelect() {
+
+    if (!classSelect) {
+        return;
+    }
+
+
+    classSelect.innerHTML = `
+
+        <option value="">
+            Select Class
+        </option>
+
+    `;
+
+
+    classes.forEach(
+        classItem => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                classItem.id;
+
+
+            option.textContent =
+                normalizeClassName(
+                    classItem.className ||
+                    classItem.name ||
+                    "Unnamed Class"
+                );
+
+
+            classSelect.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+RESULT CLASS FILTER
+========================================================= */
+
+function populateResultClassFilter() {
+
+    if (!resultClassFilter) {
+        return;
+    }
+
+
+    resultClassFilter.innerHTML = `
+
+        <option value="">
+            All Classes
+        </option>
+
+    `;
+
+
+    classes.forEach(
+        classItem => {
+
+            const className =
+                normalizeClassName(
+                    classItem.className ||
+                    classItem.name ||
+                    ""
+                );
+
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                className;
+
+
+            option.textContent =
+                className;
+
+
+            resultClassFilter.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+CLASS CHANGE
+========================================================= */
+
+if (classSelect) {
+
+    classSelect.addEventListener(
+        "change",
+        async () => {
+
+            const classId =
+                classSelect.value;
+
+
+            students = [];
+
+            selectedStudent = null;
+
+            currentResult = null;
+
+
+            hideEditor();
+
+
+            studentSelect.innerHTML = `
+
+                <option value="">
+                    Loading students...
+                </option>
+
+            `;
+
+
+            studentSelect.disabled =
+                true;
+
+
+            if (!classId) {
+
+                studentSelect.innerHTML = `
+
+                    <option value="">
+                        Select Student
+                    </option>
+
+                `;
+
+                return;
+
+            }
+
+
+            try {
+
+                await loadStudentsForClass(
+                    classId
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Student loading error:",
+                    error
+                );
+
+
+                studentSelect.innerHTML = `
+
+                    <option value="">
+                        Unable to load students
+                    </option>
+
+                `;
+
+
+                alert(
+                    error.message ||
+                    "Unable to load students."
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+LOAD STUDENTS FOR CLASS
+========================================================= */
+
+async function loadStudentsForClass(
+    classId
+) {
+
+    const studentsRef =
+        collection(
+            db,
+            "students"
+        );
+
+
+    const studentsQuery =
+        query(
+
+            studentsRef,
+
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            ),
+
+            where(
+                "classId",
+                "==",
+                classId
+            )
+
+        );
+
+
+    const snapshot =
+        await getDocs(
+            studentsQuery
+        );
+
 
     students = [];
 
 
-    const organizationId =
-        getOrganizationId();
+    snapshot.forEach(
+        studentDocument => {
+
+            const data =
+                studentDocument.data();
 
 
-    if (!organizationId) {
-
-        throw new Error(
-            "Cannot load students because no organization is associated with your account."
-        );
-
-    }
-
-
-    /*
-        Try students first.
-    */
-
-    try {
-
-        const q =
-            query(
-                collection(
-                    db,
-                    "students"
-                ),
-                where(
-                    "organizationId",
-                    "==",
-                    organizationId
+            const status =
+                String(
+                    data.status ||
+                    "active"
                 )
-            );
+                .toLowerCase();
 
 
-        const snapshot =
-            await getDocs(q);
+            if (
+                status === "inactive" ||
+                status === "left" ||
+                status === "graduated"
+            ) {
 
-
-        if (!snapshot.empty) {
-
-            students =
-                snapshot.docs.map(
-                    (item) => ({
-
-                        id:
-                            item.id,
-
-                        ...item.data()
-
-                    })
-                );
-
-            return;
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "Students collection unavailable:",
-            error
-        );
-
-    }
-
-
-    /*
-        Fallback to schoolStudents.
-    */
-
-    try {
-
-        const q =
-            query(
-                collection(
-                    db,
-                    "schoolStudents"
-                ),
-                where(
-                    "organizationId",
-                    "==",
-                    organizationId
-                )
-            );
-
-
-        const snapshot =
-            await getDocs(q);
-
-
-        if (!snapshot.empty) {
-
-            students =
-                snapshot.docs.map(
-                    (item) => ({
-
-                        id:
-                            item.id,
-
-                        ...item.data()
-
-                    })
-                );
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "schoolStudents collection unavailable:",
-            error
-        );
-
-    }
-
-}
-
-
-/* ============================================================
-   LOAD RESULTS
-============================================================ */
-
-async function loadResults() {
-
-    allResults = [];
-
-
-    const organizationId =
-        getOrganizationId();
-
-
-    if (!organizationId) {
-
-        throw new Error(
-            "Cannot load results because no organization is associated with your account."
-        );
-
-    }
-
-
-    try {
-
-        const q =
-            query(
-                collection(
-                    db,
-                    RESULTS_COLLECTION
-                ),
-                where(
-                    "organizationId",
-                    "==",
-                    organizationId
-                )
-            );
-
-
-        const snapshot =
-            await getDocs(q);
-
-
-        allResults =
-            snapshot.docs.map(
-                (item) => ({
-
-                    id:
-                        item.id,
-
-                    ...item.data()
-
-                })
-            );
-
-
-    } catch (error) {
-
-        console.error(
-            "Unable to load results:",
-            error
-        );
-
-        throw new Error(
-            `Unable to load academic results: ${
-                error?.message ||
-                "Missing or insufficient permissions."
-            }`
-        );
-
-    }
-
-}
-
-
-/* ============================================================
-   POPULATE CLASS SELECTORS
-============================================================ */
-
-function populateClassSelectors() {
-
-    if (classSelect) {
-
-        classSelect.innerHTML =
-            `<option value="">Select class</option>`;
-
-
-        classes.forEach(
-            (classItem) => {
-
-                const name =
-                    getClassName(
-                        classItem
-                    );
-
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                option.value =
-                    classItem.id ||
-                    name;
-
-
-                option.textContent =
-                    name;
-
-
-                classSelect.appendChild(
-                    option
-                );
+                return;
 
             }
-        );
-
-    }
 
 
-    if (resultClassFilter) {
+            students.push({
 
-        resultClassFilter.innerHTML =
-            `<option value="">All Classes</option>`;
+                id:
+                    studentDocument.id,
 
+                ...data
 
-        classes.forEach(
-            (classItem) => {
+            });
 
-                const name =
-                    getClassName(
-                        classItem
-                    );
+        }
+    );
 
 
-                const option =
-                    document.createElement(
-                        "option"
-                    );
+    students.sort(
+        (a, b) => {
 
-
-                option.value =
-                    name;
-
-
-                option.textContent =
-                    name;
-
-
-                resultClassFilter.appendChild(
-                    option
+            const nameA =
+                String(
+                    a.fullName ||
+                    a.name ||
+                    ""
                 );
 
-            }
+
+            const nameB =
+                String(
+                    b.fullName ||
+                    b.name ||
+                    ""
+                );
+
+
+            return nameA.localeCompare(
+                nameB
+            );
+
+        }
+    );
+
+
+    populateStudentSelect();
+
+}
+
+
+/* =========================================================
+LOAD ALL STUDENTS
+========================================================= */
+
+async function loadAllStudents() {
+
+    const studentsRef =
+        collection(
+            db,
+            "students"
         );
+
+
+    const studentsQuery =
+        query(
+
+            studentsRef,
+
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            )
+
+        );
+
+
+    const snapshot =
+        await getDocs(
+            studentsQuery
+        );
+
+
+    if (totalStudents) {
+
+        totalStudents.textContent =
+            snapshot.size;
 
     }
 
 }
 
 
-/* ============================================================
-   CLASS CHANGE
-============================================================ */
+/* =========================================================
+STUDENT SELECT
+========================================================= */
 
-function handleClassChange() {
+function populateStudentSelect() {
 
     if (!studentSelect) {
         return;
     }
 
 
-    const selectedValue =
-        classSelect?.value || "";
+    studentSelect.innerHTML = `
+
+        <option value="">
+            Select Student
+        </option>
+
+    `;
 
 
-    studentSelect.innerHTML =
-        `<option value="">Select student</option>`;
-
-
-    if (!selectedValue) {
-        return;
-    }
-
-
-    const selectedClass =
-        classes.find(
-            (item) =>
-                String(item.id) ===
-                String(selectedValue)
-        );
-
-
-    const className =
-        selectedClass
-            ? getClassName(selectedClass)
-            : selectedValue;
-
-
-    const classStudents =
-        students
-            .filter(
-                (student) =>
-                    normalizeClass(
-                        getStudentClass(student)
-                    ) ===
-                    normalizeClass(className)
-            )
-            .sort(
-                compareStudentNames
-            );
-
-
-    classStudents.forEach(
-        (student) => {
+    students.forEach(
+        student => {
 
             const option =
                 document.createElement(
@@ -1550,10 +1063,20 @@ function handleClassChange() {
                 student.id;
 
 
+            const name =
+                student.fullName ||
+                student.name ||
+                "Unnamed Student";
+
+
+            const studentId =
+                student.studentId ||
+                student.id ||
+                "No ID";
+
+
             option.textContent =
-                getStudentName(
-                    student
-                );
+                `${name} — ${studentId}`;
 
 
             studentSelect.appendChild(
@@ -1563,131 +1086,149 @@ function handleClassChange() {
         }
     );
 
+
+    studentSelect.disabled =
+        false;
+
 }
 
 
-/* ============================================================
-   LOAD SELECTED RESULT
-============================================================ */
+/* =========================================================
+LOAD RESULT BUTTON
+========================================================= */
 
-async function loadSelectedResult() {
+if (loadResultButton) {
+
+    loadResultButton.addEventListener(
+        "click",
+        async () => {
+
+            const studentDocumentId =
+                studentSelect.value;
+
+
+            if (!classSelect.value) {
+
+                alert(
+                    "Please select a class."
+                );
+
+                return;
+
+            }
+
+
+            if (!studentDocumentId) {
+
+                alert(
+                    "Please select a student."
+                );
+
+                return;
+
+            }
+
+
+            const year =
+                academicYear.value.trim();
+
+
+            if (!year) {
+
+                alert(
+                    "Please enter the academic year."
+                );
+
+                academicYear.focus();
+
+                return;
+
+            }
+
+
+            if (!termSelect.value) {
+
+                alert(
+                    "Please select a term."
+                );
+
+                return;
+
+            }
+
+
+            selectedStudent =
+                students.find(
+                    student =>
+                        student.id ===
+                        studentDocumentId
+                );
+
+
+            if (!selectedStudent) {
+
+                alert(
+                    "Student could not be found."
+                );
+
+                return;
+
+            }
+
+
+            await loadExistingResultForStudent();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+LOAD EXISTING RESULT
+========================================================= */
+
+async function loadExistingResultForStudent() {
+
+    const year =
+        academicYear.value.trim();
+
+
+    const term =
+        termSelect.value;
+
+
+    setButtonLoading(
+        loadResultButton,
+        "Loading..."
+    );
+
 
     try {
 
-        const studentId =
-            studentSelect?.value ||
-            "";
-
-
-        const academicYearValue =
-            academicYear?.value.trim() ||
-            "";
-
-
-        const termValue =
-            termSelect?.value ||
-            "";
-
-
-        if (!studentId) {
-
-            alert(
-                "Please select a student."
-            );
-
-            return;
-
-        }
-
-
-        if (!academicYearValue) {
-
-            alert(
-                "Please enter the academic year."
-            );
-
-            return;
-
-        }
-
-
-        if (!termValue) {
-
-            alert(
-                "Please select the term."
-            );
-
-            return;
-
-        }
-
-
-        selectedStudent =
-            students.find(
-                (student) =>
-                    String(student.id) ===
-                    String(studentId)
+        const result =
+            findExistingResult(
+                selectedStudent.id,
+                year,
+                term
             );
 
 
-        if (!selectedStudent) {
-
-            selectedStudent =
-                findStudentInAllClasses(
-                    studentId
-                );
-
-        }
-
-
-        if (!selectedStudent) {
-
-            alert(
-                "Student record could not be found."
-            );
-
-            return;
-
-        }
-
-
-        const existing =
-            allResults.find(
-                (result) =>
-
-                    String(
-                        result.studentId ||
-                        result.studentDocumentId
-                    ) ===
-                    String(studentId)
-
-                    &&
-
-                    String(
-                        result.academicYear
-                    ) ===
-                    String(academicYearValue)
-
-                    &&
-
-                    String(
-                        result.term
-                    ) ===
-                    String(termValue)
-            );
-
-
-        if (existing) {
+        if (result) {
 
             currentResult =
-                existing;
+                result;
 
+
+            showResultEditor();
 
             renderResultIntoEditor(
-                existing
+                result
             );
 
-        } else {
+        }
+
+        else {
 
             currentResult =
                 null;
@@ -1695,27 +1236,23 @@ async function loadSelectedResult() {
 
             showResultEditor();
 
-            clearEditorFields();
-
             createDefaultSubjects();
 
-        }
+            clearCommentsAndPosition();
+
+            publishResult.checked =
+                false;
 
 
-        if (resultEditor) {
-
-            resultEditor.style.display =
-                "block";
-
-
-            resultEditor.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
+            setResultStatus(
+                "draft"
+            );
 
         }
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(
             "Load result error:",
@@ -1724,217 +1261,144 @@ async function loadSelectedResult() {
 
 
         alert(
-            error?.message ||
+            error.message ||
             "Unable to load result."
         );
 
     }
 
+    finally {
+
+        resetButton(
+            loadResultButton,
+            "Load Student Result"
+        );
+
+    }
+
 }
 
 
-/* ============================================================
-   SHOW RESULT EDITOR
-============================================================ */
+/* =========================================================
+FIND EXISTING RESULT
+========================================================= */
+
+function findExistingResult(
+    studentDocumentId,
+    year,
+    term
+) {
+
+    return allResults.find(
+        result => {
+
+            return (
+
+                result.studentDocumentId ===
+                studentDocumentId
+
+            )
+
+            &&
+
+            result.academicYear ===
+            year
+
+            &&
+
+            result.term ===
+            term;
+
+        }
+    ) || null;
+
+}
+
+
+/* =========================================================
+SHOW EDITOR
+========================================================= */
 
 function showResultEditor() {
 
-    if (!resultEditor) {
-        return;
-    }
+    resultEditor.classList.remove(
+        "hidden"
+    );
 
 
-    resultEditor.style.display =
-        "block";
-
-
-    if (!selectedStudent) {
-        return;
-    }
-
-
-    const studentFullName =
-        getStudentName(
-            selectedStudent
+    const classItem =
+        classes.find(
+            item =>
+                item.id ===
+                classSelect.value
         );
 
 
-    const studentClass =
-        getStudentClass(
-            selectedStudent
+    const name =
+        selectedStudent.fullName ||
+        selectedStudent.name ||
+        "Unnamed Student";
+
+
+    const studentId =
+        selectedStudent.studentId ||
+        selectedStudent.id ||
+        "No Student ID";
+
+
+    const className =
+        normalizeClassName(
+            classItem?.className ||
+            classItem?.name ||
+            selectedStudent.className ||
+            ""
         );
 
 
-    if (studentName) {
-
-        studentName.textContent =
-            studentFullName;
-
-    }
+    studentName.textContent =
+        name;
 
 
-    if (studentDetails) {
-
-        const gender =
-            selectedStudent.gender ||
-            "";
+    studentDetails.textContent =
+        `${className} • ${studentId}`;
 
 
-        const dateOfBirth =
-            selectedStudent.dateOfBirth ||
-            selectedStudent.dob ||
-            "";
+    displayStudentId.textContent =
+        studentId;
 
 
-        const details =
-            [
-                gender,
-                dateOfBirth
-            ]
-                .filter(Boolean)
-                .join(" • ");
+    displayClass.textContent =
+        className;
 
 
-        studentDetails.textContent =
-            details ||
-            "Student academic record";
-
-    }
+    displayAcademicYear.textContent =
+        academicYear.value.trim();
 
 
-    if (displayStudentId) {
-
-        displayStudentId.textContent =
-            selectedStudent.studentId ||
-            selectedStudent.admissionNumber ||
-            selectedStudent.studentNumber ||
-            selectedStudent.id ||
-            "-";
-
-    }
-
-
-    if (displayClass) {
-
-        displayClass.textContent =
-            studentClass ||
-            getSelectedClassName() ||
-            "-";
-
-    }
-
-
-    if (displayAcademicYear) {
-
-        displayAcademicYear.textContent =
-            academicYear?.value.trim() ||
-            "-";
-
-    }
-
-
-    if (displayTerm) {
-
-        displayTerm.textContent =
-            termSelect?.value ||
-            "-";
-
-    }
+    displayTerm.textContent =
+        termSelect.value;
 
 }
 
 
-/* ============================================================
-   CLEAR EDITOR
-============================================================ */
+/* =========================================================
+HIDE EDITOR
+========================================================= */
 
-function clearEditor() {
+function hideEditor() {
 
-    if (
-        !confirm(
-            "Clear the current result and start again?"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    currentResult =
-        null;
-
-
-    clearEditorFields();
-
-    createDefaultSubjects();
-
-    showResultEditor();
+    resultEditor.classList.add(
+        "hidden"
+    );
 
 }
 
 
-/* ============================================================
-   CLEAR EDITOR FIELDS
-============================================================ */
-
-function clearEditorFields() {
-
-    if (subjectTableBody) {
-
-        subjectTableBody.innerHTML =
-            "";
-
-    }
-
-
-    if (positionInput) {
-
-        positionInput.value =
-            "";
-
-    }
-
-
-    if (teacherComment) {
-
-        teacherComment.value =
-            "";
-
-    }
-
-
-    if (principalComment) {
-
-        principalComment.value =
-            "";
-
-    }
-
-
-    if (resultStatus) {
-
-        resultStatus.textContent =
-            "Draft";
-
-    }
-
-
-    resetCalculationDisplay();
-
-}
-
-
-/* ============================================================
-   CREATE DEFAULT SUBJECTS
-============================================================ */
+/* =========================================================
+CREATE DEFAULT SUBJECTS
+========================================================= */
 
 function createDefaultSubjects() {
-
-    if (!subjectTableBody) {
-        return;
-    }
-
 
     subjectTableBody.innerHTML =
         "";
@@ -1943,12 +1407,18 @@ function createDefaultSubjects() {
     DEFAULT_SUBJECTS.forEach(
         (subject, index) => {
 
+            /*
+             * First four are initially selected
+             * as compulsory subjects.
+             *
+             * Teacher can change them.
+             */
+
             addSubjectRow(
                 subject,
-                0,
-                0,
-                index <
-                REQUIRED_COMPULSORY_SUBJECTS
+                "",
+                "",
+                index < 4
             );
 
         }
@@ -1960,21 +1430,237 @@ function createDefaultSubjects() {
 }
 
 
-/* ============================================================
-   ADD SUBJECT ROW
-============================================================ */
+/* =========================================================
+RENDER EXISTING RESULT
+========================================================= */
 
-function addSubjectRow(
-    subject = "",
-    test = 0,
-    exam = 0,
-    isCompulsory = false
+function renderResultIntoEditor(
+    result
 ) {
 
-    if (!subjectTableBody) {
-        return;
+    subjectTableBody.innerHTML =
+        "";
+
+
+    const subjects =
+        Array.isArray(
+            result.subjects
+        )
+            ? result.subjects
+            : [];
+
+
+    if (subjects.length) {
+
+        subjects.forEach(
+            item => {
+
+                const isCompulsory =
+                    item.isCompulsory === true
+                        ? true
+                        : detectLegacyCompulsorySubject(
+                            item.subject
+                        );
+
+
+                addSubjectRow(
+
+                    item.subject ||
+                    "",
+
+                    item.ca ?? "",
+
+                    item.exam ?? "",
+
+                    isCompulsory
+
+                );
+
+            }
+        );
+
     }
 
+    else {
+
+        createDefaultSubjects();
+
+    }
+
+
+    positionInput.value =
+        result.position ||
+        "";
+
+
+    teacherComment.value =
+        result.teacherComment ||
+        "";
+
+
+    principalComment.value =
+        result.principalComment ||
+        "";
+
+
+    publishResult.checked =
+        result.status ===
+        "published";
+
+
+    calculateOverall();
+
+
+    setResultStatus(
+        result.status ||
+        "draft"
+    );
+
+}
+
+
+/* =========================================================
+LEGACY COMPULSORY DETECTION
+========================================================= */
+
+function detectLegacyCompulsorySubject(
+    subject
+) {
+
+    const normalized =
+        String(
+            subject ||
+            ""
+        )
+        .trim()
+        .toLowerCase()
+        .replace(
+            /\s+/g,
+            " "
+        );
+
+
+    const normalizedWithoutPeriods =
+        normalized.replace(
+            /\./g,
+            ""
+        );
+
+
+    const normalizedWithoutSpaces =
+        normalizedWithoutPeriods.replace(
+            /\s+/g,
+            ""
+        );
+
+
+    if (
+        normalized ===
+        "english language"
+    ) {
+
+        return true;
+
+    }
+
+
+    if (
+        normalized ===
+        "mathematics"
+    ) {
+
+        return true;
+
+    }
+
+
+    if (
+        normalized ===
+        "science"
+    ) {
+
+        return true;
+
+    }
+
+
+    if (
+        normalized ===
+        "social & env. studies" ||
+
+        normalized ===
+        "social and env. studies" ||
+
+        normalized ===
+        "social & environmental studies" ||
+
+        normalizedWithoutSpaces ===
+        "ses"
+    ) {
+
+        return true;
+
+    }
+
+
+    return false;
+
+}
+
+
+/* =========================================================
+CLEAR COMMENTS
+========================================================= */
+
+function clearCommentsAndPosition() {
+
+    positionInput.value =
+        "";
+
+    teacherComment.value =
+        "";
+
+    principalComment.value =
+        "";
+
+}
+
+
+/* =========================================================
+ADD SUBJECT BUTTON
+========================================================= */
+
+if (addSubjectButton) {
+
+    addSubjectButton.addEventListener(
+        "click",
+        () => {
+
+            addSubjectRow(
+                "",
+                "",
+                "",
+                false
+            );
+
+            calculateOverall();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+ADD SUBJECT ROW
+========================================================= */
+
+function addSubjectRow(
+    subject,
+    ca,
+    exam,
+    isCompulsory = false
+) {
 
     const row =
         document.createElement(
@@ -1982,50 +1668,43 @@ function addSubjectRow(
         );
 
 
-    row.dataset.compulsory =
-        isCompulsory
-            ? "true"
-            : "false";
-
-
     row.innerHTML = `
-
-        <td class="row-number"></td>
 
         <td>
 
             <input
                 type="text"
-                class="subject-name-input"
-                value="${escapeAttribute(subject)}"
+                class="subject-input"
                 placeholder="Subject name"
             >
 
         </td>
+
 
         <td class="compulsory-cell">
 
             <input
                 type="checkbox"
                 class="compulsory-input"
-                ${isCompulsory ? "checked" : ""}
                 title="Count this subject as one of the 4 compulsory subjects"
             >
 
         </td>
 
+
         <td>
 
             <input
                 type="number"
-                class="test-input"
+                class="ca-input"
                 min="0"
-                max="100"
+                max="40"
                 step="0.01"
-                value="${safeNumber(test)}"
+                placeholder="0"
             >
 
         </td>
+
 
         <td>
 
@@ -2033,32 +1712,45 @@ function addSubjectRow(
                 type="number"
                 class="exam-input"
                 min="0"
-                max="100"
+                max="60"
                 step="0.01"
-                value="${safeNumber(exam)}"
+                placeholder="0"
             >
 
         </td>
+
 
         <td class="total-cell">
             0.00
         </td>
 
-        <td class="grade-cell">
-            -
+
+        <td>
+
+            <span class="grade-badge">
+                —
+            </span>
+
         </td>
 
-        <td class="remark-cell">
-            -
+
+        <td>
+
+            <span class="remark">
+                —
+            </span>
+
         </td>
+
 
         <td>
 
             <button
                 type="button"
-                class="danger-btn remove-subject"
+                class="remove-subject"
+                title="Remove subject"
             >
-                Remove
+                ×
             </button>
 
         </td>
@@ -2071,139 +1763,15 @@ function addSubjectRow(
     );
 
 
-    calculateSubjectRow(
-        row
-    );
-
-
-    enforceCompulsoryLimit();
-
-    calculateOverall();
-
-}
-
-
-/* ============================================================
-   SUBJECT INPUT
-============================================================ */
-
-function handleSubjectInput(
-    event
-) {
-
-    const row =
-        event.target.closest(
-            "tr"
-        );
-
-
-    if (!row) {
-        return;
-    }
-
-
-    if (
-
-        event.target.classList.contains(
-            "subject-name-input"
-        )
-
-        ||
-
-        event.target.classList.contains(
-            "test-input"
-        )
-
-        ||
-
-        event.target.classList.contains(
-            "exam-input"
-        )
-
-    ) {
-
-        calculateSubjectRow(
-            row
-        );
-
-        calculateOverall();
-
-    }
-
-}
-
-
-/* ============================================================
-   SUBJECT CHANGE
-============================================================ */
-
-function handleSubjectChange(
-    event
-) {
-
-    if (
-        event.target.classList.contains(
-            "compulsory-input"
-        )
-    ) {
-
-        enforceCompulsoryLimit();
-
-        calculateOverall();
-
-    }
-
-}
-
-
-/* ============================================================
-   SUBJECT CLICK
-============================================================ */
-
-function handleSubjectClick(
-    event
-) {
-
-    if (
-        event.target.classList.contains(
-            "remove-subject"
-        )
-    ) {
-
-        const row =
-            event.target.closest(
-                "tr"
-            );
-
-
-        if (row) {
-
-            row.remove();
-
-            updateRowNumbers();
-
-            enforceCompulsoryLimit();
-
-            calculateOverall();
-
-        }
-
-    }
-
-}
-
-
-/* ============================================================
-   CALCULATE SUBJECT ROW
-============================================================ */
-
-function calculateSubjectRow(
-    row
-) {
-
-    const testInput =
+    const subjectInput =
         row.querySelector(
-            ".test-input"
+            ".subject-input"
+        );
+
+
+    const caInput =
+        row.querySelector(
+            ".ca-input"
         );
 
 
@@ -2213,153 +1781,197 @@ function calculateSubjectRow(
         );
 
 
-    const totalCell =
+    const compulsoryInput =
         row.querySelector(
-            ".total-cell"
+            ".compulsory-input"
         );
 
 
-    const gradeCell =
-        row.querySelector(
-            ".grade-cell"
+    subjectInput.value =
+        subject || "";
+
+
+    caInput.value =
+        ca ?? "";
+
+
+    examInput.value =
+        exam ?? "";
+
+
+    compulsoryInput.checked =
+        Boolean(
+            isCompulsory
         );
 
 
-    const remarkCell =
-        row.querySelector(
-            ".remark-cell"
-        );
+    caInput.addEventListener(
+        "input",
+        () => {
 
+            calculateRow(
+                row
+            );
 
-    if (
-        !testInput ||
-        !examInput ||
-        !totalCell ||
-        !gradeCell ||
-        !remarkCell
-    ) {
-
-        return;
-
-    }
-
-
-    const test =
-        clampNumber(
-            testInput.value,
-            0,
-            100
-        );
-
-
-    const exam =
-        clampNumber(
-            examInput.value,
-            0,
-            100
-        );
-
-
-    const testContribution =
-        test *
-        TEST_WEIGHT;
-
-
-    const examContribution =
-        exam *
-        EXAM_WEIGHT;
-
-
-    const total =
-        testContribution +
-        examContribution;
-
-
-    const gradeInfo =
-        calculateGrade(
-            total
-        );
-
-
-    totalCell.textContent =
-        formatNumber(
-            total
-        );
-
-
-    gradeCell.textContent =
-        gradeInfo.grade;
-
-
-    remarkCell.textContent =
-        gradeInfo.remark;
-
-
-    updateRowNumbers();
-
-}
-
-
-/* ============================================================
-   ENFORCE FOUR COMPULSORY SUBJECTS
-============================================================ */
-
-function enforceCompulsoryLimit() {
-
-    if (!subjectTableBody) {
-        return;
-    }
-
-
-    const checkboxes =
-        Array.from(
-            subjectTableBody.querySelectorAll(
-                ".compulsory-input"
-            )
-        );
-
-
-    let checkedCount =
-        0;
-
-
-    checkboxes.forEach(
-        (checkbox) => {
-
-            if (checkbox.checked) {
-
-                checkedCount++;
-
-
-                if (
-                    checkedCount >
-                    REQUIRED_COMPULSORY_SUBJECTS
-                ) {
-
-                    checkbox.checked =
-                        false;
-
-                }
-
-            }
+            calculateOverall();
 
         }
     );
 
 
-    updateCountedSubjectRows();
+    examInput.addEventListener(
+        "input",
+        () => {
+
+            calculateRow(
+                row
+            );
+
+            calculateOverall();
+
+        }
+    );
+
+
+    subjectInput.addEventListener(
+        "input",
+        () => {
+
+            calculateOverall();
+
+        }
+    );
+
+
+    compulsoryInput.addEventListener(
+        "change",
+        () => {
+
+            enforceCompulsoryLimit(
+                compulsoryInput
+            );
+
+            calculateOverall();
+
+        }
+    );
+
+
+    row.querySelector(
+        ".remove-subject"
+    ).addEventListener(
+        "click",
+        () => {
+
+            row.remove();
+
+            calculateOverall();
+
+        }
+    );
+
+
+    calculateRow(
+        row
+    );
 
 }
 
 
-/* ============================================================
-   COLLECT SUBJECTS
-============================================================ */
+/* =========================================================
+ENFORCE 4 COMPULSORY SUBJECTS
+========================================================= */
 
-function collectSubjects() {
+function enforceCompulsoryLimit(
+    changedCheckbox
+) {
+
+    const checked =
+        Array.from(
+            subjectTableBody.querySelectorAll(
+                ".compulsory-input:checked"
+            )
+        );
+
+
+    if (checked.length > 4) {
+
+        changedCheckbox.checked =
+            false;
+
+
+        alert(
+            "You can select only 4 compulsory subjects."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+CALCULATE ROW
+========================================================= */
+
+function calculateRow(row) {
+
+    const ca =
+        numberValue(
+            row.querySelector(
+                ".ca-input"
+            ).value
+        );
+
+
+    const exam =
+        numberValue(
+            row.querySelector(
+                ".exam-input"
+            ).value
+        );
+
+
+    const total =
+        Math.min(
+            100,
+            ca + exam
+        );
+
+
+    const grade =
+        calculateGrade(
+            total
+        );
+
+
+    row.querySelector(
+        ".total-cell"
+    ).textContent =
+        total.toFixed(2);
+
+
+    row.querySelector(
+        ".grade-badge"
+    ).textContent =
+        grade.grade;
+
+
+    row.querySelector(
+        ".remark"
+    ).textContent =
+        grade.remark;
+
+}
+
+
+/* =========================================================
+CALCULATE ALL SUBJECTS SUMMARY
+========================================================= */
+
+function calculateOverall() {
 
     if (!subjectTableBody) {
-        return [];
+        return;
     }
 
 
@@ -2371,217 +1983,378 @@ function collectSubjects() {
         );
 
 
-    return rows.map(
-        (row, index) => {
+    let totalMarks =
+        0;
 
-            const subjectInput =
+
+    let subjectCount =
+        0;
+
+
+    rows.forEach(
+        row => {
+
+            const subject =
                 row.querySelector(
-                    ".subject-name-input"
-                );
+                    ".subject-input"
+                ).value.trim();
 
 
-            const testInput =
-                row.querySelector(
-                    ".test-input"
-                );
+            if (!subject) {
+                return;
+            }
 
 
-            const examInput =
-                row.querySelector(
-                    ".exam-input"
-                );
+            calculateRow(
+                row
+            );
 
 
-            const compulsoryInput =
-                row.querySelector(
-                    ".compulsory-input"
-                );
-
-
-            const test =
-                clampNumber(
-                    testInput?.value,
-                    0,
-                    100
+            const ca =
+                numberValue(
+                    row.querySelector(
+                        ".ca-input"
+                    ).value
                 );
 
 
             const exam =
-                clampNumber(
-                    examInput?.value,
-                    0,
-                    100
+                numberValue(
+                    row.querySelector(
+                        ".exam-input"
+                    ).value
                 );
 
 
-            const testWeighted =
-                test *
-                TEST_WEIGHT;
+            totalMarks +=
+                Math.min(
+                    100,
+                    ca + exam
+                );
 
 
-            const examWeighted =
-                exam *
-                EXAM_WEIGHT;
+            subjectCount++;
+
+        }
+    );
+
+
+    const average =
+        subjectCount
+            ? totalMarks /
+              subjectCount
+            : 0;
+
+
+    const grade =
+        calculateGrade(
+            average
+        );
+
+
+    overallSubjects.textContent =
+        subjectCount;
+
+
+    overallMarks.textContent =
+        totalMarks.toFixed(2);
+
+
+    overallAverage.textContent =
+        `${average.toFixed(2)}%`;
+
+
+    overallGrade.textContent =
+        subjectCount
+            ? grade.grade
+            : "—";
+
+
+    calculateFinalTermGrade();
+
+}
+
+
+/* =========================================================
+CALCULATE FINAL TERM GRADE
+========================================================= */
+
+function calculateFinalTermGrade() {
+
+    if (!subjectTableBody) {
+
+        return {
+
+            valid: false,
+
+            compulsorySubjects: [],
+
+            bestAdditionalSubjects: [],
+
+            subjectsCounted: [],
+
+            totalMarks: 0,
+
+            average: 0,
+
+            grade: calculateGrade(0).grade,
+
+            remark: calculateGrade(0).remark
+
+        };
+
+    }
+
+
+    const rows =
+        Array.from(
+            subjectTableBody.querySelectorAll(
+                "tr"
+            )
+        );
+
+
+    const subjects = [];
+
+
+    rows.forEach(
+        row => {
+
+            const subjectName =
+                row.querySelector(
+                    ".subject-input"
+                ).value.trim();
+
+
+            if (!subjectName) {
+                return;
+            }
+
+
+            const ca =
+                numberValue(
+                    row.querySelector(
+                        ".ca-input"
+                    ).value
+                );
+
+
+            const exam =
+                numberValue(
+                    row.querySelector(
+                        ".exam-input"
+                    ).value
+                );
 
 
             const total =
-                testWeighted +
-                examWeighted;
+                Math.min(
+                    100,
+                    ca + exam
+                );
 
 
-            const gradeInfo =
+            const grade =
                 calculateGrade(
                     total
                 );
 
 
-            return {
+            const isCompulsory =
+                row.querySelector(
+                    ".compulsory-input"
+                ).checked;
 
-                index,
+
+            subjects.push({
+
+                row,
 
                 subject:
-                    subjectInput?.value.trim() ||
-                    `Subject ${index + 1}`,
+                    subjectName,
 
-                test,
+                ca,
 
                 exam,
-
-                testWeighted,
-
-                examWeighted,
-
-                /*
-                    Legacy compatibility.
-                    Older code used "ca".
-                    Here CA represents Test.
-                */
-
-                ca:
-                    test,
 
                 total,
 
                 grade:
-                    gradeInfo.grade,
+                    grade.grade,
 
                 remark:
-                    gradeInfo.remark,
+                    grade.remark,
 
-                isCompulsory:
-                    Boolean(
-                        compulsoryInput?.checked
-                    )
+                isCompulsory
 
-            };
+            });
 
         }
     );
 
-}
-
-
-/* ============================================================
-   FINAL TERM CALCULATION
-============================================================ */
-
-function calculateFinalTermGrade(
-    subjects = collectSubjects()
-) {
 
     const compulsorySubjects =
         subjects.filter(
-            (item) =>
-                item.isCompulsory === true
+            item =>
+                item.isCompulsory
         );
 
 
     const nonCompulsorySubjects =
-        subjects
-            .filter(
-                (item) =>
-                    item.isCompulsory !== true
-            )
-            .map(
-                (item, index) => ({
+        subjects.filter(
+            item =>
+                !item.isCompulsory
+        );
 
-                    ...item,
 
-                    originalIndex:
-                        item.index ??
-                        index
-
-                })
-            )
-            .sort(
-                (a, b) =>
-
-                    Number(b.total) -
-                    Number(a.total)
-
-                    ||
-
-                    Number(a.originalIndex) -
-                    Number(b.originalIndex)
-            );
-
+    /*
+     * Best 2 remaining subjects.
+     *
+     * Highest total mark wins.
+     *
+     * If marks are equal, the earlier
+     * subject remains first.
+     */
 
     const bestAdditionalSubjects =
-        nonCompulsorySubjects.slice(
+        [...nonCompulsorySubjects]
+        .sort(
+            (a, b) =>
+                b.total -
+                a.total
+        )
+        .slice(
             0,
-            REQUIRED_BEST_ADDITIONAL
+            2
         );
 
 
     const subjectsCounted = [
+
         ...compulsorySubjects,
+
         ...bestAdditionalSubjects
+
     ];
 
 
-    const validCompulsory =
-        compulsorySubjects.length ===
-        REQUIRED_COMPULSORY_SUBJECTS;
+    const valid =
+        compulsorySubjects.length === 4 &&
+        bestAdditionalSubjects.length === 2;
 
 
-    const validAdditional =
-        bestAdditionalSubjects.length ===
-        REQUIRED_BEST_ADDITIONAL;
+    let totalMarks =
+        0;
 
 
-    const validFinal =
-        validCompulsory &&
-        validAdditional &&
-        subjectsCounted.length ===
-        REQUIRED_FINAL_SUBJECTS;
+    subjectsCounted.forEach(
+        item => {
+
+            totalMarks +=
+                item.total;
+
+        }
+    );
 
 
-    const finalTotal =
-        subjectsCounted.reduce(
-            (sum, item) =>
-                sum +
-                Number(
-                    item.total ||
-                    0
-                ),
-            0
-        );
-
-
-    const finalAverage =
+    const average =
         subjectsCounted.length
-            ? finalTotal /
+            ? totalMarks /
               subjectsCounted.length
             : 0;
 
 
-    const gradeInfo =
+    const grade =
         calculateGrade(
-            finalAverage
+            average
         );
 
 
+    /*
+     * Update row visual indicators.
+     */
+
+    subjects.forEach(
+        item => {
+
+            const counted =
+                subjectsCounted.some(
+                    selected =>
+                        selected.row ===
+                        item.row
+                );
+
+
+            item.row.classList.toggle(
+                "subject-row-counted",
+                counted
+            );
+
+
+            const subjectInput =
+                item.row.querySelector(
+                    ".subject-input"
+                );
+
+
+            let existingBadge =
+                item.row.querySelector(
+                    ".counted-indicator"
+                );
+
+
+            if (existingBadge) {
+
+                existingBadge.remove();
+
+            }
+
+
+            if (counted) {
+
+                const badge =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                badge.className =
+                    item.isCompulsory
+                        ? "counted-badge counted-indicator"
+                        : "best-badge counted-indicator";
+
+
+                badge.textContent =
+                    item.isCompulsory
+                        ? "Compulsory"
+                        : "Best 2";
+
+
+                subjectInput.insertAdjacentElement(
+                    "afterend",
+                    badge
+                );
+
+            }
+
+        }
+    );
+
+
+    updateFinalCalculationUI(
+        compulsorySubjects,
+        bestAdditionalSubjects,
+        subjectsCounted,
+        totalMarks,
+        average,
+        grade,
+        valid
+    );
+
+
     return {
+
+        valid,
 
         compulsorySubjects,
 
@@ -2589,148 +2362,39 @@ function calculateFinalTermGrade(
 
         subjectsCounted,
 
-        validCompulsory,
+        totalMarks,
 
-        validAdditional,
-
-        validFinal,
-
-        finalTotal,
-
-        finalAverage,
+        average,
 
         grade:
-            gradeInfo.grade,
+            grade.grade,
 
         remark:
-            gradeInfo.remark
+            grade.remark
 
     };
 
 }
 
 
-/* ============================================================
-   CALCULATE OVERALL
-============================================================ */
+/* =========================================================
+UPDATE FINAL CALCULATION UI
+========================================================= */
 
-function calculateOverall() {
-
-    const subjects =
-        collectSubjects();
-
-
-    /*
-        ALL SUBJECTS INFORMATIONAL SUMMARY
-    */
-
-    const allTotal =
-        subjects.reduce(
-            (sum, item) =>
-                sum +
-                Number(
-                    item.total ||
-                    0
-                ),
-            0
-        );
-
-
-    const allAverage =
-        subjects.length
-            ? allTotal /
-              subjects.length
-            : 0;
-
-
-    const allGradeInfo =
-        calculateGrade(
-            allAverage
-        );
-
-
-    if (overallSubjects) {
-
-        overallSubjects.textContent =
-            subjects.length;
-
-    }
-
-
-    if (overallMarks) {
-
-        overallMarks.textContent =
-            formatNumber(
-                allTotal
-            );
-
-    }
-
-
-    if (overallAverage) {
-
-        overallAverage.textContent =
-            `${formatNumber(allAverage)}%`;
-
-    }
-
-
-    if (overallGrade) {
-
-        overallGrade.textContent =
-            subjects.length
-                ? allGradeInfo.grade
-                : "-";
-
-    }
-
-
-    /*
-        OFFICIAL FINAL CALCULATION
-    */
-
-    const finalCalculation =
-        calculateFinalTermGrade(
-            subjects
-        );
-
-
-    renderFinalCalculation(
-        finalCalculation
-    );
-
-}
-
-
-/* ============================================================
-   RENDER FINAL CALCULATION
-============================================================ */
-
-function renderFinalCalculation(
-    calculation
+function updateFinalCalculationUI(
+    compulsorySubjects,
+    bestAdditionalSubjects,
+    subjectsCounted,
+    totalMarks,
+    average,
+    grade,
+    valid
 ) {
-
-    if (!calculation) {
-        return;
-    }
-
-
-    const {
-        compulsorySubjects,
-        bestAdditionalSubjects,
-        subjectsCounted,
-        validFinal,
-        finalTotal,
-        finalAverage,
-        grade,
-        remark
-    } = calculation;
-
 
     if (compulsorySubjectCount) {
 
         compulsorySubjectCount.textContent =
-            `${compulsorySubjects.length} / ${REQUIRED_COMPULSORY_SUBJECTS}`;
+            compulsorySubjects.length;
 
     }
 
@@ -2738,7 +2402,7 @@ function renderFinalCalculation(
     if (bestAdditionalCount) {
 
         bestAdditionalCount.textContent =
-            `${bestAdditionalSubjects.length} / ${REQUIRED_BEST_ADDITIONAL}`;
+            bestAdditionalSubjects.length;
 
     }
 
@@ -2746,7 +2410,7 @@ function renderFinalCalculation(
     if (finalSubjectsCount) {
 
         finalSubjectsCount.textContent =
-            `${subjectsCounted.length} / ${REQUIRED_FINAL_SUBJECTS}`;
+            subjectsCounted.length;
 
     }
 
@@ -2754,9 +2418,7 @@ function renderFinalCalculation(
     if (finalTotalMarks) {
 
         finalTotalMarks.textContent =
-            formatNumber(
-                finalTotal
-            );
+            totalMarks.toFixed(2);
 
     }
 
@@ -2764,7 +2426,17 @@ function renderFinalCalculation(
     if (finalAverage) {
 
         finalAverage.textContent =
-            `${formatNumber(finalAverage)}%`;
+            `${average.toFixed(2)}%`;
+
+    }
+
+
+    if (finalGrade) {
+
+        finalGrade.textContent =
+            valid
+                ? grade.grade
+                : "—";
 
     }
 
@@ -2777,13 +2449,18 @@ function renderFinalCalculation(
 
         if (!compulsorySubjects.length) {
 
-            selectedCompulsorySubjects.innerHTML =
-                "<li>None selected</li>";
+            selectedCompulsorySubjects.innerHTML = `
+                <li>
+                    <span>None selected</span>
+                </li>
+            `;
 
-        } else {
+        }
+
+        else {
 
             compulsorySubjects.forEach(
-                (item) => {
+                item => {
 
                     const li =
                         document.createElement(
@@ -2791,8 +2468,19 @@ function renderFinalCalculation(
                         );
 
 
-                    li.textContent =
-                        `${item.subject} — ${formatNumber(item.total)} (${item.grade})`;
+                    li.innerHTML = `
+
+                        <span>
+                            ${escapeHTML(
+                                item.subject
+                            )}
+                        </span>
+
+                        <strong>
+                            ${item.total.toFixed(2)}
+                        </strong>
+
+                    `;
 
 
                     selectedCompulsorySubjects.appendChild(
@@ -2815,13 +2503,18 @@ function renderFinalCalculation(
 
         if (!bestAdditionalSubjects.length) {
 
-            selectedBestSubjects.innerHTML =
-                "<li>None available</li>";
+            selectedBestSubjects.innerHTML = `
+                <li>
+                    <span>None selected</span>
+                </li>
+            `;
 
-        } else {
+        }
+
+        else {
 
             bestAdditionalSubjects.forEach(
-                (item) => {
+                item => {
 
                     const li =
                         document.createElement(
@@ -2829,8 +2522,19 @@ function renderFinalCalculation(
                         );
 
 
-                    li.textContent =
-                        `${item.subject} — ${formatNumber(item.total)} (${item.grade})`;
+                    li.innerHTML = `
+
+                        <span>
+                            ${escapeHTML(
+                                item.subject
+                            )}
+                        </span>
+
+                        <strong>
+                            ${item.total.toFixed(2)}
+                        </strong>
+
+                    `;
 
 
                     selectedBestSubjects.appendChild(
@@ -2851,25 +2555,41 @@ function renderFinalCalculation(
             "final-calculation-status";
 
 
-        if (validFinal) {
-
-            finalCalculationStatus.textContent =
-                `READY — Grade ${grade} (${remark})`;
-
+        if (valid) {
 
             finalCalculationStatus.classList.add(
                 "ready"
             );
 
-        } else {
 
             finalCalculationStatus.textContent =
-                "INCOMPLETE";
+                "Ready — 6 subjects selected";
 
+        }
+
+        else if (
+            compulsorySubjects.length > 4
+        ) {
 
             finalCalculationStatus.classList.add(
                 "warning"
             );
+
+
+            finalCalculationStatus.textContent =
+                "Too many compulsory subjects";
+
+        }
+
+        else {
+
+            finalCalculationStatus.classList.add(
+                "warning"
+            );
+
+
+            finalCalculationStatus.textContent =
+                "Final calculation incomplete";
 
         }
 
@@ -2878,47 +2598,34 @@ function renderFinalCalculation(
 
     if (finalCalculationWarning) {
 
-        if (validFinal) {
+        if (
+            compulsorySubjects.length !== 4
+        ) {
+
+            finalCalculationWarning.textContent =
+                `Please select exactly 4 compulsory subjects. Currently ${compulsorySubjects.length} are selected.`;
 
             finalCalculationWarning.style.display =
-                "none";
+                "block";
 
+        }
 
-            finalCalculationWarning.textContent =
-                "";
-
-        } else {
-
-            const messages = [];
-
-
-            if (
-                compulsorySubjects.length !==
-                REQUIRED_COMPULSORY_SUBJECTS
-            ) {
-
-                messages.push(
-                    `Select exactly ${REQUIRED_COMPULSORY_SUBJECTS} compulsory subjects.`
-                );
-
-            }
-
-
-            if (
-                bestAdditionalSubjects.length <
-                REQUIRED_BEST_ADDITIONAL
-            ) {
-
-                messages.push(
-                    `At least ${REQUIRED_BEST_ADDITIONAL} non-compulsory subjects are required.`
-                );
-
-            }
-
+        else if (
+            bestAdditionalSubjects.length < 2
+        ) {
 
             finalCalculationWarning.textContent =
-                messages.join(" ");
+                "At least 2 additional subjects are required so the system can select the best 2.";
 
+            finalCalculationWarning.style.display =
+                "block";
+
+        }
+
+        else {
+
+            finalCalculationWarning.textContent =
+                "Calculation complete. The official final grade is based on the 4 compulsory subjects and the best 2 remaining subjects.";
 
             finalCalculationWarning.style.display =
                 "block";
@@ -2927,20 +2634,69 @@ function renderFinalCalculation(
 
     }
 
+}
 
-    updateCountedSubjectRows();
+
+/* =========================================================
+SAVE BUTTON
+========================================================= */
+
+if (saveResultButton) {
+
+    saveResultButton.addEventListener(
+        "click",
+        saveResult
+    );
 
 }
 
 
-/* ============================================================
-   UPDATE COUNTED SUBJECT ROWS
-============================================================ */
+/* =========================================================
+SAVE RESULT
+========================================================= */
 
-function updateCountedSubjectRows() {
+async function saveResult() {
 
-    if (!subjectTableBody) {
+    if (!selectedStudent) {
+
+        alert(
+            "Please select a student first."
+        );
+
         return;
+
+    }
+
+
+    const year =
+        academicYear.value.trim();
+
+
+    const term =
+        termSelect.value;
+
+
+    if (!year) {
+
+        alert(
+            "Please enter the academic year."
+        );
+
+        academicYear.focus();
+
+        return;
+
+    }
+
+
+    if (!term) {
+
+        alert(
+            "Please select a term."
+        );
+
+        return;
+
     }
 
 
@@ -2948,1005 +2704,252 @@ function updateCountedSubjectRows() {
         collectSubjects();
 
 
-    const calculation =
-        calculateFinalTermGrade(
-            subjects
+    if (!subjects.length) {
+
+        alert(
+            "Please enter at least one subject."
         );
 
-
-    const countedIndexes =
-        new Set(
-            calculation.subjectsCounted.map(
-                (item) =>
-                    item.index
-            )
-        );
-
-
-    const compulsoryIndexes =
-        new Set(
-            calculation.compulsorySubjects.map(
-                (item) =>
-                    item.index
-            )
-        );
-
-
-    const bestIndexes =
-        new Set(
-            calculation.bestAdditionalSubjects.map(
-                (item) =>
-                    item.index
-            )
-        );
-
-
-    const rows =
-        Array.from(
-            subjectTableBody.querySelectorAll(
-                "tr"
-            )
-        );
-
-
-    rows.forEach(
-        (row, index) => {
-
-            row.classList.remove(
-                "subject-row-counted"
-            );
-
-
-            const subjectInput =
-                row.querySelector(
-                    ".subject-name-input"
-                );
-
-
-            if (!subjectInput) {
-                return;
-            }
-
-
-            row.querySelectorAll(
-                ".counted-badge"
-            ).forEach(
-                (badge) =>
-                    badge.remove()
-            );
-
-
-            row.querySelectorAll(
-                ".counted-indicator"
-            ).forEach(
-                (indicator) =>
-                    indicator.remove()
-            );
-
-
-            if (
-                countedIndexes.has(index)
-            ) {
-
-                row.classList.add(
-                    "subject-row-counted"
-                );
-
-
-                const badge =
-                    document.createElement(
-                        "span"
-                    );
-
-
-                badge.className =
-                    "counted-badge";
-
-
-                if (
-                    bestIndexes.has(index)
-                ) {
-
-                    badge.classList.add(
-                        "best-badge"
-                    );
-
-
-                    badge.textContent =
-                        "BEST 2";
-
-                } else if (
-                    compulsoryIndexes.has(index)
-                ) {
-
-                    badge.textContent =
-                        "COMPULSORY";
-
-                }
-
-
-                subjectInput
-                    .parentElement
-                    .appendChild(
-                        badge
-                    );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   UPDATE ROW NUMBERS
-============================================================ */
-
-function updateRowNumbers() {
-
-    if (!subjectTableBody) {
         return;
+
     }
 
 
-    const rows =
-        Array.from(
-            subjectTableBody.querySelectorAll(
-                "tr"
-            )
-        );
-
-
-    rows.forEach(
-        (row, index) => {
-
-            const number =
-                row.querySelector(
-                    ".row-number"
-                );
-
-
-            if (number) {
-
-                number.textContent =
-                    index + 1;
-
-            }
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   SAVE RESULT
-============================================================ */
-
-async function saveResult(
-    status = "draft"
-) {
-
-    try {
-
-        if (!selectedStudent) {
-
-            alert(
-                "Please select a student first."
-            );
-
-            return;
-
-        }
-
-
-        const organizationId =
-            getOrganizationId();
-
-
-        if (!organizationId) {
-
-            alert(
-                "Your organization could not be identified. Please log out and log in again."
-            );
-
-            return;
-
-        }
-
-
-        const academicYearValue =
-            academicYear?.value.trim() ||
-            "";
-
-
-        const termValue =
-            termSelect?.value ||
-            "";
-
-
-        if (!academicYearValue) {
-
-            alert(
-                "Please enter the academic year."
-            );
-
-            return;
-
-        }
-
-
-        if (!termValue) {
-
-            alert(
-                "Please select the term."
-            );
-
-            return;
-
-        }
-
-
-        const subjects =
-            collectSubjects();
-
-
-        if (!subjects.length) {
-
-            alert(
-                "Please enter at least one subject."
-            );
-
-            return;
-
-        }
-
-
-        const finalCalculation =
-            calculateFinalTermGrade(
-                subjects
-            );
-
-
-        if (
-            !finalCalculation.validFinal
-        ) {
-
-            alert(
-
-                "The result cannot be saved because the official final calculation is incomplete.\n\n" +
-
-                `You must select exactly ${REQUIRED_COMPULSORY_SUBJECTS} compulsory subjects and have at least ${REQUIRED_BEST_ADDITIONAL} additional subjects.`
-
-            );
-
-            return;
-
-        }
-
-
-        const allTotal =
-            subjects.reduce(
-                (sum, item) =>
-                    sum +
-                    Number(
-                        item.total ||
-                        0
-                    ),
-                0
-            );
-
-
-        const allAverage =
-            subjects.length
-                ? allTotal /
-                  subjects.length
-                : 0;
-
-
-        const allGradeInfo =
-            calculateGrade(
-                allAverage
-            );
-
-
-        const resultData = {
-
-            organizationId,
-
-            studentId:
-                selectedStudent.id,
-
-            studentDocumentId:
-                selectedStudent.id,
-
-            studentName:
-                getStudentName(
-                    selectedStudent
-                ),
-
-            studentNumber:
-                selectedStudent.studentId ||
-                selectedStudent.admissionNumber ||
-                selectedStudent.studentNumber ||
-                "",
-
-            classId:
-                getSelectedClassId(),
-
-            className:
-                getSelectedClassName() ||
-                getStudentClass(
-                    selectedStudent
-                ),
-
-            academicYear:
-                academicYearValue,
-
-            term:
-                termValue,
-
-            subjects,
-
-            subjectCount:
-                subjects.length,
-
-            totalMarks:
-                roundNumber(
-                    finalCalculation.finalTotal
-                ),
-
-            average:
-                roundNumber(
-                    finalCalculation.finalAverage
-                ),
-
-            overallGrade:
-                finalCalculation.grade,
-
-            overallRemark:
-                finalCalculation.remark,
-
-            finalCalculation: {
-
-                rule:
-                    "4 compulsory subjects + best 2 additional subjects",
-
-                testWeight:
-                    25,
-
-                examWeight:
-                    75,
-
-                compulsorySubjects:
-                    finalCalculation
-                        .compulsorySubjects
-                        .map(
-                            cleanCalculationSubject
-                        ),
-
-                bestAdditionalSubjects:
-                    finalCalculation
-                        .bestAdditionalSubjects
-                        .map(
-                            cleanCalculationSubject
-                        ),
-
-                subjectsCounted:
-                    finalCalculation
-                        .subjectsCounted
-                        .map(
-                            cleanCalculationSubject
-                        ),
-
-                subjectsCount:
-                    REQUIRED_FINAL_SUBJECTS,
-
-                totalMarks:
-                    roundNumber(
-                        finalCalculation.finalTotal
-                    ),
-
-                average:
-                    roundNumber(
-                        finalCalculation.finalAverage
-                    ),
-
-                grade:
-                    finalCalculation.grade,
-
-                remark:
-                    finalCalculation.remark
-
-            },
-
-            allSubjectsSummary: {
-
-                subjectCount:
-                    subjects.length,
-
-                totalMarks:
-                    roundNumber(
-                        allTotal
-                    ),
-
-                average:
-                    roundNumber(
-                        allAverage
-                    ),
-
-                grade:
-                    allGradeInfo.grade,
-
-                remark:
-                    allGradeInfo.remark
-
-            },
-
-            position:
-                positionInput?.value.trim() ||
-                "",
-
-            teacherComment:
-                teacherComment?.value.trim() ||
-                "",
-
-            principalComment:
-                principalComment?.value.trim() ||
-                "",
-
-            status,
-
-            updatedAt:
-                serverTimestamp(),
-
-            updatedBy:
-                currentUser.uid,
-
-            updatedByEmail:
-                currentUser.email ||
-                "",
-
-            parentUid:
-                selectedStudent.parentUid ||
-                selectedStudent.parentId ||
-                null
-
-        };
-
-
-        /* ----------------------------------------------------
-           UPDATE
-        ---------------------------------------------------- */
-
-        if (currentResult?.id) {
-
-            await updateDoc(
-                doc(
-                    db,
-                    RESULTS_COLLECTION,
-                    currentResult.id
-                ),
-                resultData
-            );
-
-
-            const updatedResult = {
-
-                ...currentResult,
-
-                ...resultData,
-
-                id:
-                    currentResult.id
-
-            };
-
-
-            replaceLocalResult(
-                updatedResult
-            );
-
-
-            currentResult =
-                updatedResult;
-
-        }
-
-
-        /* ----------------------------------------------------
-           CREATE
-        ---------------------------------------------------- */
-
-        else {
-
-            const newData = {
-
-                ...resultData,
-
-                createdAt:
-                    serverTimestamp(),
-
-                createdBy:
-                    currentUser.uid,
-
-                createdByEmail:
-                    currentUser.email ||
-                    ""
-
-            };
-
-
-            const resultRef =
-                await addDoc(
-                    collection(
-                        db,
-                        RESULTS_COLLECTION
-                    ),
-                    newData
-                );
-
-
-            currentResult = {
-
-                id:
-                    resultRef.id,
-
-                ...resultData
-
-            };
-
-
-            allResults.push(
-                currentResult
-            );
-
-        }
-
-
-        if (resultStatus) {
-
-            resultStatus.textContent =
-                status === "published"
-                    ? "Published"
-                    : "Draft";
-
-        }
-
-
-        updateStatistics();
-
-        renderExistingResults();
-
+    /*
+     * Calculate official final grade.
+     */
+
+    const calculation =
+        calculateFinalTermGrade();
+
+
+    /*
+     * The school rule requires
+     * exactly 4 compulsory subjects
+     * and 2 additional subjects.
+     */
+
+    if (
+        calculation.compulsorySubjects.length !== 4
+    ) {
 
         alert(
-            status === "published"
-                ? "Result saved and published successfully."
-                : "Result saved as draft successfully."
+            `Please select exactly 4 compulsory subjects. You currently have ${calculation.compulsorySubjects.length}.`
         );
 
-
-    } catch (error) {
-
-        console.error(
-            "Save result error:",
-            error
-        );
-
-
-        alert(
-            error?.message ||
-            "Unable to save result."
-        );
+        return;
 
     }
-
-}
-
-
-/* ============================================================
-   RENDER EXISTING RESULT
-============================================================ */
-
-function renderResultIntoEditor(
-    result
-) {
-
-    selectedStudent =
-        selectedStudent ||
-        findStudentInAllClasses(
-            result.studentId ||
-            result.studentDocumentId
-        );
-
-
-    if (!selectedStudent) {
-
-        selectedStudent = {
-
-            id:
-                result.studentId ||
-                result.studentDocumentId,
-
-            studentId:
-                result.studentNumber ||
-                "",
-
-            name:
-                result.studentName,
-
-            class:
-                result.className
-
-        };
-
-    }
-
-
-    showResultEditor();
-
-
-    if (academicYear) {
-
-        academicYear.value =
-            result.academicYear ||
-            "";
-
-    }
-
-
-    if (termSelect) {
-
-        termSelect.value =
-            result.term ||
-            "";
-
-    }
-
-
-    if (resultStatus) {
-
-        resultStatus.textContent =
-            result.status === "published"
-                ? "Published"
-                : "Draft";
-
-    }
-
-
-    if (positionInput) {
-
-        positionInput.value =
-            result.position ||
-            "";
-
-    }
-
-
-    if (teacherComment) {
-
-        teacherComment.value =
-            result.teacherComment ||
-            "";
-
-    }
-
-
-    if (principalComment) {
-
-        principalComment.value =
-            result.principalComment ||
-            "";
-
-    }
-
-
-    if (subjectTableBody) {
-
-        subjectTableBody.innerHTML =
-            "";
-
-
-        const subjects =
-            Array.isArray(
-                result.subjects
-            )
-                ? result.subjects
-                : [];
-
-
-        const legacyCompulsory =
-            getLegacyCompulsorySubjects(
-                result
-            );
-
-
-        subjects.forEach(
-            (subject) => {
-
-                let isCompulsory =
-                    subject.isCompulsory === true;
-
-
-                if (
-                    typeof subject.isCompulsory !==
-                    "boolean"
-                ) {
-
-                    isCompulsory =
-                        legacyCompulsory.has(
-                            normalizeSubjectName(
-                                subject.subject
-                            )
-                        );
-
-                }
-
-
-                const test =
-                    subject.test ??
-                    subject.ca ??
-                    0;
-
-
-                const exam =
-                    subject.exam ??
-                    0;
-
-
-                addSubjectRow(
-
-                    subject.subject ||
-                    "",
-
-                    test,
-
-                    exam,
-
-                    isCompulsory
-
-                );
-
-            }
-        );
-
-    }
-
-
-    calculateOverall();
-
-}
-
-
-/* ============================================================
-   LEGACY COMPULSORY SUBJECTS
-============================================================ */
-
-function getLegacyCompulsorySubjects(
-    result
-) {
-
-    const names =
-        new Set();
 
 
     if (
-        result?.finalCalculation
-            ?.compulsorySubjects
+        calculation.bestAdditionalSubjects.length !== 2
     ) {
 
-        result.finalCalculation
-            .compulsorySubjects
-            .forEach(
-                (item) => {
-
-                    if (item.subject) {
-
-                        names.add(
-                            normalizeSubjectName(
-                                item.subject
-                            )
-                        );
-
-                    }
-
-                }
-            );
-
-    }
-
-
-    if (!names.size) {
-
-        [
-            "ENGLISH LANGUAGE",
-            "MATHEMATICS",
-            "SCIENCE",
-            "SOCIAL & ENV. STUDIES"
-        ].forEach(
-            (name) => {
-
-                names.add(
-                    normalizeSubjectName(
-                        name
-                    )
-                );
-
-            }
+        alert(
+            "At least 2 non-compulsory subjects with marks are required so the system can select the best 2."
         );
 
+        return;
+
     }
 
 
-    return names;
+    const classItem =
+        classes.find(
+            item =>
+                item.id ===
+                classSelect.value
+        );
 
-}
+
+    const className =
+        normalizeClassName(
+            classItem?.className ||
+            classItem?.name ||
+            selectedStudent.className ||
+            ""
+        );
 
 
-/* ============================================================
-   PUBLISH EXISTING RESULT
-============================================================ */
+    const parentUid =
+        selectedStudent.parentUid ||
+        selectedStudent.parentUID ||
+        selectedStudent.parentId ||
+        null;
 
-async function publishExistingResult(
-    result
-) {
 
-    try {
+    const isPublished =
+        publishResult.checked;
 
-        const subjects =
-            Array.isArray(
-                result.subjects
-            )
-                ? result.subjects
-                : [];
 
+    /*
+     * Convert calculation subjects
+     * to clean Firestore-safe objects.
+     */
+
+    const compulsorySubjects =
+        calculation.compulsorySubjects.map(
+            item => ({
+
+                subject:
+                    item.subject,
+
+                total:
+                    Number(
+                        item.total.toFixed(2)
+                    ),
+
+                grade:
+                    item.grade,
+
+                remark:
+                    item.remark
+
+            })
+        );
+
+
+    const bestAdditionalSubjects =
+        calculation.bestAdditionalSubjects.map(
+            item => ({
+
+                subject:
+                    item.subject,
+
+                total:
+                    Number(
+                        item.total.toFixed(2)
+                    ),
+
+                grade:
+                    item.grade,
+
+                remark:
+                    item.remark
+
+            })
+        );
+
+
+    const finalSubjects =
+        calculation.subjectsCounted.map(
+            item => ({
+
+                subject:
+                    item.subject,
+
+                total:
+                    Number(
+                        item.total.toFixed(2)
+                    ),
+
+                grade:
+                    item.grade,
+
+                remark:
+                    item.remark,
+
+                isCompulsory:
+                    item.isCompulsory
+
+            })
+        );
+
+
+    /*
+     * Official result data.
+     *
+     * totalMarks / average / overallGrade
+     * now represent the school's OFFICIAL
+     * 6-subject final calculation.
+     */
+
+    const resultData = {
+
+        organizationId:
+            currentOrganization.id,
+
+        studentId:
+            selectedStudent.studentId ||
+            "",
+
+        studentDocumentId:
+            selectedStudent.id,
+
+        studentName:
+            selectedStudent.fullName ||
+            selectedStudent.name ||
+            "",
+
+        classId:
+            classSelect.value,
+
+        className:
+            className,
+
+        academicYear:
+            year,
+
+        term:
+            term,
+
+        subjects:
+            subjects,
+
+        subjectCount:
+            subjects.length,
 
         /*
-            Existing database records may contain old
-            subject structures.
+         * OFFICIAL FINAL CALCULATION
+         */
 
-            Normalize them before calculation.
-        */
+        totalMarks:
+            Number(
+                calculation.totalMarks.toFixed(2)
+            ),
 
-        const normalizedSubjects =
-            subjects.map(
-                (subject, index) => {
+        average:
+            Number(
+                calculation.average.toFixed(2)
+            ),
 
-                    const test =
-                        Number(
-                            subject.test ??
-                            subject.ca ??
-                            0
-                        );
+        overallGrade:
+            calculation.grade,
 
+        overallRemark:
+            calculation.remark,
 
-                    const exam =
-                        Number(
-                            subject.exam ??
-                            0
-                        );
+        /*
+         * Store the exact calculation
+         * for future report-card rendering.
+         */
 
-
-                    const total =
-                        (
-                            test *
-                            TEST_WEIGHT
-                        ) +
-                        (
-                            exam *
-                            EXAM_WEIGHT
-                        );
-
-
-                    const gradeInfo =
-                        calculateGrade(
-                            total
-                        );
-
-
-                    return {
-
-                        index,
-
-                        subject:
-                            subject.subject ||
-                            `Subject ${index + 1}`,
-
-                        test,
-
-                        exam,
-
-                        testWeighted:
-                            test *
-                            TEST_WEIGHT,
-
-                        examWeighted:
-                            exam *
-                            EXAM_WEIGHT,
-
-                        ca:
-                            test,
-
-                        total,
-
-                        grade:
-                            gradeInfo.grade,
-
-                        remark:
-                            gradeInfo.remark,
-
-                        isCompulsory:
-                            subject.isCompulsory === true
-
-                    };
-
-                }
-            );
-
-
-        const calculation =
-            calculateFinalTermGrade(
-                normalizedSubjects
-            );
-
-
-        if (
-            !calculation.validFinal
-        ) {
-
-            alert(
-                "This result cannot be published because it does not have exactly 4 compulsory subjects and at least 2 additional subjects."
-            );
-
-            return;
-
-        }
-
-
-        const calculationData = {
+        finalCalculation: {
 
             rule:
                 "4 compulsory subjects + best 2 additional subjects",
 
-            testWeight:
-                25,
-
-            examWeight:
-                75,
-
             compulsorySubjects:
-                calculation
-                    .compulsorySubjects
-                    .map(
-                        cleanCalculationSubject
-                    ),
+                compulsorySubjects,
 
             bestAdditionalSubjects:
-                calculation
-                    .bestAdditionalSubjects
-                    .map(
-                        cleanCalculationSubject
-                    ),
+                bestAdditionalSubjects,
 
             subjectsCounted:
-                calculation
-                    .subjectsCounted
-                    .map(
-                        cleanCalculationSubject
-                    ),
+                finalSubjects,
 
             subjectsCount:
-                6,
+                finalSubjects.length,
 
             totalMarks:
-                roundNumber(
-                    calculation.finalTotal
+                Number(
+                    calculation.totalMarks.toFixed(2)
                 ),
 
             average:
-                roundNumber(
-                    calculation.finalAverage
+                Number(
+                    calculation.average.toFixed(2)
                 ),
 
             grade:
@@ -3955,96 +2958,191 @@ async function publishExistingResult(
             remark:
                 calculation.remark
 
-        };
+        },
+
+        position:
+            positionInput.value.trim(),
+
+        teacherComment:
+            teacherComment.value.trim(),
+
+        principalComment:
+            principalComment.value.trim(),
+
+        status:
+            isPublished
+                ? "published"
+                : "draft",
+
+        updatedAt:
+            serverTimestamp(),
+
+        updatedBy:
+            currentUser.uid
+
+    };
 
 
-        await updateDoc(
-            doc(
-                db,
-                RESULTS_COLLECTION,
-                result.id
-            ),
-            {
+    if (parentUid) {
 
-                status:
-                    "published",
+        resultData.parentUid =
+            parentUid;
 
-                totalMarks:
-                    calculationData.totalMarks,
+    }
 
-                average:
-                    calculationData.average,
 
-                overallGrade:
-                    calculationData.grade,
+    setButtonLoading(
+        saveResultButton,
+        isPublished
+            ? "Publishing..."
+            : "Saving..."
+    );
 
-                overallRemark:
-                    calculationData.remark,
 
-                finalCalculation:
-                    calculationData,
+    try {
 
-                updatedAt:
-                    serverTimestamp(),
+        /*
+         * Find an existing result first.
+         */
 
-                updatedBy:
-                    currentUser.uid
+        let existing =
+            currentResult;
 
-            }
+
+        if (!existing) {
+
+            existing =
+                findExistingResult(
+                    selectedStudent.id,
+                    year,
+                    term
+                );
+
+        }
+
+
+        if (existing) {
+
+            await updateDoc(
+
+                doc(
+                    db,
+                    "results",
+                    existing.id
+                ),
+
+                resultData
+
+            );
+
+
+            currentResult = {
+
+                id:
+                    existing.id,
+
+                ...existing,
+
+                ...resultData
+
+            };
+
+        }
+
+        else {
+
+            resultData.createdAt =
+                serverTimestamp();
+
+
+            resultData.createdBy =
+                currentUser.uid;
+
+
+            const resultDocument =
+                await addDoc(
+
+                    collection(
+                        db,
+                        "results"
+                    ),
+
+                    resultData
+
+                );
+
+
+            currentResult = {
+
+                id:
+                    resultDocument.id,
+
+                ...resultData
+
+            };
+
+        }
+
+
+        /*
+         * Update local results immediately.
+         */
+
+        replaceLocalResult(
+            currentResult
         );
 
 
-        const updated = {
-
-            ...result,
-
-            status:
-                "published",
-
-            totalMarks:
-                calculationData.totalMarks,
-
-            average:
-                calculationData.average,
-
-            overallGrade:
-                calculationData.grade,
-
-            overallRemark:
-                calculationData.remark,
-
-            finalCalculation:
-                calculationData
-
-        };
-
-
-        replaceLocalResult(
-            updated
+        setResultStatus(
+            isPublished
+                ? "published"
+                : "draft"
         );
 
 
         renderExistingResults();
 
-        updateStatistics();
+        updateDashboardStatistics();
+
+
+        const studentDisplayName =
+            selectedStudent.fullName ||
+            selectedStudent.name ||
+            "student";
 
 
         alert(
-            "Result published successfully."
+
+            isPublished
+
+                ? `Academic result saved and published for ${studentDisplayName}.`
+
+                : `Academic result saved as a draft for ${studentDisplayName}.`
+
         );
 
+    }
 
-    } catch (error) {
+    catch (error) {
 
         console.error(
-            "Publish error:",
+            "Save result error:",
             error
         );
 
 
         alert(
-            error?.message ||
-            "Unable to publish result."
+            error.message ||
+            "Unable to save academic result."
+        );
+
+    }
+
+    finally {
+
+        resetButton(
+            saveResultButton,
+            "Save Result"
         );
 
     }
@@ -4052,9 +3150,235 @@ async function publishExistingResult(
 }
 
 
-/* ============================================================
-   EXISTING RESULTS
-============================================================ */
+/* =========================================================
+COLLECT SUBJECTS
+========================================================= */
+
+function collectSubjects() {
+
+    const rows =
+        Array.from(
+            subjectTableBody.querySelectorAll(
+                "tr"
+            )
+        );
+
+
+    const subjects = [];
+
+
+    rows.forEach(
+        row => {
+
+            const subject =
+                row.querySelector(
+                    ".subject-input"
+                ).value.trim();
+
+
+            if (!subject) {
+                return;
+            }
+
+
+            const ca =
+                numberValue(
+                    row.querySelector(
+                        ".ca-input"
+                    ).value
+                );
+
+
+            const exam =
+                numberValue(
+                    row.querySelector(
+                        ".exam-input"
+                    ).value
+                );
+
+
+            const total =
+                Math.min(
+                    100,
+                    ca + exam
+                );
+
+
+            const grade =
+                calculateGrade(
+                    total
+                );
+
+
+            const isCompulsory =
+                row.querySelector(
+                    ".compulsory-input"
+                ).checked;
+
+
+            subjects.push({
+
+                subject:
+                    subject,
+
+                ca:
+                    Number(
+                        ca.toFixed(2)
+                    ),
+
+                exam:
+                    Number(
+                        exam.toFixed(2)
+                    ),
+
+                total:
+                    Number(
+                        total.toFixed(2)
+                    ),
+
+                grade:
+                    grade.grade,
+
+                remark:
+                    grade.remark,
+
+                isCompulsory:
+                    isCompulsory
+
+            });
+
+        }
+    );
+
+
+    return subjects;
+
+}
+
+
+/* =========================================================
+REPLACE LOCAL RESULT
+========================================================= */
+
+function replaceLocalResult(
+    updatedResult
+) {
+
+    const index =
+        allResults.findIndex(
+            result =>
+                result.id ===
+                updatedResult.id
+        );
+
+
+    if (index === -1) {
+
+        allResults.unshift(
+            updatedResult
+        );
+
+        return;
+
+    }
+
+
+    allResults[index] =
+        updatedResult;
+
+}
+
+
+/* =========================================================
+LOAD ALL RESULTS
+========================================================= */
+
+async function loadAllResults() {
+
+    const resultsRef =
+        collection(
+            db,
+            "results"
+        );
+
+
+    const resultsQuery =
+        query(
+
+            resultsRef,
+
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            )
+
+        );
+
+
+    const snapshot =
+        await getDocs(
+            resultsQuery
+        );
+
+
+    allResults = [];
+
+
+    snapshot.forEach(
+        resultDocument => {
+
+            allResults.push({
+
+                id:
+                    resultDocument.id,
+
+                ...resultDocument.data()
+
+            });
+
+        }
+    );
+
+
+    allResults.sort(
+        sortResults
+    );
+
+
+    renderExistingResults();
+
+}
+
+
+/* =========================================================
+SORT RESULTS
+========================================================= */
+
+function sortResults(a, b) {
+
+    const dateA =
+        getTimestampMillis(
+            a.updatedAt ||
+            a.createdAt
+        );
+
+
+    const dateB =
+        getTimestampMillis(
+            b.updatedAt ||
+            b.createdAt
+        );
+
+
+    return dateB - dateA;
+
+}
+
+
+/* =========================================================
+RENDER EXISTING RESULTS
+========================================================= */
 
 function renderExistingResults() {
 
@@ -4074,120 +3398,82 @@ function renderExistingResults() {
 
 
     const search =
-        (
+        String(
             resultSearch?.value ||
             ""
         )
-            .trim()
-            .toLowerCase();
+        .trim()
+        .toLowerCase();
 
 
-    let filtered =
-        [...allResults];
+    const filtered =
+        allResults.filter(
+            result => {
 
-
-    if (classFilter) {
-
-        filtered =
-            filtered.filter(
-                (result) =>
-                    normalizeClass(
-                        result.className
-                    ) ===
-                    normalizeClass(
-                        classFilter
-                    )
-            );
-
-    }
-
-
-    if (termFilter) {
-
-        filtered =
-            filtered.filter(
-                (result) =>
+                const studentNameValue =
                     String(
-                        result.term ||
+                        result.studentName ||
                         ""
-                    ) ===
-                    String(
-                        termFilter
                     )
-            );
-
-    }
+                    .toLowerCase();
 
 
-    if (search) {
-
-        filtered =
-            filtered.filter(
-                (result) => {
-
-                    const text =
-                        [
-
-                            result.studentName,
-
-                            result.studentNumber,
-
-                            result.className,
-
-                            result.academicYear,
-
-                            result.term
-
-                        ]
-                            .filter(Boolean)
-                            .join(" ")
-                            .toLowerCase();
+                const studentIdValue =
+                    String(
+                        result.studentId ||
+                        ""
+                    )
+                    .toLowerCase();
 
 
-                    return text.includes(
-                        search
+                const resultClass =
+                    normalizeClassName(
+                        result.className ||
+                        ""
                     );
 
+
+                if (
+                    classFilter &&
+                    resultClass !==
+                    classFilter
+                ) {
+
+                    return false;
+
                 }
-            );
-
-    }
 
 
-    filtered.sort(
-        (a, b) => {
+                if (
+                    termFilter &&
+                    result.term !==
+                    termFilter
+                ) {
 
-            const classDifference =
-                getClassOrder(
-                    a.className
-                ) -
-                getClassOrder(
-                    b.className
-                );
+                    return false;
+
+                }
 
 
-            if (
-                classDifference !==
-                0
-            ) {
+                if (
+                    search &&
+                    !studentNameValue.includes(
+                        search
+                    ) &&
+                    !studentIdValue.includes(
+                        search
+                    )
+                ) {
 
-                return classDifference;
+                    return false;
+
+                }
+
+
+                return true;
 
             }
-
-
-            return String(
-                a.studentName ||
-                ""
-            ).localeCompare(
-                String(
-                    b.studentName ||
-                    ""
-                )
-            );
-
-        }
-    );
+        );
 
 
     existingResultsBody.innerHTML =
@@ -4196,28 +3482,22 @@ function renderExistingResults() {
 
     if (!filtered.length) {
 
-        if (existingResultsEmpty) {
-
-            existingResultsEmpty.style.display =
-                "block";
-
-        }
+        existingResultsEmpty.classList.remove(
+            "hidden"
+        );
 
         return;
 
     }
 
 
-    if (existingResultsEmpty) {
-
-        existingResultsEmpty.style.display =
-            "none";
-
-    }
+    existingResultsEmpty.classList.add(
+        "hidden"
+    );
 
 
     filtered.forEach(
-        (result) => {
+        result => {
 
             const row =
                 document.createElement(
@@ -4225,20 +3505,46 @@ function renderExistingResults() {
                 );
 
 
-            const subjectsCount =
-                Array.isArray(
-                    result.subjects
-                )
-                    ? result.subjects.length
-                    : result.subjectCount ||
-                      0;
-
-
             const status =
                 result.status ===
                 "published"
+                    ? "published"
+                    : "draft";
+
+
+            const statusText =
+                status === "published"
                     ? "Published"
                     : "Draft";
+
+
+            const average =
+                Number(
+                    result.average ??
+                    0
+                ).toFixed(2);
+
+
+            const studentNameValue =
+                result.studentName ||
+                "Unnamed Student";
+
+
+            const studentIdValue =
+                result.studentId ||
+                "—";
+
+
+            const className =
+                normalizeClassName(
+                    result.className ||
+                    "—"
+                );
+
+
+            const position =
+                result.position ||
+                "—";
 
 
             row.innerHTML = `
@@ -4246,109 +3552,150 @@ function renderExistingResults() {
                 <td>
 
                     <strong>
-                        ${escapeHtml(
-                            result.studentName ||
-                            "Unknown Student"
+                        ${escapeHTML(
+                            studentNameValue
                         )}
                     </strong>
 
                 </td>
 
+
                 <td>
-                    ${escapeHtml(
-                        result.className ||
-                        "-"
+                    ${escapeHTML(
+                        studentIdValue
                     )}
                 </td>
 
+
                 <td>
-                    ${escapeHtml(
+                    ${escapeHTML(
+                        className
+                    )}
+                </td>
+
+
+                <td>
+                    ${escapeHTML(
                         result.academicYear ||
-                        "-"
+                        "—"
                     )}
                 </td>
 
+
                 <td>
-                    ${escapeHtml(
+                    ${escapeHTML(
                         result.term ||
-                        "-"
+                        "—"
                     )}
                 </td>
 
-                <td>
-                    ${subjectsCount}
-                </td>
-
-                <td>
-                    ${formatNumber(
-                        result.totalMarks ||
-                        0
-                    )}
-                </td>
-
-                <td>
-                    ${formatNumber(
-                        result.average ||
-                        0
-                    )}%
-                </td>
 
                 <td>
 
                     <strong>
-                        ${escapeHtml(
-                            result.overallGrade ||
-                            "-"
-                        )}
+                        ${average}%
                     </strong>
 
                 </td>
 
+
                 <td>
 
-                    <span class="${
-                        status === "Published"
-                            ? "status-published"
-                            : "status-draft"
-                    }">
-
-                        ${status}
-
+                    <span class="grade-badge">
+                        ${escapeHTML(
+                            result.overallGrade ||
+                            "—"
+                        )}
                     </span>
 
                 </td>
 
+
+                <td>
+                    ${escapeHTML(
+                        position
+                    )}
+                </td>
+
+
                 <td>
 
-                    <button
-                        type="button"
-                        class="secondary-btn edit-result-btn"
-                        data-id="${escapeAttribute(
-                            result.id
-                        )}"
+                    <span
+                        class="status-badge ${status}"
                     >
-                        Edit
-                    </button>
+                        ${statusText}
+                    </span>
 
-                    ${
-                        status !== "Published"
-                            ? `
-                                <button
-                                    type="button"
-                                    class="primary-btn publish-existing-btn"
-                                    data-id="${escapeAttribute(
-                                        result.id
-                                    )}"
-                                >
-                                    Publish
-                                </button>
-                            `
-                            : ""
-                    }
+                </td>
+
+
+                <td>
+
+                    <div class="action-buttons">
+
+                        <button
+                            class="secondary-button edit-result-button"
+                            type="button"
+                        >
+                            Edit
+                        </button>
+
+                        ${
+                            status === "draft"
+                                ? `
+
+                                    <button
+                                        class="publish-button publish-existing-button"
+                                        type="button"
+                                    >
+                                        Publish
+                                    </button>
+
+                                  `
+                                : ""
+                        }
+
+                    </div>
 
                 </td>
 
             `;
+
+
+            row.querySelector(
+                ".edit-result-button"
+            ).addEventListener(
+                "click",
+                () => {
+
+                    editExistingResult(
+                        result
+                    );
+
+                }
+            );
+
+
+            const publishButton =
+                row.querySelector(
+                    ".publish-existing-button"
+                );
+
+
+            if (publishButton) {
+
+                publishButton.addEventListener(
+                    "click",
+                    () => {
+
+                        publishExistingResult(
+                            result
+                        );
+
+                    }
+                );
+
+            }
 
 
             existingResultsBody.appendChild(
@@ -4358,203 +3705,54 @@ function renderExistingResults() {
         }
     );
 
-
-    attachExistingResultActions();
-
 }
 
 
-/* ============================================================
-   EXISTING RESULT ACTIONS
-============================================================ */
+/* =========================================================
+EDIT EXISTING RESULT
+========================================================= */
 
-function attachExistingResultActions() {
-
-    if (!existingResultsBody) {
-        return;
-    }
-
-
-    const editButtons =
-        existingResultsBody.querySelectorAll(
-            ".edit-result-btn"
-        );
-
-
-    editButtons.forEach(
-        (button) => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    const result =
-                        allResults.find(
-                            (item) =>
-                                String(
-                                    item.id
-                                ) ===
-                                String(
-                                    button.dataset.id
-                                )
-                        );
-
-
-                    if (!result) {
-                        return;
-                    }
-
-
-                    selectedStudent =
-                        findStudentInAllClasses(
-                            result.studentId ||
-                            result.studentDocumentId
-                        );
-
-
-                    if (
-                        !selectedStudent
-                    ) {
-
-                        selectedStudent = {
-
-                            id:
-                                result.studentId ||
-                                result.studentDocumentId,
-
-                            studentId:
-                                result.studentNumber ||
-                                "",
-
-                            name:
-                                result.studentName,
-
-                            class:
-                                result.className
-
-                        };
-
-                    }
-
-
-                    selectStudentInForm(
-                        selectedStudent
-                    );
-
-
-                    renderResultIntoEditor(
-                        result
-                    );
-
-
-                    if (resultEditor) {
-
-                        resultEditor.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start"
-                        });
-
-                    }
-
-                }
-            );
-
-        }
-    );
-
-
-    const publishButtons =
-        existingResultsBody.querySelectorAll(
-            ".publish-existing-btn"
-        );
-
-
-    publishButtons.forEach(
-        (button) => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    const result =
-                        allResults.find(
-                            (item) =>
-                                String(
-                                    item.id
-                                ) ===
-                                String(
-                                    button.dataset.id
-                                )
-                        );
-
-
-                    if (!result) {
-                        return;
-                    }
-
-
-                    publishExistingResult(
-                        result
-                    );
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   SELECT STUDENT IN FORM
-============================================================ */
-
-function selectStudentInForm(
-    student
+function editExistingResult(
+    result
 ) {
 
-    if (!student) {
-        return;
-    }
+    currentResult =
+        result;
 
 
-    const studentClass =
-        getStudentClass(
-            student
-        );
-
-
-    const matchingClass =
+    const classItem =
         classes.find(
-            (item) =>
-                normalizeClass(
-                    getClassName(item)
-                ) ===
-                normalizeClass(
-                    studentClass
-                )
+            item =>
+                item.id ===
+                result.classId
         );
 
 
-    if (
-        matchingClass &&
-        classSelect
-    ) {
+    let student =
+        students.find(
+            item =>
+                item.id ===
+                result.studentDocumentId
+        );
 
-        classSelect.value =
-            matchingClass.id;
 
+    if (!student) {
 
-        handleClassChange();
+        student =
+            findStudentInAllClasses(
+                result.studentDocumentId
+            );
 
     }
 
 
-    if (studentSelect) {
+    if (!student) {
 
-        studentSelect.value =
-            student.id;
+        alert(
+            "The student connected to this result could not be found."
+        );
+
+        return;
 
     }
 
@@ -4562,22 +3760,585 @@ function selectStudentInForm(
     selectedStudent =
         student;
 
+
+    classSelect.value =
+        result.classId ||
+        "";
+
+
+    academicYear.value =
+        result.academicYear ||
+        "";
+
+
+    termSelect.value =
+        result.term ||
+        "Term 1";
+
+
+    loadStudentsForClass(
+        result.classId
+    )
+    .then(
+        () => {
+
+            studentSelect.value =
+                result.studentDocumentId;
+
+
+            showResultEditor();
+
+
+            renderResultIntoEditor(
+                result
+            );
+
+
+            resultEditor.scrollIntoView({
+
+                behavior:
+                    "smooth",
+
+                block:
+                    "start"
+
+            });
+
+        }
+    )
+    .catch(
+        error => {
+
+            console.error(
+                "Edit result error:",
+                error
+            );
+
+
+            alert(
+                error.message ||
+                "Unable to open result."
+            );
+
+        }
+    );
+
 }
 
 
-/* ============================================================
-   STATISTICS
-============================================================ */
+/* =========================================================
+FIND STUDENT IN ALL CLASSES
+========================================================= */
 
-function updateStatistics() {
+function findStudentInAllClasses(
+    studentDocumentId
+) {
 
-    if (totalStudents) {
+    const local =
+        students.find(
+            student =>
+                student.id ===
+                studentDocumentId
+        );
 
-        totalStudents.textContent =
-            students.length;
+
+    if (local) {
+        return local;
+    }
+
+
+    const result =
+        allResults.find(
+            item =>
+                item.studentDocumentId ===
+                studentDocumentId
+        );
+
+
+    if (result) {
+
+        return {
+
+            id:
+                studentDocumentId,
+
+            studentId:
+                result.studentId,
+
+            fullName:
+                result.studentName,
+
+            name:
+                result.studentName,
+
+            classId:
+                result.classId,
+
+            className:
+                result.className
+
+        };
 
     }
 
+
+    return null;
+
+}
+
+
+/* =========================================================
+PUBLISH EXISTING RESULT
+========================================================= */
+
+async function publishExistingResult(
+    result
+) {
+
+    /*
+     * Before publishing, verify that the result
+     * has the required final calculation.
+     */
+
+    const hasValidFinalCalculation =
+        result.finalCalculation &&
+        Array.isArray(
+            result.finalCalculation.compulsorySubjects
+        ) &&
+        result.finalCalculation.compulsorySubjects.length === 4 &&
+        Array.isArray(
+            result.finalCalculation.bestAdditionalSubjects
+        ) &&
+        result.finalCalculation.bestAdditionalSubjects.length === 2;
+
+
+    if (!hasValidFinalCalculation) {
+
+        alert(
+            "This result does not contain the required 4 compulsory subjects and best 2 additional subjects. Please edit and save the result before publishing."
+        );
+
+        return;
+
+    }
+
+
+    const confirmed =
+        window.confirm(
+            `Publish the academic result for ${result.studentName || "this student"}?`
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        await updateDoc(
+
+            doc(
+                db,
+                "results",
+                result.id
+            ),
+
+            {
+
+                status:
+                    "published",
+
+                updatedAt:
+                    serverTimestamp(),
+
+                updatedBy:
+                    currentUser.uid
+
+            }
+
+        );
+
+
+        const index =
+            allResults.findIndex(
+                item =>
+                    item.id ===
+                    result.id
+            );
+
+
+        if (index !== -1) {
+
+            allResults[index] = {
+
+                ...allResults[index],
+
+                status:
+                    "published"
+
+            };
+
+        }
+
+
+        if (
+            currentResult &&
+            currentResult.id ===
+            result.id
+        ) {
+
+            currentResult.status =
+                "published";
+
+        }
+
+
+        renderExistingResults();
+
+        updateDashboardStatistics();
+
+
+        alert(
+            "Result published successfully. It is now available for parent viewing, subject to your Firestore parent-access rules."
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Publish result error:",
+            error
+        );
+
+
+        alert(
+            error.message ||
+            "Unable to publish result."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+CLEAR RESULT BUTTON
+========================================================= */
+
+if (clearResultButton) {
+
+    clearResultButton.addEventListener(
+        "click",
+        clearEditor
+    );
+
+}
+
+
+/* =========================================================
+CLEAR EDITOR
+========================================================= */
+
+function clearEditor() {
+
+    currentResult =
+        null;
+
+
+    selectedStudent =
+        null;
+
+
+    studentSelect.value =
+        "";
+
+
+    subjectTableBody.innerHTML =
+        "";
+
+
+    clearCommentsAndPosition();
+
+
+    publishResult.checked =
+        false;
+
+
+    hideEditor();
+
+
+    studentName.textContent =
+        "No Student Selected";
+
+
+    studentDetails.textContent =
+        "Select a student to enter academic results.";
+
+
+    setResultStatus(
+        "draft"
+    );
+
+
+    overallSubjects.textContent =
+        "0";
+
+
+    overallMarks.textContent =
+        "0";
+
+
+    overallAverage.textContent =
+        "0%";
+
+
+    overallGrade.textContent =
+        "—";
+
+
+    resetFinalCalculationUI();
+
+
+    window.scrollTo({
+
+        top:
+            0,
+
+        behavior:
+            "smooth"
+
+    });
+
+}
+
+
+/* =========================================================
+RESET FINAL CALCULATION UI
+========================================================= */
+
+function resetFinalCalculationUI() {
+
+    if (compulsorySubjectCount) {
+
+        compulsorySubjectCount.textContent =
+            "0";
+
+    }
+
+
+    if (bestAdditionalCount) {
+
+        bestAdditionalCount.textContent =
+            "0";
+
+    }
+
+
+    if (finalSubjectsCount) {
+
+        finalSubjectsCount.textContent =
+            "0";
+
+    }
+
+
+    if (finalTotalMarks) {
+
+        finalTotalMarks.textContent =
+            "0";
+
+    }
+
+
+    if (finalAverage) {
+
+        finalAverage.textContent =
+            "0%";
+
+    }
+
+
+    if (finalGrade) {
+
+        finalGrade.textContent =
+            "—";
+
+    }
+
+
+    if (selectedCompulsorySubjects) {
+
+        selectedCompulsorySubjects.innerHTML = `
+            <li>
+                <span>None selected</span>
+            </li>
+        `;
+
+    }
+
+
+    if (selectedBestSubjects) {
+
+        selectedBestSubjects.innerHTML = `
+            <li>
+                <span>None selected</span>
+            </li>
+        `;
+
+    }
+
+
+    if (finalCalculationStatus) {
+
+        finalCalculationStatus.className =
+            "final-calculation-status warning";
+
+
+        finalCalculationStatus.textContent =
+            "Select 4 compulsory subjects";
+
+    }
+
+
+    if (finalCalculationWarning) {
+
+        finalCalculationWarning.textContent =
+            "Select exactly 4 compulsory subjects before saving.";
+
+        finalCalculationWarning.style.display =
+            "block";
+
+    }
+
+}
+
+
+/* =========================================================
+FILTER EVENTS
+========================================================= */
+
+if (resultClassFilter) {
+
+    resultClassFilter.addEventListener(
+        "change",
+        renderExistingResults
+    );
+
+}
+
+
+if (resultTermFilter) {
+
+    resultTermFilter.addEventListener(
+        "change",
+        renderExistingResults
+    );
+
+}
+
+
+if (resultSearch) {
+
+    resultSearch.addEventListener(
+        "input",
+        renderExistingResults
+    );
+
+}
+
+
+/* =========================================================
+TERM CHANGE
+========================================================= */
+
+if (termSelect) {
+
+    termSelect.addEventListener(
+        "change",
+        () => {
+
+            if (
+                selectedStudent
+            ) {
+
+                currentResult =
+                    null;
+
+                clearEditor();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+ACADEMIC YEAR CHANGE
+========================================================= */
+
+if (academicYear) {
+
+    academicYear.addEventListener(
+        "change",
+        () => {
+
+            if (
+                selectedStudent
+            ) {
+
+                currentResult =
+                    null;
+
+                clearEditor();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+STATUS
+========================================================= */
+
+function setResultStatus(
+    status
+) {
+
+    if (!resultStatus) {
+        return;
+    }
+
+
+    const normalized =
+        status === "published"
+            ? "published"
+            : "draft";
+
+
+    resultStatus.className =
+        `result-status ${normalized}`;
+
+
+    resultStatus.textContent =
+        normalized === "published"
+            ? "Published"
+            : "Draft";
+
+}
+
+
+/* =========================================================
+DASHBOARD STATISTICS
+========================================================= */
+
+function updateDashboardStatistics() {
 
     if (resultsEntered) {
 
@@ -4591,154 +4352,143 @@ function updateStatistics() {
 
         publishedResults.textContent =
             allResults.filter(
-                (result) =>
+                result =>
                     result.status ===
                     "published"
             ).length;
 
     }
 
-
-    if (totalClasses) {
-
-        totalClasses.textContent =
-            classes.length;
-
-    }
-
-
-    renderExistingResults();
-
 }
 
 
-/* ============================================================
-   REPLACE LOCAL RESULT
-============================================================ */
-
-function replaceLocalResult(
-    updatedResult
-) {
-
-    const index =
-        allResults.findIndex(
-            (result) =>
-                String(
-                    result.id
-                ) ===
-                String(
-                    updatedResult.id
-                )
-        );
-
-
-    if (index === -1) {
-
-        allResults.push(
-            updatedResult
-        );
-
-        return;
-
-    }
-
-
-    allResults[index] =
-        updatedResult;
-
-}
-
-
-/* ============================================================
-   GRADE CALCULATION
-============================================================ */
+/* =========================================================
+GRADE SYSTEM
+========================================================= */
 
 function calculateGrade(
-    mark
+    score
 ) {
 
-    const score =
-        Number(
-            mark ||
-            0
-        );
+    const value =
+        Number(score) || 0;
 
 
-    if (score >= 90) {
+    if (value >= 90) {
 
         return {
-            grade: "1",
-            remark: "Excellent"
+
+            grade:
+                "1",
+
+            remark:
+                "Excellent"
+
         };
 
     }
 
 
-    if (score >= 81) {
+    if (value >= 81) {
 
         return {
-            grade: "2",
-            remark: "Very Good"
+
+            grade:
+                "2",
+
+            remark:
+                "Very Good"
+
         };
 
     }
 
 
-    if (score >= 76) {
+    if (value >= 76) {
 
         return {
-            grade: "3",
-            remark: "Good"
+
+            grade:
+                "3",
+
+            remark:
+                "Good"
+
         };
 
     }
 
 
-    if (score >= 71) {
+    if (value >= 71) {
 
         return {
-            grade: "4",
-            remark: "Credit"
+
+            grade:
+                "4",
+
+            remark:
+                "Credit"
+
         };
 
     }
 
 
-    if (score >= 66) {
+    if (value >= 66) {
 
         return {
-            grade: "5",
-            remark: "Credit"
+
+            grade:
+                "5",
+
+            remark:
+                "Credit"
+
         };
 
     }
 
 
-    if (score >= 56) {
+    if (value >= 56) {
 
         return {
-            grade: "6",
-            remark: "Credit"
+
+            grade:
+                "6",
+
+            remark:
+                "Credit"
+
         };
 
     }
 
 
-    if (score >= 50) {
+    if (value >= 50) {
 
         return {
-            grade: "7",
-            remark: "Pass"
+
+            grade:
+                "7",
+
+            remark:
+                "Pass"
+
         };
 
     }
 
 
-    if (score >= 40) {
+    if (value >= 40) {
 
         return {
-            grade: "8",
-            remark: "Pass"
+
+            grade:
+                "8",
+
+            remark:
+                "Pass"
+
         };
 
     }
@@ -4746,7 +4496,8 @@ function calculateGrade(
 
     return {
 
-        grade: "9",
+        grade:
+            "9",
 
         remark:
             "Fail"
@@ -4756,393 +4507,12 @@ function calculateGrade(
 }
 
 
-/* ============================================================
-   CLEAN CALCULATION SUBJECT
-============================================================ */
-
-function cleanCalculationSubject(
-    item
-) {
-
-    return {
-
-        subject:
-            item.subject,
-
-        test:
-            roundNumber(
-                item.test ??
-                item.ca ??
-                0
-            ),
-
-        exam:
-            roundNumber(
-                item.exam ??
-                0
-            ),
-
-        testWeighted:
-            roundNumber(
-                item.testWeighted ??
-                (
-                    Number(
-                        item.test ??
-                        item.ca ??
-                        0
-                    ) *
-                    TEST_WEIGHT
-                )
-            ),
-
-        examWeighted:
-            roundNumber(
-                item.examWeighted ??
-                (
-                    Number(
-                        item.exam ??
-                        0
-                    ) *
-                    EXAM_WEIGHT
-                )
-            ),
-
-        total:
-            roundNumber(
-                item.total ||
-                0
-            ),
-
-        grade:
-            item.grade,
-
-        remark:
-            item.remark,
-
-        isCompulsory:
-            Boolean(
-                item.isCompulsory
-            )
-
-    };
-
-}
-
-
-/* ============================================================
-   ORGANIZATION ID
-============================================================ */
-
-function getOrganizationId() {
-
-    if (!currentOrganization) {
-        return null;
-    }
-
-
-    if (
-        typeof currentOrganization ===
-        "string"
-    ) {
-
-        return currentOrganization;
-
-    }
-
-
-    return (
-
-        currentOrganization.id ||
-
-        currentOrganization.uid ||
-
-        currentOrganization.organizationId ||
-
-        null
-
-    );
-
-}
-
-
-/* ============================================================
-   SELECTED CLASS ID
-============================================================ */
-
-function getSelectedClassId() {
-
-    return classSelect?.value ||
-        "";
-
-}
-
-
-/* ============================================================
-   SELECTED CLASS NAME
-============================================================ */
-
-function getSelectedClassName() {
-
-    if (!classSelect?.value) {
-        return "";
-    }
-
-
-    const selected =
-        classes.find(
-            (item) =>
-                String(
-                    item.id
-                ) ===
-                String(
-                    classSelect.value
-                )
-        );
-
-
-    return selected
-        ? getClassName(selected)
-        : classSelect.value;
-
-}
-
-
-/* ============================================================
-   CLASS NAME
-============================================================ */
-
-function getClassName(
-    classItem
-) {
-
-    if (!classItem) {
-        return "";
-    }
-
-
-    return (
-
-        classItem.name ||
-
-        classItem.className ||
-
-        classItem.title ||
-
-        ""
-
-    );
-
-}
-
-
-/* ============================================================
-   STUDENT CLASS
-============================================================ */
-
-function getStudentClass(
-    student
-) {
-
-    if (!student) {
-        return "";
-    }
-
-
-    return (
-
-        student.className ||
-
-        student.class ||
-
-        student.grade ||
-
-        student.form ||
-
-        student.classId ||
-
-        ""
-
-    );
-
-}
-
-
-/* ============================================================
-   STUDENT NAME
-============================================================ */
-
-function getStudentName(
-    student
-) {
-
-    if (!student) {
-        return "Unknown Student";
-    }
-
-
-    return (
-
-        student.name ||
-
-        student.fullName ||
-
-        [
-            student.firstName,
-            student.middleName,
-            student.lastName
-        ]
-            .filter(Boolean)
-            .join(" ") ||
-
-        "Unknown Student"
-
-    );
-
-}
-
-
-/* ============================================================
-   FIND STUDENT
-============================================================ */
-
-function findStudentInAllClasses(
-    studentId
-) {
-
-    return students.find(
-        (student) =>
-
-            String(
-                student.id
-            ) ===
-            String(
-                studentId
-            )
-
-            ||
-
-            String(
-                student.studentId ||
-                ""
-            ) ===
-            String(
-                studentId
-            )
-
-            ||
-
-            String(
-                student.admissionNumber ||
-                ""
-            ) ===
-            String(
-                studentId
-            )
-    );
-
-}
-
-
-/* ============================================================
-   NORMALIZE CLASS
-============================================================ */
-
-function normalizeClass(
+/* =========================================================
+NUMBER
+========================================================= */
+
+function numberValue(
     value
-) {
-
-    return String(
-        value ||
-        ""
-    )
-        .trim()
-        .toLowerCase()
-        .replace(
-            /\s+/g,
-            " "
-        );
-
-}
-
-
-/* ============================================================
-   NORMALIZE SUBJECT
-============================================================ */
-
-function normalizeSubjectName(
-    value
-) {
-
-    return String(
-        value ||
-        ""
-    )
-        .trim()
-        .toLowerCase()
-        .replace(
-            /\s+/g,
-            " "
-        );
-
-}
-
-
-/* ============================================================
-   CLASS ORDER
-============================================================ */
-
-function getClassOrder(
-    className
-) {
-
-    const normalized =
-        normalizeClass(
-            className
-        );
-
-
-    const index =
-        CLASS_ORDER.findIndex(
-            (name) =>
-                normalizeClass(
-                    name
-                ) ===
-                normalized
-        );
-
-
-    return index === -1
-        ? 999
-        : index;
-
-}
-
-
-/* ============================================================
-   STUDENT SORT
-============================================================ */
-
-function compareStudentNames(
-    a,
-    b
-) {
-
-    return getStudentName(a)
-        .localeCompare(
-            getStudentName(b)
-        );
-
-}
-
-
-/* ============================================================
-   NUMBER HELPERS
-============================================================ */
-
-function clampNumber(
-    value,
-    min = 0,
-    max = Infinity
 ) {
 
     const number =
@@ -5160,230 +4530,233 @@ function clampNumber(
     }
 
 
-    return Math.min(
-        max,
-        Math.max(
-            min,
-            number
-        )
+    return Math.max(
+        0,
+        number
     );
 
 }
 
 
-/* ============================================================
-   ROUND NUMBER
-============================================================ */
+/* =========================================================
+TIMESTAMP
+========================================================= */
 
-function roundNumber(
-    value
+function getTimestampMillis(
+    timestamp
 ) {
 
-    return Math.round(
-        Number(
-            value ||
-            0
-        ) *
-        100
-    ) / 100;
+    if (!timestamp) {
+        return 0;
+    }
+
+
+    if (
+        typeof timestamp.toMillis ===
+        "function"
+    ) {
+
+        return timestamp.toMillis();
+
+    }
+
+
+    if (
+        timestamp.seconds
+    ) {
+
+        return (
+            Number(
+                timestamp.seconds
+            ) * 1000
+        );
+
+    }
+
+
+    if (
+        timestamp instanceof Date
+    ) {
+
+        return timestamp.getTime();
+
+    }
+
+
+    return 0;
 
 }
 
 
-/* ============================================================
-   SAFE NUMBER
-============================================================ */
+/* =========================================================
+ESCAPE HTML
+========================================================= */
 
-function safeNumber(
+function escapeHTML(
     value
 ) {
 
-    const number =
-        Number(value);
-
-
-    return Number.isFinite(
-        number
+    return String(
+        value ??
+        ""
     )
-        ? number
-        : 0;
+
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+
+    .replace(
+        /</g,
+        "&lt;"
+    )
+
+    .replace(
+        />/g,
+        "&gt;"
+    )
+
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+
+    .replace(
+        /'/g,
+        "&#039;"
+    );
 
 }
 
 
-/* ============================================================
-   FORMAT NUMBER
-============================================================ */
+/* =========================================================
+BUTTON LOADING
+========================================================= */
 
-function formatNumber(
-    value
+function setButtonLoading(
+    button,
+    text
 ) {
 
-    return Number(
-        value ||
-        0
-    ).toFixed(2);
+    if (!button) {
+        return;
+    }
+
+
+    button.disabled =
+        true;
+
+
+    button.dataset.originalText =
+        button.textContent;
+
+
+    button.textContent =
+        text;
 
 }
 
 
-/* ============================================================
-   RESET CALCULATION DISPLAY
-============================================================ */
+/* =========================================================
+RESET BUTTON
+========================================================= */
 
-function resetCalculationDisplay() {
+function resetButton(
+    button,
+    fallbackText
+) {
 
-    if (overallSubjects) {
-
-        overallSubjects.textContent =
-            "0";
-
+    if (!button) {
+        return;
     }
 
 
-    if (overallMarks) {
-
-        overallMarks.textContent =
-            "0.00";
-
-    }
+    button.disabled =
+        false;
 
 
-    if (overallAverage) {
-
-        overallAverage.textContent =
-            "0.00%";
-
-    }
+    button.textContent =
+        button.dataset.originalText ||
+        fallbackText;
 
 
-    if (overallGrade) {
+    delete button.dataset.originalText;
 
-        overallGrade.textContent =
-            "-";
-
-    }
+}
 
 
-    if (compulsorySubjectCount) {
+/* =========================================================
+LOGOUT
+========================================================= */
 
-        compulsorySubjectCount.textContent =
-            "0 / 4";
+if (logoutButton) {
 
-    }
+    logoutButton.addEventListener(
+        "click",
+        async () => {
 
+            try {
 
-    if (bestAdditionalCount) {
-
-        bestAdditionalCount.textContent =
-            "0 / 2";
-
-    }
-
-
-    if (finalSubjectsCount) {
-
-        finalSubjectsCount.textContent =
-            "0 / 6";
-
-    }
+                logoutButton.disabled =
+                    true;
 
 
-    if (finalTotalMarks) {
-
-        finalTotalMarks.textContent =
-            "0.00";
-
-    }
+                logoutButton.textContent =
+                    "Logging out...";
 
 
-    if (finalAverage) {
-
-        finalAverage.textContent =
-            "0.00%";
-
-    }
+                await signOut(
+                    auth
+                );
 
 
-    if (selectedCompulsorySubjects) {
+                window.location.href =
+                    "login.html";
 
-        selectedCompulsorySubjects.innerHTML =
-            "<li>None selected</li>";
+            }
 
-    }
+            catch (error) {
 
-
-    if (selectedBestSubjects) {
-
-        selectedBestSubjects.innerHTML =
-            "<li>None available</li>";
-
-    }
+                console.error(
+                    "Logout error:",
+                    error
+                );
 
 
-    if (finalCalculationStatus) {
-
-        finalCalculationStatus.className =
-            "final-calculation-status";
+                logoutButton.disabled =
+                    false;
 
 
-        finalCalculationStatus.textContent =
-            "Waiting";
+                logoutButton.textContent =
+                    "Logout";
 
-    }
+            }
+
+        }
+    );
+
+}
 
 
-    if (finalCalculationWarning) {
+/* =========================================================
+HIDE LOADING
+========================================================= */
 
-        finalCalculationWarning.style.display =
+function hideLoading() {
+
+    if (loadingScreen) {
+
+        loadingScreen.style.display =
             "none";
 
-
-        finalCalculationWarning.textContent =
-            "";
-
     }
 
 }
 
 
-/* ============================================================
-   LOGOUT
-============================================================ */
-
-async function handleLogout() {
-
-    try {
-
-        await signOut(
-            auth
-        );
-
-
-        window.location.href =
-            "index.html";
-
-
-    } catch (error) {
-
-        console.error(
-            "Logout error:",
-            error
-        );
-
-
-        alert(
-            "Unable to logout. Please try again."
-        );
-
-    }
-
-}
-
-
-/* ============================================================
-   ERROR DISPLAY
-============================================================ */
+/* =========================================================
+SHOW ERROR
+========================================================= */
 
 function showError(
     message
@@ -5397,14 +4770,10 @@ function showError(
     }
 
 
-    if (mainContent) {
+    if (errorScreen) {
 
-        mainContent.classList.add(
-            "hidden"
-        );
-
-        mainContent.style.display =
-            "none";
+        errorScreen.style.display =
+            "flex";
 
     }
 
@@ -5416,63 +4785,13 @@ function showError(
 
     }
 
-
-    if (errorScreen) {
-
-        errorScreen.style.display =
-            "block";
-
-    }
-
 }
 
 
-/* ============================================================
-   HTML ESCAPING
-============================================================ */
+/* =========================================================
+READY
+========================================================= */
 
-function escapeHtml(
-    value
-) {
-
-    return String(
-        value ??
-        ""
-    )
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
-
-}
-
-
-/* ============================================================
-   ATTRIBUTE ESCAPING
-============================================================ */
-
-function escapeAttribute(
-    value
-) {
-
-    return escapeHtml(
-        value
-    );
-
-}
+console.log(
+    "Virello Academic Results Management loaded successfully."
+);
