@@ -1321,10 +1321,19 @@ subjectTableBody.innerHTML =
 
 const defaultSubjects = [
 
-    "English Language",
-    "Mathematics",
-    "Science",
-    "S.E.S"
+    "ENGLISH LANGUAGE",
+    "MATHEMATICS",
+    "SCIENCE",
+    "SOCIAL & ENV. STUDIES",
+    "ENGLISH LITERATURE",
+    "ARTS & CRAFT",
+    "HOME ECONOMICS",
+    "TECHNICAL DRAWING",
+    "INFO.COM.TECH (ICT)",
+    "FRENCH",
+    "ISLAMIC RELIGIOUS STUDIES",
+    "CHRISTIAN RELIGIOUS EDUCATION",
+    "P.H.E",
 
 ];
 
@@ -3291,7 +3300,7 @@ if (value >= 90) {
     return {
 
         grade:
-            "A",
+            "1",
 
         remark:
             "Excellent"
@@ -3301,12 +3310,12 @@ if (value >= 90) {
 }
 
 
-if (value >= 80) {
+if (value >= 81) {
 
     return {
 
         grade:
-            "B",
+            "2",
 
         remark:
             "Very Good"
@@ -3316,12 +3325,12 @@ if (value >= 80) {
 }
 
 
-if (value >= 70) {
+if (value >= 76) {
 
     return {
 
         grade:
-            "C",
+            "3",
 
         remark:
             "Good"
@@ -3331,27 +3340,55 @@ if (value >= 70) {
 }
 
 
-if (value >= 60) {
+if (value >= 71) {
 
     return {
 
         grade:
-            "D",
+            "4",
 
         remark:
-            "Satisfactory"
+            "Credit"
 
     };
 
 }
 
 
+if (value >= 66) {
+
+    return {
+
+        grade:
+            "5",
+
+        remark:
+            "Credit"
+
+    };
+
+}
+
+if (value >= 56) {
+
+    return {
+
+        grade:
+            "6",
+
+        remark:
+            "Credit"
+
+    };
+
+}
+
 if (value >= 50) {
 
     return {
 
         grade:
-            "E",
+            "7",
 
         remark:
             "Pass"
@@ -3360,14 +3397,29 @@ if (value >= 50) {
 
 }
 
+if (value >= 40) {
+
+    return {
+
+        grade:
+            "8",
+
+        remark:
+            "pass"
+
+    };
+
+}
+
+
 
 return {
 
     grade:
-        "F",
+        "9",
 
     remark:
-        "Needs Improvement"
+        "Fail"
 
 };
 
