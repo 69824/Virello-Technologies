@@ -783,9 +783,17 @@ if (classSelect) {
                     </option>
                 `;
 
+                studentSelect.value = "";
+                studentSelect.disabled = true;
                 return;
-
             }
+
+            studentSelect.disabled = true;
+            studentSelect.innerHTML = `
+                <option value="">
+                    Loading Students...
+                </option>
+            `;
 
 
             try {
@@ -988,6 +996,9 @@ function populateStudentSelect() {
             Select Student
         </option>
     `;
+
+    // Enable the selector after students for the chosen class are loaded.
+    studentSelect.disabled = students.length === 0;
 
 
     students.forEach(
