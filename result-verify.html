@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Verify an academic result issued by Star Preparatory School."
+    >
+
+    <title>
+        Result Verification | Star Preparatory School
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family:
+                Inter,
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            min-height: 100vh;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eef4ff,
+                    #f8fbff
+                );
+
+            color: #172033;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 24px;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 720px;
+        }
+
+        .card {
+            background: #ffffff;
+
+            border-radius: 22px;
+
+            box-shadow:
+                0 20px 60px
+                rgba(20, 42, 80, 0.12);
+
+            overflow: hidden;
+
+            border:
+                1px solid #e5ebf5;
+        }
+
+        .header {
+            background:
+                linear-gradient(
+                    135deg,
+                    #123c7a,
+                    #1769aa
+                );
+
+            color: white;
+
+            padding: 34px 30px;
+
+            text-align: center;
+        }
+
+        .logo {
+            width: 72px;
+            height: 72px;
+
+            margin: 0 auto 18px;
+
+            border-radius: 50%;
+
+            background: rgba(
+                255,
+                255,
+                255,
+                0.15
+            );
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 30px;
+
+            font-weight: 800;
+        }
+
+        .header h1 {
+            font-size: 28px;
+
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .loading {
+            text-align: center;
+
+            padding: 35px 10px;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+
+            border:
+                4px solid #e5ebf5;
+
+            border-top-color:
+                #1769aa;
+
+            border-radius: 50%;
+
+            animation:
+                spin 0.8s linear infinite;
+
+            margin:
+                0 auto 18px;
+        }
+
+        @keyframes spin {
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+        .verification-status {
+            text-align: center;
+
+            padding: 20px;
+
+            border-radius: 16px;
+
+            margin-bottom: 25px;
+        }
+
+        .verification-status.valid {
+            background: #ecfdf3;
+
+            border:
+                1px solid #b7ebcb;
+
+            color: #126b3a;
+        }
+
+        .verification-status.invalid {
+            background: #fff1f2;
+
+            border:
+                1px solid #fecdd3;
+
+            color: #a4142b;
+        }
+
+        .status-icon {
+            font-size: 42px;
+
+            margin-bottom: 10px;
+        }
+
+        .verification-status h2 {
+            font-size: 22px;
+
+            margin-bottom: 6px;
+        }
+
+        .verification-status p {
+            font-size: 14px;
+        }
+
+        .student-card {
+            border:
+                1px solid #e5ebf5;
+
+            border-radius: 16px;
+
+            overflow: hidden;
+
+            margin-bottom: 25px;
+        }
+
+        .student-card-header {
+            padding: 16px 20px;
+
+            background: #f5f8fc;
+
+            border-bottom:
+                1px solid #e5ebf5;
+
+            font-weight: 700;
+        }
+
+        .student-info {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+        }
+
+        .info-item {
+            padding: 17px 20px;
+
+            border-bottom:
+                1px solid #edf1f6;
+        }
+
+        .info-item:nth-child(odd) {
+            border-right:
+                1px solid #edf1f6;
+        }
+
+        .info-label {
+            display: block;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.6px;
+
+            color: #718096;
+
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-weight: 700;
+
+            font-size: 15px;
+
+            color: #172033;
+
+            word-break: break-word;
+        }
+
+        .result-summary {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 12px;
+
+            margin-bottom: 25px;
+        }
+
+        .summary-box {
+            padding: 18px 12px;
+
+            text-align: center;
+
+            background: #f7faff;
+
+            border:
+                1px solid #e3ebf6;
+
+            border-radius: 14px;
+        }
+
+        .summary-label {
+            display: block;
+
+            color: #718096;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            margin-bottom: 7px;
+        }
+
+        .summary-value {
+            font-size: 21px;
+
+            font-weight: 800;
+
+            color: #123c7a;
+        }
+
+        .verification-code {
+            padding: 16px;
+
+            border-radius: 12px;
+
+            background: #f8fafc;
+
+            border:
+                1px dashed #cbd5e1;
+
+            text-align: center;
+
+            margin-bottom: 25px;
+        }
+
+        .verification-code small {
+            display: block;
+
+            color: #64748b;
+
+            margin-bottom: 7px;
+        }
+
+        .verification-code strong {
+            font-family:
+                monospace;
+
+            letter-spacing: 1px;
+
+            color: #123c7a;
+        }
+
+        .actions {
+            display: flex;
+
+            gap: 12px;
+
+            justify-content: center;
+
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: 0;
+
+            border-radius: 10px;
+
+            padding: 12px 20px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            font-size: 14px;
+        }
+
+        .print-button {
+            background: #123c7a;
+
+            color: white;
+        }
+
+        .home-button {
+            background: #edf2f7;
+
+            color: #26364d;
+        }
+
+        .footer {
+            text-align: center;
+
+            margin-top: 22px;
+
+            color: #718096;
+
+            font-size: 12px;
+
+            line-height: 1.6;
+        }
+
+        .footer strong {
+            color: #123c7a;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+
+            body {
+                padding: 12px;
+            }
+
+            .header {
+                padding: 28px 20px;
+            }
+
+            .header h1 {
+                font-size: 23px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .student-info {
+                grid-template-columns: 1fr;
+            }
+
+            .info-item:nth-child(odd) {
+                border-right: 0;
+            }
+
+            .result-summary {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        @media print {
+
+            body {
+                background: white;
+
+                padding: 0;
+            }
+
+            .card {
+                box-shadow: none;
+
+                border: 0;
+            }
+
+            .header {
+                print-color-adjust: exact;
+
+                -webkit-print-color-adjust:
+                    exact;
+            }
+
+            .actions {
+                display: none;
+            }
+
+            .footer {
+                margin-top: 25px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <main class="page">
+
+        <section class="card">
+
+            <header class="header">
+
+                <div class="logo">
+                    V
+                </div>
+
+                <h1>
+                    Result Verification
+                </h1>
+
+                <p>
+                    Star Preparatory School
+                </p>
+
+            </header>
+
+            <div class="content">
+
+                <div
+                    id="loadingState"
+                    class="loading"
+                >
+
+                    <div class="spinner"></div>
+
+                    <p>
+                        Verifying academic result...
+                    </p>
+
+                </div>
+
+
+                <div
+                    id="invalidState"
+                    class="hidden"
+                >
+
+                    <div
+                        class="verification-status invalid"
+                    >
+
+                        <div class="status-icon">
+                            ✕
+                        </div>
+
+                        <h2>
+                            Result Not Verified
+                        </h2>
+
+                        <p id="errorMessage">
+                            This result could not be verified.
+                        </p>
+
+                    </div>
+
+                    <div class="actions">
+
+                        <button
+                            class="home-button"
+                            type="button"
+                            onclick="window.location.href='result-portal.html'"
+                        >
+                            Return to Result Portal
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="validState"
+                    class="hidden"
+                >
+
+                    <div
+                        class="verification-status valid"
+                    >
+
+                        <div class="status-icon">
+                            ✓
+                        </div>
+
+                        <h2>
+                            AUTHENTIC RESULT
+                        </h2>
+
+                        <p>
+                            This academic result was successfully
+                            verified from the school's official
+                            Virello Technologies result database.
+                        </p>
+
+                    </div>
+
+
+                    <div class="student-card">
+
+                        <div class="student-card-header">
+                            Student Information
+                        </div>
+
+                        <div class="student-info">
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Student Name
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="studentName"
+                                >
+                                    —
+                                </span>
+
+                            </div>
+
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Student ID
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="studentId"
+                                >
+                                    —
+                                </span>
+
+                            </div>
+
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Class
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="studentClass"
+                                >
+                                    —
+                                </span>
+
+                            </div>
+
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Academic Year
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="academicYear"
+                                >
+                                    —
+                                </span>
+
+                            </div>
+
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Term
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="term"
+                                >
+                                    —
+                                </span>
+
+                            </div>
+
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    School
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="schoolName"
+                                >
+                                    Star Preparatory School
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="result-summary">
+
+                        <div class="summary-box">
+
+                            <span class="summary-label">
+                                Average
+                            </span>
+
+                            <span
+                                class="summary-value"
+                                id="average"
+                            >
+                                —
+                            </span>
+
+                        </div>
+
+
+                        <div class="summary-box">
+
+                            <span class="summary-label">
+                                Aggregate
+                            </span>
+
+                            <span
+                                class="summary-value"
+                                id="aggregate"
+                            >
+                                —
+                            </span>
+
+                        </div>
+
+
+                        <div class="summary-box">
+
+                            <span class="summary-label">
+                                Position
+                            </span>
+
+                            <span
+                                class="summary-value"
+                                id="position"
+                            >
+                                —
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="verification-code">
+
+                        <small>
+                            Result Access Code
+                        </small>
+
+                        <strong id="resultAccessCode">
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div class="actions">
+
+                        <button
+                            class="print-button"
+                            type="button"
+                            onclick="window.print()"
+                        >
+                            Print Verification
+                        </button>
+
+                        <button
+                            class="home-button"
+                            type="button"
+                            onclick="window.location.href='result-portal.html'"
+                        >
+                            Result Portal
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <div class="footer">
+
+            Powered by
+            <strong>
+                Virello Technologies
+            </strong>
+
+            <br>
+
+            Digital School Management System
+
+        </div>
+
+    </main>
+
+
+    <script
+        type="module"
+        src="./js/result-verify.js"
+    ></script>
+
+</body>
+
+</html>
