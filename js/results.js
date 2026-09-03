@@ -1,110 +1,63 @@
 /* =========================================================
-VIRELLO TECHNOLOGIES
-ACADEMIC RESULTS MANAGEMENT
+   VIRELLO TECHNOLOGIES
+   ACADEMIC RESULTS MANAGEMENT
+   =========================================================
 
-FILE:
-js/results.js
+   Firestore:
+   results/{resultId}
 
-FIRESTORE:
-results/{resultId}
+   OFFICIAL FINAL GRADE:
 
-OFFICIAL GRADING SYSTEM:
+   4 compulsory subjects
+   +
+   best 2 subjects from all remaining subjects
 
-ALL SUBJECTS:
-All entered subjects remain visible on the report.
+   Grade 1 = best
+   Grade 9 = lowest
 
-OFFICIAL FINAL TERM GRADE:
+   Mark structure:
+   Test = 25
+   Exam = 75
+   Total = 100
 
-4 COMPULSORY SUBJECTS
-+
-BEST 2 SUBJECTS FROM ALL REMAINING SUBJECTS
-=
-6 SUBJECTS COUNTED FOR OFFICIAL AGGREGATE
+   RESULT ACCESS CODE:
 
-IMPORTANT:
+   Example:
+   VR-8K4P-29XQ
 
-The "best 2" subjects are selected by GRADE NUMBER.
+   VERIFICATION:
 
-Grade 1 = Best
-Grade 2 = Second Best
-...
-Grade 9 = Fail
+   Every Firestore result document has a permanent
+   verification URL based on its Firestore document ID.
 
-Therefore:
+   Published result:
+   result-verify.html?id=FIRESTORE_RESULT_ID
 
-LOWEST TWO GRADE NUMBERS = BEST TWO SUBJECTS
-
-Example:
-
-Mathematics = Grade 7
-Science = Grade 3
-English = Grade 4
-SES = Grade 1
-PHE = Grade 4
-Art = Grade 2
-
-Compulsory:
-7 + 3 + 4 + 1 = 15
-
-Best 2:
-4 + 2 = 6
-
-FINAL AGGREGATE:
-15 + 6 = 21
-
-AVERAGE:
-
-Average remains a separate mark-based calculation.
-
-MARK STRUCTURE:
-
-Test = 25
-Exam = 75
-Total = 100
-
-GRADE SYSTEM:
-
-90 - 100 = Grade 1 - Excellent
-81 - 89  = Grade 2 - Very Good
-76 - 80  = Grade 3 - Good
-71 - 75  = Grade 4 - Credit
-66 - 70  = Grade 5 - Credit
-56 - 65  = Grade 6 - Credit
-50 - 55  = Grade 7 - Pass
-40 - 49  = Grade 8 - Pass
-0  - 39  = Grade 9 - Fail
-========================================================= */
+   Draft results cannot be publicly verified because
+   the verification page only accepts published results.
+   ========================================================= */
 
 
 /* =========================================================
-FIREBASE AUTH
-========================================================= */
+   FIREBASE
+   ========================================================= */
 
 import {
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-
-/* =========================================================
-FIRESTORE
-========================================================= */
-
 import {
     collection,
     query,
     where,
     getDocs,
+    getDoc,
     addDoc,
     updateDoc,
     doc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-
-
-/* =========================================================
-FIREBASE CONFIG
-========================================================= */
 
 import {
     auth,
@@ -113,27 +66,23 @@ import {
 
 
 /* =========================================================
-STATE
-========================================================= */
+   STATE
+   ========================================================= */
 
 let currentUser = null;
-
 let currentOrganization = null;
 
 let classes = [];
-
 let students = [];
-
 let allResults = [];
 
 let selectedStudent = null;
-
 let currentResult = null;
 
 
 /* =========================================================
-DOM
-========================================================= */
+   DOM
+   ========================================================= */
 
 const loadingScreen =
     document.getElementById("loadingScreen");
@@ -208,7 +157,7 @@ const publishResult =
     document.getElementById("publishResult");
 
 const positionInput =
-    document.getElementById("position");
+    document.getElementById("positionInput");
 
 const teacherComment =
     document.getElementById("teacherComment");
@@ -230,8 +179,8 @@ const totalClasses =
 
 
 /* =========================================================
-ALL SUBJECTS SUMMARY DOM
-========================================================= */
+   ALL SUBJECTS SUMMARY
+   ========================================================= */
 
 const overallSubjects =
     document.getElementById("overallSubjects");
@@ -247,8 +196,8 @@ const overallGrade =
 
 
 /* =========================================================
-FINAL CALCULATION DOM
-========================================================= */
+   FINAL CALCULATION
+   ========================================================= */
 
 const finalCalculationStatus =
     document.getElementById("finalCalculationStatus");
@@ -282,8 +231,8 @@ const finalCalculationWarning =
 
 
 /* =========================================================
-EXISTING RESULTS DOM
-========================================================= */
+   EXISTING RESULTS
+   ========================================================= */
 
 const existingResultsBody =
     document.getElementById("existingResultsBody");
@@ -302,8 +251,8 @@ const resultSearch =
 
 
 /* =========================================================
-CLASS ORDER
-========================================================= */
+   CLASS ORDER
+   ========================================================= */
 
 const CLASS_ORDER = [
 
@@ -337,22 +286,17 @@ const CLASS_ORDER = [
 
 
 /* =========================================================
-MARK LIMITS
-========================================================= */
+   MARK LIMITS
+   ========================================================= */
 
-const TEST_MAX =
-    25;
-
-const EXAM_MAX =
-    75;
-
-const TOTAL_MAX =
-    100;
+const TEST_MAX = 25;
+const EXAM_MAX = 75;
+const TOTAL_MAX = 100;
 
 
 /* =========================================================
-DEFAULT SUBJECTS
-========================================================= */
+   DEFAULT SUBJECTS
+   ========================================================= */
 
 const DEFAULT_SUBJECTS = [
 
@@ -374,8 +318,8 @@ const DEFAULT_SUBJECTS = [
 
 
 /* =========================================================
-START
-========================================================= */
+   START
+   ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -383,31 +327,27 @@ document.addEventListener(
 );
 
 
-/* =========================================================
-AUTH
-========================================================= */
-
 function startResults() {
 
     onAuthStateChanged(
         auth,
         async user => {
 
+            if (!user) {
+
+                window.location.href =
+                    "login.html";
+
+                return;
+
+            }
+
+
+            currentUser =
+                user;
+
+
             try {
-
-                if (!user) {
-
-                    window.location.href =
-                        "login.html";
-
-                    return;
-
-                }
-
-
-                currentUser =
-                    user;
-
 
                 if (adminName) {
 
@@ -420,14 +360,6 @@ function startResults() {
 
 
                 await loadOrganization();
-
-
-                if (!currentOrganization) {
-
-                    return;
-
-                }
-
 
                 await loadClasses();
 
@@ -448,7 +380,7 @@ function startResults() {
             catch (error) {
 
                 console.error(
-                    "Results initialization error:",
+                    "Results startup error:",
                     error
                 );
 
@@ -466,8 +398,8 @@ function startResults() {
 
 
 /* =========================================================
-LOAD ORGANIZATION
-========================================================= */
+   LOAD ORGANIZATION
+   ========================================================= */
 
 async function loadOrganization() {
 
@@ -497,11 +429,9 @@ async function loadOrganization() {
 
     if (snapshot.empty) {
 
-        showError(
-            "No organization was found for this administrator account."
+        throw new Error(
+            "No organization was found for your account."
         );
-
-        return;
 
     }
 
@@ -523,9 +453,9 @@ async function loadOrganization() {
     if (organizationName) {
 
         organizationName.textContent =
-            currentOrganization.organizationName ||
             currentOrganization.name ||
-            "Organization";
+            currentOrganization.organizationName ||
+            "Virello Organization";
 
     }
 
@@ -533,8 +463,8 @@ async function loadOrganization() {
 
 
 /* =========================================================
-LOAD CLASSES
-========================================================= */
+   LOAD CLASSES
+   ========================================================= */
 
 async function loadClasses() {
 
@@ -545,7 +475,7 @@ async function loadClasses() {
         );
 
 
-    const classQuery =
+    const classesQuery =
         query(
 
             classesRef,
@@ -561,7 +491,7 @@ async function loadClasses() {
 
     const snapshot =
         await getDocs(
-            classQuery
+            classesQuery
         );
 
 
@@ -600,8 +530,8 @@ async function loadClasses() {
 
 
 /* =========================================================
-SORT CLASSES
-========================================================= */
+   SORT CLASSES
+   ========================================================= */
 
 function sortClasses(a, b) {
 
@@ -642,16 +572,12 @@ function sortClasses(a, b) {
 
 
     if (indexA !== -1) {
-
         return -1;
-
     }
 
 
     if (indexB !== -1) {
-
         return 1;
-
     }
 
 
@@ -663,14 +589,16 @@ function sortClasses(a, b) {
 
 
 /* =========================================================
-NORMALIZE CLASS NAME
-========================================================= */
+   NORMALIZE CLASS NAME
+   ========================================================= */
 
-function normalizeClassName(name) {
+function normalizeClassName(
+    value
+) {
 
-    const value =
+    const input =
         String(
-            name ||
+            value ||
             ""
         )
         .trim()
@@ -680,13 +608,14 @@ function normalizeClassName(name) {
         );
 
 
-    const lower =
-        value.toLowerCase();
+    if (!input) {
+        return "";
+    }
 
 
     const nurseryMatch =
-        lower.match(
-            /^nursery\s*(1|2|3)$/
+        input.match(
+            /^nursery\s*([1-3])$/i
         );
 
 
@@ -697,40 +626,36 @@ function normalizeClassName(name) {
     }
 
 
-    const gradeSectionMatch =
-        lower.match(
-            /^grade\s*(1|2|3|4|5|6|7|8|9)\s*([ab])$/
-        );
-
-
-    if (gradeSectionMatch) {
-
-        return `Grade ${gradeSectionMatch[1]}${gradeSectionMatch[2].toUpperCase()}`;
-
-    }
-
-
     const gradeMatch =
-        lower.match(
-            /^grade\s*(1|2|3|4|5|6|7|8|9)$/
+        input.match(
+            /^grade\s*([1-9])\s*([ab])?$/i
         );
 
 
     if (gradeMatch) {
 
-        return `Grade ${gradeMatch[1]}`;
+        const number =
+            gradeMatch[1];
+
+        const section =
+            gradeMatch[2]
+                ? gradeMatch[2].toUpperCase()
+                : "";
+
+
+        return `Grade ${number}${section}`;
 
     }
 
 
-    return value;
+    return input;
 
 }
 
 
 /* =========================================================
-CLASS SELECT
-========================================================= */
+   POPULATE CLASS SELECT
+   ========================================================= */
 
 function populateClassSelect() {
 
@@ -740,16 +665,14 @@ function populateClassSelect() {
 
 
     classSelect.innerHTML = `
-
         <option value="">
             Select Class
         </option>
-
     `;
 
 
     classes.forEach(
-        classItem => {
+        item => {
 
             const option =
                 document.createElement(
@@ -758,13 +681,13 @@ function populateClassSelect() {
 
 
             option.value =
-                classItem.id;
+                item.id;
 
 
             option.textContent =
                 normalizeClassName(
-                    classItem.className ||
-                    classItem.name ||
+                    item.className ||
+                    item.name ||
                     "Unnamed Class"
                 );
 
@@ -780,8 +703,8 @@ function populateClassSelect() {
 
 
 /* =========================================================
-RESULT CLASS FILTER
-========================================================= */
+   POPULATE RESULT CLASS FILTER
+   ========================================================= */
 
 function populateResultClassFilter() {
 
@@ -791,24 +714,14 @@ function populateResultClassFilter() {
 
 
     resultClassFilter.innerHTML = `
-
         <option value="">
             All Classes
         </option>
-
     `;
 
 
     classes.forEach(
-        classItem => {
-
-            const className =
-                normalizeClassName(
-                    classItem.className ||
-                    classItem.name ||
-                    ""
-                );
-
+        item => {
 
             const option =
                 document.createElement(
@@ -816,12 +729,20 @@ function populateResultClassFilter() {
                 );
 
 
+            const name =
+                normalizeClassName(
+                    item.className ||
+                    item.name ||
+                    ""
+                );
+
+
             option.value =
-                className;
+                name;
 
 
             option.textContent =
-                className;
+                name;
 
 
             resultClassFilter.appendChild(
@@ -835,8 +756,8 @@ function populateResultClassFilter() {
 
 
 /* =========================================================
-CLASS CHANGE
-========================================================= */
+   CLASS CHANGE
+   ========================================================= */
 
 if (classSelect) {
 
@@ -844,41 +765,22 @@ if (classSelect) {
         "change",
         async () => {
 
-            const classId =
-                classSelect.value;
+            currentResult =
+                null;
 
-
-            students = [];
-
-            selectedStudent = null;
-
-            currentResult = null;
+            selectedStudent =
+                null;
 
 
             hideEditor();
 
 
-            studentSelect.innerHTML = `
-
-                <option value="">
-                    Loading students...
-                </option>
-
-            `;
-
-
-            studentSelect.disabled =
-                true;
-
-
-            if (!classId) {
+            if (!classSelect.value) {
 
                 studentSelect.innerHTML = `
-
                     <option value="">
                         Select Student
                     </option>
-
                 `;
 
                 return;
@@ -889,7 +791,7 @@ if (classSelect) {
             try {
 
                 await loadStudentsForClass(
-                    classId
+                    classSelect.value
                 );
 
             }
@@ -897,19 +799,9 @@ if (classSelect) {
             catch (error) {
 
                 console.error(
-                    "Student loading error:",
+                    "Load students error:",
                     error
                 );
-
-
-                studentSelect.innerHTML = `
-
-                    <option value="">
-                        Unable to load students
-                    </option>
-
-                `;
-
 
                 alert(
                     error.message ||
@@ -925,8 +817,8 @@ if (classSelect) {
 
 
 /* =========================================================
-LOAD STUDENTS FOR CLASS
-========================================================= */
+   LOAD STUDENTS FOR CLASS
+   ========================================================= */
 
 async function loadStudentsForClass(
     classId
@@ -975,22 +867,20 @@ async function loadStudentsForClass(
                 studentDocument.data();
 
 
-            const status =
-                String(
-                    data.status ||
-                    "active"
-                )
-                .toLowerCase();
+            const inactive =
+                data.active === false;
+
+
+            const left =
+                data.status === "left" ||
+                data.status === "graduated";
 
 
             if (
-                status === "inactive" ||
-                status === "left" ||
-                status === "graduated"
+                inactive ||
+                left
             ) {
-
                 return;
-
             }
 
 
@@ -1015,7 +905,7 @@ async function loadStudentsForClass(
                     a.fullName ||
                     a.name ||
                     ""
-                );
+                ).toLowerCase();
 
 
             const nameB =
@@ -1023,7 +913,7 @@ async function loadStudentsForClass(
                     b.fullName ||
                     b.name ||
                     ""
-                );
+                ).toLowerCase();
 
 
             return nameA.localeCompare(
@@ -1040,8 +930,8 @@ async function loadStudentsForClass(
 
 
 /* =========================================================
-LOAD ALL STUDENTS
-========================================================= */
+   LOAD ALL STUDENTS
+   ========================================================= */
 
 async function loadAllStudents() {
 
@@ -1083,8 +973,8 @@ async function loadAllStudents() {
 
 
 /* =========================================================
-STUDENT SELECT
-========================================================= */
+   POPULATE STUDENT SELECT
+   ========================================================= */
 
 function populateStudentSelect() {
 
@@ -1094,11 +984,9 @@ function populateStudentSelect() {
 
 
     studentSelect.innerHTML = `
-
         <option value="">
             Select Student
         </option>
-
     `;
 
 
@@ -1121,14 +1009,13 @@ function populateStudentSelect() {
                 "Unnamed Student";
 
 
-            const studentId =
+            const id =
                 student.studentId ||
-                student.id ||
                 "No ID";
 
 
             option.textContent =
-                `${name} — ${studentId}`;
+                `${name} — ${id}`;
 
 
             studentSelect.appendChild(
@@ -1138,107 +1025,122 @@ function populateStudentSelect() {
         }
     );
 
-
-    studentSelect.disabled =
-        false;
-
 }
 
 
 /* =========================================================
-LOAD RESULT BUTTON
-========================================================= */
+   LOAD RESULT BUTTON
+   ========================================================= */
 
 if (loadResultButton) {
 
     loadResultButton.addEventListener(
         "click",
-        async () => {
-
-            const studentDocumentId =
-                studentSelect.value;
-
-
-            if (!classSelect.value) {
-
-                alert(
-                    "Please select a class."
-                );
-
-                return;
-
-            }
-
-
-            if (!studentDocumentId) {
-
-                alert(
-                    "Please select a student."
-                );
-
-                return;
-
-            }
-
-
-            const year =
-                academicYear.value.trim();
-
-
-            if (!year) {
-
-                alert(
-                    "Please enter the academic year."
-                );
-
-                academicYear.focus();
-
-                return;
-
-            }
-
-
-            if (!termSelect.value) {
-
-                alert(
-                    "Please select a term."
-                );
-
-                return;
-
-            }
-
-
-            selectedStudent =
-                students.find(
-                    student =>
-                        student.id ===
-                        studentDocumentId
-                );
-
-
-            if (!selectedStudent) {
-
-                alert(
-                    "Student could not be found."
-                );
-
-                return;
-
-            }
-
-
-            await loadExistingResultForStudent();
-
-        }
+        loadSelectedResult
     );
 
 }
 
 
+async function loadSelectedResult() {
+
+    if (!classSelect.value) {
+
+        alert(
+            "Please select a class."
+        );
+
+        return;
+
+    }
+
+
+    if (!studentSelect.value) {
+
+        alert(
+            "Please select a student."
+        );
+
+        return;
+
+    }
+
+
+    const year =
+        academicYear.value.trim();
+
+
+    const term =
+        termSelect.value;
+
+
+    if (!year) {
+
+        alert(
+            "Please enter the academic year."
+        );
+
+        academicYear.focus();
+
+        return;
+
+    }
+
+
+    selectedStudent =
+        students.find(
+            item =>
+                item.id ===
+                studentSelect.value
+        );
+
+
+    if (!selectedStudent) {
+
+        alert(
+            "Student could not be found."
+        );
+
+        return;
+
+    }
+
+
+    await loadExistingResultForStudent();
+
+}
+
+
 /* =========================================================
-LOAD EXISTING RESULT
-========================================================= */
+   FIND EXISTING RESULT
+   ========================================================= */
+
+function findExistingResult(
+    studentDocumentId,
+    year,
+    term
+) {
+
+    return allResults.find(
+        result =>
+
+            result.studentDocumentId ===
+            studentDocumentId &&
+
+            result.academicYear ===
+            year &&
+
+            result.term ===
+            term
+
+    ) || null;
+
+}
+
+
+/* =========================================================
+   LOAD EXISTING RESULT
+   ========================================================= */
 
 async function loadExistingResultForStudent() {
 
@@ -1295,7 +1197,6 @@ async function loadExistingResultForStudent() {
             publishResult.checked =
                 false;
 
-
             setResultStatus(
                 "draft"
             );
@@ -1304,26 +1205,11 @@ async function loadExistingResultForStudent() {
 
     }
 
-    catch (error) {
-
-        console.error(
-            "Load result error:",
-            error
-        );
-
-
-        alert(
-            error.message ||
-            "Unable to load result."
-        );
-
-    }
-
     finally {
 
         resetButton(
             loadResultButton,
-            "Load Student Result"
+            "Load Result"
         );
 
     }
@@ -1332,46 +1218,15 @@ async function loadExistingResultForStudent() {
 
 
 /* =========================================================
-FIND EXISTING RESULT
-========================================================= */
-
-function findExistingResult(
-    studentDocumentId,
-    year,
-    term
-) {
-
-    return allResults.find(
-        result => {
-
-            return (
-
-                result.studentDocumentId ===
-                studentDocumentId
-
-            )
-
-            &&
-
-            result.academicYear ===
-            year
-
-            &&
-
-            result.term ===
-            term;
-
-        }
-    ) || null;
-
-}
-
-
-/* =========================================================
-SHOW EDITOR
-========================================================= */
+   SHOW RESULT EDITOR
+   ========================================================= */
 
 function showResultEditor() {
+
+    if (!resultEditor) {
+        return;
+    }
+
 
     resultEditor.classList.remove(
         "hidden"
@@ -1387,22 +1242,21 @@ function showResultEditor() {
 
 
     const name =
-        selectedStudent.fullName ||
-        selectedStudent.name ||
+        selectedStudent?.fullName ||
+        selectedStudent?.name ||
         "Unnamed Student";
 
 
-    const studentId =
-        selectedStudent.studentId ||
-        selectedStudent.id ||
-        "No Student ID";
+    const id =
+        selectedStudent?.studentId ||
+        "—";
 
 
     const className =
         normalizeClassName(
             classItem?.className ||
             classItem?.name ||
-            selectedStudent.className ||
+            selectedStudent?.className ||
             ""
         );
 
@@ -1412,11 +1266,11 @@ function showResultEditor() {
 
 
     studentDetails.textContent =
-        `${className} • ${studentId}`;
+        `${id} • ${className}`;
 
 
     displayStudentId.textContent =
-        studentId;
+        id;
 
 
     displayClass.textContent =
@@ -1434,21 +1288,25 @@ function showResultEditor() {
 
 
 /* =========================================================
-HIDE EDITOR
-========================================================= */
+   HIDE EDITOR
+   ========================================================= */
 
 function hideEditor() {
 
-    resultEditor.classList.add(
-        "hidden"
-    );
+    if (resultEditor) {
+
+        resultEditor.classList.add(
+            "hidden"
+        );
+
+    }
 
 }
 
 
 /* =========================================================
-CREATE DEFAULT SUBJECTS
-========================================================= */
+   CREATE DEFAULT SUBJECTS
+   ========================================================= */
 
 function createDefaultSubjects() {
 
@@ -1459,19 +1317,16 @@ function createDefaultSubjects() {
     DEFAULT_SUBJECTS.forEach(
         (subject, index) => {
 
-            /*
-             * First four subjects are initially
-             * selected as compulsory.
-             *
-             * Teacher may change the compulsory
-             * selection.
-             */
-
             addSubjectRow(
+
                 subject,
+
                 "",
+
                 "",
+
                 index < 4
+
             );
 
         }
@@ -1484,8 +1339,8 @@ function createDefaultSubjects() {
 
 
 /* =========================================================
-RENDER EXISTING RESULT
-========================================================= */
+   RENDER RESULT INTO EDITOR
+   ========================================================= */
 
 function renderResultIntoEditor(
     result
@@ -1503,42 +1358,31 @@ function renderResultIntoEditor(
             : [];
 
 
-    if (subjects.length) {
+    subjects.forEach(
+        item => {
 
-        subjects.forEach(
-            item => {
-
-                const isCompulsory =
-                    item.isCompulsory === true
-                        ? true
-                        : detectLegacyCompulsorySubject(
-                            item.subject
-                        );
-
-
-                addSubjectRow(
-
-                    item.subject ||
-                    "",
-
-                    item.ca ?? "",
-
-                    item.exam ?? "",
-
-                    isCompulsory
-
+            const compulsory =
+                item.isCompulsory === true ||
+                detectLegacyCompulsorySubject(
+                    item.subject
                 );
 
-            }
-        );
 
-    }
+            addSubjectRow(
 
-    else {
+                item.subject ||
+                "",
 
-        createDefaultSubjects();
+                item.ca ?? "",
 
-    }
+                item.exam ?? "",
+
+                compulsory
+
+            );
+
+        }
+    );
 
 
     positionInput.value =
@@ -1565,16 +1409,15 @@ function renderResultIntoEditor(
 
 
     setResultStatus(
-        result.status ||
-        "draft"
+        result.status
     );
 
 }
 
 
 /* =========================================================
-LEGACY COMPULSORY DETECTION
-========================================================= */
+   LEGACY COMPULSORY SUBJECT DETECTION
+   ========================================================= */
 
 function detectLegacyCompulsorySubject(
     subject
@@ -1586,84 +1429,47 @@ function detectLegacyCompulsorySubject(
             ""
         )
         .trim()
-        .toLowerCase()
+        .toUpperCase()
         .replace(
             /\s+/g,
             " "
         );
 
 
-    const normalizedWithoutPeriods =
-        normalized.replace(
-            /\./g,
-            ""
-        );
-
-
-    const normalizedWithoutSpaces =
-        normalizedWithoutPeriods.replace(
-            /\s+/g,
-            ""
-        );
-
-
-    if (
-        normalized ===
-        "english language"
-    ) {
-
-        return true;
-
-    }
-
-
-    if (
-        normalized ===
-        "mathematics"
-    ) {
-
-        return true;
-
-    }
-
-
-    if (
-        normalized ===
-        "science"
-    ) {
-
-        return true;
-
-    }
-
-
-    if (
-        normalized ===
-        "social & env. studies" ||
+    return (
 
         normalized ===
-        "social and env. studies" ||
+            "ENGLISH LANGUAGE" ||
 
         normalized ===
-        "social & environmental studies" ||
+            "MATHEMATICS" ||
 
-        normalizedWithoutSpaces ===
-        "ses"
-    ) {
+        normalized ===
+            "SCIENCE" ||
 
-        return true;
+        normalized ===
+            "SOCIAL & ENV. STUDIES" ||
 
-    }
+        normalized ===
+            "SOCIAL AND ENVIRONMENTAL STUDIES" ||
 
+        normalized ===
+            "SOCIAL & ENVIRONMENTAL STUDIES" ||
 
-    return false;
+        normalized ===
+            "SOCIAL ENVIRONMENTAL STUDIES" ||
+
+        normalized ===
+            "SES"
+
+    );
 
 }
 
 
 /* =========================================================
-CLEAR COMMENTS
-========================================================= */
+   CLEAR COMMENTS AND POSITION
+   ========================================================= */
 
 function clearCommentsAndPosition() {
 
@@ -1680,8 +1486,8 @@ function clearCommentsAndPosition() {
 
 
 /* =========================================================
-ADD SUBJECT BUTTON
-========================================================= */
+   ADD SUBJECT
+   ========================================================= */
 
 if (addSubjectButton) {
 
@@ -1705,13 +1511,13 @@ if (addSubjectButton) {
 
 
 /* =========================================================
-ADD SUBJECT ROW
-========================================================= */
+   ADD SUBJECT ROW
+   ========================================================= */
 
 function addSubjectRow(
-    subject,
-    ca,
-    exam,
+    subject = "",
+    ca = "",
+    exam = "",
     isCompulsory = false
 ) {
 
@@ -1725,21 +1531,26 @@ function addSubjectRow(
 
         <td>
 
-            <input
-                type="text"
-                class="subject-input"
-                placeholder="Subject name"
-            >
+            <div class="subject-input-wrapper">
+
+                <input
+                    type="text"
+                    class="subject-input"
+                    value="${escapeHTML(subject)}"
+                    placeholder="Subject"
+                >
+
+            </div>
 
         </td>
 
 
-        <td class="compulsory-cell">
+        <td>
 
             <input
                 type="checkbox"
                 class="compulsory-input"
-                title="Count this subject as one of the 4 compulsory subjects"
+                ${isCompulsory ? "checked" : ""}
             >
 
         </td>
@@ -1753,6 +1564,7 @@ function addSubjectRow(
                 min="0"
                 max="${TEST_MAX}"
                 step="0.01"
+                value="${escapeHTML(ca)}"
                 placeholder="0"
             >
 
@@ -1767,6 +1579,7 @@ function addSubjectRow(
                 min="0"
                 max="${EXAM_MAX}"
                 step="0.01"
+                value="${escapeHTML(exam)}"
                 placeholder="0"
             >
 
@@ -1781,18 +1594,14 @@ function addSubjectRow(
         <td>
 
             <span class="grade-badge">
-                —
+                9
             </span>
 
         </td>
 
 
-        <td>
-
-            <span class="remark">
-                —
-            </span>
-
+        <td class="remark">
+            Fail
         </td>
 
 
@@ -1800,10 +1609,9 @@ function addSubjectRow(
 
             <button
                 type="button"
-                class="remove-subject"
-                title="Remove subject"
+                class="remove-subject-button"
             >
-                ×
+                Remove
             </button>
 
         </td>
@@ -1814,12 +1622,6 @@ function addSubjectRow(
     subjectTableBody.appendChild(
         row
     );
-
-
-    const subjectInput =
-        row.querySelector(
-            ".subject-input"
-        );
 
 
     const caInput =
@@ -1834,27 +1636,15 @@ function addSubjectRow(
         );
 
 
-    const compulsoryInput =
+    const subjectInput =
         row.querySelector(
-            ".compulsory-input"
+            ".subject-input"
         );
 
 
-    subjectInput.value =
-        subject || "";
-
-
-    caInput.value =
-        ca ?? "";
-
-
-    examInput.value =
-        exam ?? "";
-
-
-    compulsoryInput.checked =
-        Boolean(
-            isCompulsory
+    const compulsoryInput =
+        row.querySelector(
+            ".compulsory-input"
         );
 
 
@@ -1888,11 +1678,7 @@ function addSubjectRow(
 
     subjectInput.addEventListener(
         "input",
-        () => {
-
-            calculateOverall();
-
-        }
+        calculateOverall
     );
 
 
@@ -1911,7 +1697,7 @@ function addSubjectRow(
 
 
     row.querySelector(
-        ".remove-subject"
+        ".remove-subject-button"
     ).addEventListener(
         "click",
         () => {
@@ -1932,8 +1718,8 @@ function addSubjectRow(
 
 
 /* =========================================================
-ENFORCE 4 COMPULSORY SUBJECTS
-========================================================= */
+   ENFORCE 4 COMPULSORY SUBJECTS
+   ========================================================= */
 
 function enforceCompulsoryLimit(
     changedCheckbox
@@ -1963,8 +1749,8 @@ function enforceCompulsoryLimit(
 
 
 /* =========================================================
-CALCULATE ROW
-========================================================= */
+   CALCULATE ROW
+   ========================================================= */
 
 function calculateRow(row) {
 
@@ -2034,8 +1820,8 @@ function calculateRow(row) {
 
 
 /* =========================================================
-CHECK WHETHER SUBJECT HAS MARKS
-========================================================= */
+   CHECK SUBJECT MARKS
+   ========================================================= */
 
 function subjectHasMarks(row) {
 
@@ -2066,8 +1852,8 @@ function subjectHasMarks(row) {
 
 
 /* =========================================================
-CALCULATE ALL SUBJECTS SUMMARY
-========================================================= */
+   CALCULATE OVERALL
+   ========================================================= */
 
 function calculateOverall() {
 
@@ -2201,21 +1987,8 @@ function calculateOverall() {
 
 
 /* =========================================================
-CALCULATE OFFICIAL FINAL TERM GRADE
-=========================================================
-
-RULE:
-
-1. Exactly 4 compulsory subjects.
-2. Remaining subjects are candidates.
-3. Each candidate already has a grade number.
-4. Grade 1 is better than Grade 2.
-5. Therefore the LOWEST grade numbers are selected.
-6. If grade numbers are equal, higher marks win.
-7. Final Aggregate = sum of the six grade numbers.
-8. Final Average = average of marks from the six
-   counted subjects.
-========================================================= */
+   CALCULATE OFFICIAL FINAL TERM GRADE
+   ========================================================= */
 
 function calculateFinalTermGrade() {
 
@@ -2223,32 +1996,23 @@ function calculateFinalTermGrade() {
 
         return {
 
-            valid:
-                false,
+            valid: false,
 
-            compulsorySubjects:
-                [],
+            compulsorySubjects: [],
 
-            bestAdditionalSubjects:
-                [],
+            bestAdditionalSubjects: [],
 
-            subjectsCounted:
-                [],
+            subjectsCounted: [],
 
-            totalMarks:
-                0,
+            totalMarks: 0,
 
-            average:
-                0,
+            average: 0,
 
-            aggregate:
-                0,
+            aggregate: 0,
 
-            grade:
-                "—",
+            grade: "—",
 
-            remark:
-                "Incomplete"
+            remark: "Incomplete"
 
         };
 
@@ -2592,8 +2356,8 @@ function calculateFinalTermGrade() {
 
 
 /* =========================================================
-UPDATE FINAL CALCULATION UI
-========================================================= */
+   UPDATE FINAL CALCULATION UI
+   ========================================================= */
 
 function updateFinalCalculationUI(
 
@@ -2906,26 +2670,8 @@ function updateFinalCalculationUI(
 
 
 /* =========================================================
-AUTOMATIC RESULT ACCESS CODE
-=========================================================
-
-PURPOSE:
-
-Each academic result receives its own random code.
-
-Example:
-
-VR-8K4P-29XQ
-
-The code:
-
-- Is generated automatically.
-- Is difficult to guess.
-- Is stored in Firestore.
-- Remains unchanged when the result is edited.
-- Is generated for older results that do not already
-  have a resultAccessCode.
-========================================================= */
+   RESULT ACCESS CODE
+   ========================================================= */
 
 function generateResultAccessCode() {
 
@@ -3005,8 +2751,8 @@ function generateResultAccessCode() {
 
 
 /* =========================================================
-GENERATE UNIQUE RESULT ACCESS CODE
-========================================================= */
+   UNIQUE ACCESS CODE
+   ========================================================= */
 
 async function generateUniqueResultAccessCode() {
 
@@ -3078,14 +2824,6 @@ async function generateUniqueResultAccessCode() {
 
         catch (error) {
 
-            /*
-             * If the lookup itself fails,
-             * the random space is still extremely
-             * large. We can safely use the locally
-             * generated code rather than preventing
-             * the teacher from saving the result.
-             */
-
             console.warn(
                 "Result code uniqueness check failed. Using generated code.",
                 error
@@ -3102,18 +2840,14 @@ async function generateUniqueResultAccessCode() {
     }
 
 
-    /*
-     * Extremely unlikely fallback.
-     */
-
     return generateResultAccessCode();
 
 }
 
 
 /* =========================================================
-SAVE BUTTON
-========================================================= */
+   SAVE BUTTON
+   ========================================================= */
 
 if (saveResultButton) {
 
@@ -3126,8 +2860,8 @@ if (saveResultButton) {
 
 
 /* =========================================================
-SAVE RESULT
-========================================================= */
+   SAVE RESULT
+   ========================================================= */
 
 async function saveResult() {
 
@@ -3364,22 +3098,6 @@ async function saveResult() {
         );
 
 
-    /*
-     * =====================================================
-     * RESULT ACCESS CODE
-     * =====================================================
-     *
-     * IMPORTANT:
-     *
-     * Existing results keep their original code.
-     *
-     * New results receive a new random code.
-     *
-     * Older results without a code receive one
-     * the next time they are saved.
-     * =====================================================
-     */
-
     let resultAccessCode =
         currentResult?.resultAccessCode ||
         currentResult?.resultCode ||
@@ -3423,28 +3141,14 @@ async function saveResult() {
         term:
             term,
 
-        /*
-         * =================================================
-         * AUTOMATIC RESULT ACCESS CODE
-         * =================================================
-         */
-
         resultAccessCode:
             resultAccessCode,
-
-        /*
-         * ALL SUBJECTS
-         */
 
         subjects:
             subjects,
 
         subjectCount:
             subjects.length,
-
-        /*
-         * ALL-SUBJECT MARK TOTAL
-         */
 
         allSubjectsTotalMarks:
             Number(
@@ -3477,12 +3181,6 @@ async function saveResult() {
                 ).toFixed(2)
             ),
 
-        /*
-         * =================================================
-         * OFFICIAL FINAL CALCULATION
-         * =================================================
-         */
-
         totalMarks:
             Number(
                 calculation.totalMarks.toFixed(2)
@@ -3504,12 +3202,6 @@ async function saveResult() {
         overallRemark:
             calculation.remark,
 
-        /*
-         * =================================================
-         * FINAL CALCULATION OBJECT
-         * =================================================
-         */
-
         finalCalculation: {
 
             rule:
@@ -3526,14 +3218,11 @@ async function saveResult() {
 
             markStructure: {
 
-                test:
-                    25,
+                test: 25,
 
-                exam:
-                    75,
+                exam: 75,
 
-                total:
-                    100
+                total: 100
 
             },
 
@@ -3595,10 +3284,6 @@ async function saveResult() {
     };
 
 
-    /*
-     * Add parent UID when available.
-     */
-
     if (parentUid) {
 
         resultData.parentUid =
@@ -3617,10 +3302,6 @@ async function saveResult() {
 
     try {
 
-        /*
-         * Find an existing result first.
-         */
-
         let existing =
             currentResult;
 
@@ -3638,13 +3319,6 @@ async function saveResult() {
 
 
         if (existing) {
-
-            /*
-             * IMPORTANT:
-             *
-             * If the existing Firestore result has
-             * an old resultAccessCode, preserve it.
-             */
 
             const existingCode =
                 existing.resultAccessCode ||
@@ -3721,10 +3395,6 @@ async function saveResult() {
         }
 
 
-        /*
-         * Update local results immediately.
-         */
-
         replaceLocalResult(
             currentResult
         );
@@ -3752,7 +3422,7 @@ async function saveResult() {
 
             isPublished
 
-                ? `Academic result saved and published for ${studentDisplayName}.\n\nResult Access Code: ${resultAccessCode}\n\nAggregate: ${calculation.aggregate}\nAverage: ${calculation.average.toFixed(2)}%.`
+                ? `Academic result saved and published for ${studentDisplayName}.\n\nResult Access Code: ${resultAccessCode}\n\nAggregate: ${calculation.aggregate}\nAverage: ${calculation.average.toFixed(2)}%.\n\nA QR verification code is now available in the results list.`
 
                 : `Academic result saved as a draft for ${studentDisplayName}.\n\nResult Access Code: ${resultAccessCode}\n\nAggregate: ${calculation.aggregate}\nAverage: ${calculation.average.toFixed(2)}%.`
 
@@ -3788,8 +3458,8 @@ async function saveResult() {
 
 
 /* =========================================================
-COLLECT SUBJECTS
-========================================================= */
+   COLLECT SUBJECTS
+   ========================================================= */
 
 function collectSubjects() {
 
@@ -3907,8 +3577,8 @@ function collectSubjects() {
 
 
 /* =========================================================
-REPLACE LOCAL RESULT
-========================================================= */
+   REPLACE LOCAL RESULT
+   ========================================================= */
 
 function replaceLocalResult(
     updatedResult
@@ -3940,8 +3610,8 @@ function replaceLocalResult(
 
 
 /* =========================================================
-LOAD ALL RESULTS
-========================================================= */
+   LOAD ALL RESULTS
+   ========================================================= */
 
 async function loadAllResults() {
 
@@ -4002,8 +3672,8 @@ async function loadAllResults() {
 
 
 /* =========================================================
-SORT RESULTS
-========================================================= */
+   SORT RESULTS
+   ========================================================= */
 
 function sortResults(a, b) {
 
@@ -4027,8 +3697,8 @@ function sortResults(a, b) {
 
 
 /* =========================================================
-RENDER EXISTING RESULTS
-========================================================= */
+   RENDER EXISTING RESULTS
+   ========================================================= */
 
 function renderExistingResults() {
 
@@ -4311,6 +3981,21 @@ function renderExistingResults() {
                                 : ""
                         }
 
+                        ${
+                            status === "published"
+                                ? `
+
+                                    <button
+                                        class="secondary-button qr-result-button"
+                                        type="button"
+                                    >
+                                        QR Verify
+                                    </button>
+
+                                  `
+                                : ""
+                        }
+
                     </div>
 
                 </td>
@@ -4354,6 +4039,28 @@ function renderExistingResults() {
             }
 
 
+            const qrButton =
+                row.querySelector(
+                    ".qr-result-button"
+                );
+
+
+            if (qrButton) {
+
+                qrButton.addEventListener(
+                    "click",
+                    () => {
+
+                        openResultQRCode(
+                            result
+                        );
+
+                    }
+                );
+
+            }
+
+
             existingResultsBody.appendChild(
                 row
             );
@@ -4365,8 +4072,8 @@ function renderExistingResults() {
 
 
 /* =========================================================
-EDIT EXISTING RESULT
-========================================================= */
+   EDIT EXISTING RESULT
+   ========================================================= */
 
 function editExistingResult(
     result
@@ -4483,8 +4190,8 @@ function editExistingResult(
 
 
 /* =========================================================
-FIND STUDENT IN ALL CLASSES
-========================================================= */
+   FIND STUDENT IN ALL CLASSES
+   ========================================================= */
 
 function findStudentInAllClasses(
     studentDocumentId
@@ -4544,8 +4251,8 @@ function findStudentInAllClasses(
 
 
 /* =========================================================
-PUBLISH EXISTING RESULT
-========================================================= */
+   PUBLISH EXISTING RESULT
+   ========================================================= */
 
 async function publishExistingResult(
     result
@@ -4616,18 +4323,6 @@ async function publishExistingResult(
 
 
     try {
-
-        /*
-         * =================================================
-         * ENSURE RESULT HAS AN ACCESS CODE
-         * =================================================
-         *
-         * Older results may have been created before
-         * the Result Access Code system was added.
-         *
-         * Generate a code for such results before
-         * publishing them.
-         */
 
         let resultAccessCode =
             result.resultAccessCode ||
@@ -4717,7 +4412,7 @@ async function publishExistingResult(
 
 
         alert(
-            `Result published successfully.\n\nResult Access Code: ${resultAccessCode}\n\nIt is now available for parent viewing, subject to your Firestore access rules.`
+            `Result published successfully.\n\nResult Access Code: ${resultAccessCode}\n\nQR verification is now available from the results list.`
         );
 
     }
@@ -4741,8 +4436,985 @@ async function publishExistingResult(
 
 
 /* =========================================================
-CLEAR RESULT BUTTON
-========================================================= */
+   QR CODE LIBRARY
+   ========================================================= */
+
+let qrLibraryPromise =
+    null;
+
+
+function loadQRCodeLibrary() {
+
+    if (
+        window.QRCode
+    ) {
+
+        return Promise.resolve(
+            window.QRCode
+        );
+
+    }
+
+
+    if (qrLibraryPromise) {
+
+        return qrLibraryPromise;
+
+    }
+
+
+    qrLibraryPromise =
+        new Promise(
+            (resolve, reject) => {
+
+                const existing =
+                    document.querySelector(
+                        'script[data-virello-qrcode="true"]'
+                    );
+
+
+                if (existing) {
+
+                    existing.addEventListener(
+                        "load",
+                        () => {
+
+                            if (window.QRCode) {
+
+                                resolve(
+                                    window.QRCode
+                                );
+
+                            }
+
+                            else {
+
+                                reject(
+                                    new Error(
+                                        "QR Code library failed to initialize."
+                                    )
+                                );
+
+                            }
+
+                        }
+                    );
+
+
+                    existing.addEventListener(
+                        "error",
+                        () => {
+
+                            reject(
+                                new Error(
+                                    "Unable to load QR Code library."
+                                )
+                            );
+
+                        }
+                    );
+
+
+                    return;
+
+                }
+
+
+                const script =
+                    document.createElement(
+                        "script"
+                    );
+
+
+                script.src =
+                    "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+
+
+                script.async =
+                    true;
+
+
+                script.dataset.virelloQrcode =
+                    "true";
+
+
+                script.onload =
+                    () => {
+
+                        if (window.QRCode) {
+
+                            resolve(
+                                window.QRCode
+                            );
+
+                        }
+
+                        else {
+
+                            reject(
+                                new Error(
+                                    "QR Code library failed to initialize."
+                                )
+                            );
+
+                        }
+
+                    };
+
+
+                script.onerror =
+                    () => {
+
+                        reject(
+                            new Error(
+                                "Unable to load QR Code library."
+                            )
+                        );
+
+                    };
+
+
+                document.head.appendChild(
+                    script
+                );
+
+            }
+        );
+
+
+    return qrLibraryPromise;
+
+}
+
+
+/* =========================================================
+   BUILD VERIFICATION URL
+   ========================================================= */
+
+function buildVerificationURL(
+    resultId
+) {
+
+    const url =
+        new URL(
+            "result-verify.html",
+            window.location.href
+        );
+
+
+    url.searchParams.set(
+        "id",
+        resultId
+    );
+
+
+    return url.href;
+
+}
+
+
+/* =========================================================
+   OPEN RESULT QR CODE
+   ========================================================= */
+
+async function openResultQRCode(
+    result
+) {
+
+    if (!result?.id) {
+
+        alert(
+            "This result does not have a valid verification ID."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        result.status !==
+        "published"
+    ) {
+
+        alert(
+            "Only published results can have a public verification QR code."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        await loadQRCodeLibrary();
+
+
+        const verificationURL =
+            buildVerificationURL(
+                result.id
+            );
+
+
+        showQRModal(
+            result,
+            verificationURL
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "QR code error:",
+            error
+        );
+
+
+        alert(
+            error.message ||
+            "Unable to generate QR code."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SHOW QR MODAL
+   ========================================================= */
+
+function showQRModal(
+    result,
+    verificationURL
+) {
+
+    const oldModal =
+        document.getElementById(
+            "virelloQRModal"
+        );
+
+
+    if (oldModal) {
+
+        oldModal.remove();
+
+    }
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "virelloQRModal";
+
+
+    modal.innerHTML = `
+
+        <div
+            class="virello-qr-overlay"
+            data-close-qr="true"
+        >
+
+            <div
+                class="virello-qr-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="virelloQRTitle"
+            >
+
+                <button
+                    type="button"
+                    class="virello-qr-close"
+                    aria-label="Close"
+                    data-close-qr="true"
+                >
+                    ×
+                </button>
+
+
+                <div class="virello-qr-header">
+
+                    <div class="virello-qr-icon">
+                        ✓
+                    </div>
+
+                    <div>
+
+                        <h2 id="virelloQRTitle">
+                            Result Verification
+                        </h2>
+
+                        <p>
+                            Scan this QR code to verify
+                            this published academic result.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="virelloQRCode"
+                    class="virello-qr-code"
+                ></div>
+
+
+                <div class="virello-qr-student">
+
+                    <strong>
+                        ${escapeHTML(
+                            result.studentName ||
+                            "Student"
+                        )}
+                    </strong>
+
+                    <span>
+                        ${escapeHTML(
+                            result.studentId ||
+                            "—"
+                        )}
+                    </span>
+
+                    <span>
+                        ${escapeHTML(
+                            normalizeClassName(
+                                result.className ||
+                                "—"
+                            )
+                        )}
+                    </span>
+
+                </div>
+
+
+                <div class="virello-qr-code-display">
+
+                    <span>
+                        Result Access Code
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(
+                            result.resultAccessCode ||
+                            "—"
+                        )}
+                    </strong>
+
+                </div>
+
+
+                <div class="virello-qr-url">
+
+                    ${escapeHTML(
+                        verificationURL
+                    )}
+
+                </div>
+
+
+                <div class="virello-qr-actions">
+
+                    <button
+                        type="button"
+                        id="virelloDownloadQR"
+                        class="virello-qr-primary"
+                    >
+                        Download QR
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="virelloCopyVerification"
+                        class="virello-qr-secondary"
+                    >
+                        Copy Verification Link
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    injectQRModalStyles();
+
+
+    const qrContainer =
+        document.getElementById(
+            "virelloQRCode"
+        );
+
+
+    new window.QRCode(
+        qrContainer,
+        {
+
+            text:
+                verificationURL,
+
+            width:
+                240,
+
+            height:
+                240,
+
+            correctLevel:
+                window.QRCode.CorrectLevel.H
+
+        }
+    );
+
+
+    const closeElements =
+        modal.querySelectorAll(
+            "[data-close-qr='true']"
+        );
+
+
+    closeElements.forEach(
+        element => {
+
+            element.addEventListener(
+                "click",
+                () => modal.remove()
+            );
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        function qrEscapeHandler(
+            event
+        ) {
+
+            if (
+                event.key ===
+                "Escape"
+            ) {
+
+                modal.remove();
+
+                document.removeEventListener(
+                    "keydown",
+                    qrEscapeHandler
+                );
+
+            }
+
+        }
+    );
+
+
+    const downloadButton =
+        document.getElementById(
+            "virelloDownloadQR"
+        );
+
+
+    downloadButton.addEventListener(
+        "click",
+        () => {
+
+            const canvas =
+                qrContainer.querySelector(
+                    "canvas"
+                );
+
+
+            const image =
+                qrContainer.querySelector(
+                    "img"
+                );
+
+
+            let dataURL =
+                null;
+
+
+            if (canvas) {
+
+                dataURL =
+                    canvas.toDataURL(
+                        "image/png"
+                    );
+
+            }
+
+            else if (image) {
+
+                dataURL =
+                    image.src;
+
+            }
+
+
+            if (!dataURL) {
+
+                alert(
+                    "Unable to prepare the QR image."
+                );
+
+                return;
+
+            }
+
+
+            const link =
+                document.createElement(
+                    "a"
+                );
+
+
+            link.href =
+                dataURL;
+
+
+            link.download =
+                `Virello-Result-QR-${result.studentId || result.id}.png`;
+
+
+            document.body.appendChild(
+                link
+            );
+
+
+            link.click();
+
+            link.remove();
+
+        }
+    );
+
+
+    const copyButton =
+        document.getElementById(
+            "virelloCopyVerification"
+        );
+
+
+    copyButton.addEventListener(
+        "click",
+        async () => {
+
+            try {
+
+                await navigator.clipboard.writeText(
+                    verificationURL
+                );
+
+
+                copyButton.textContent =
+                    "Copied ✓";
+
+
+                setTimeout(
+                    () => {
+
+                        copyButton.textContent =
+                            "Copy Verification Link";
+
+                    },
+                    1800
+                );
+
+            }
+
+            catch (error) {
+
+                window.prompt(
+                    "Copy this verification link:",
+                    verificationURL
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   QR MODAL STYLES
+   ========================================================= */
+
+function injectQRModalStyles() {
+
+    if (
+        document.getElementById(
+            "virelloQRModalStyles"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const style =
+        document.createElement(
+            "style"
+        );
+
+
+    style.id =
+        "virelloQRModalStyles";
+
+
+    style.textContent = `
+
+        .virello-qr-overlay {
+
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background: rgba(0,0,0,.68);
+
+            backdrop-filter: blur(6px);
+
+        }
+
+
+        .virello-qr-modal {
+
+            position: relative;
+
+            width: min(520px, 100%);
+
+            max-height: 92vh;
+
+            overflow-y: auto;
+
+            background: #ffffff;
+
+            border-radius: 24px;
+
+            padding: 28px;
+
+            box-shadow:
+                0 30px 80px
+                rgba(0,0,0,.28);
+
+        }
+
+
+        .virello-qr-close {
+
+            position: absolute;
+
+            top: 14px;
+            right: 16px;
+
+            width: 38px;
+            height: 38px;
+
+            border: 0;
+
+            border-radius: 50%;
+
+            background: #f1f5f9;
+
+            font-size: 26px;
+
+            cursor: pointer;
+
+        }
+
+
+        .virello-qr-header {
+
+            display: flex;
+
+            gap: 14px;
+
+            align-items: center;
+
+            padding-right: 35px;
+
+        }
+
+
+        .virello-qr-icon {
+
+            width: 48px;
+            height: 48px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 14px;
+
+            background: #0f766e;
+
+            color: white;
+
+            font-size: 24px;
+
+            font-weight: 800;
+
+        }
+
+
+        .virello-qr-header h2 {
+
+            margin: 0 0 5px;
+
+            font-size: 21px;
+
+        }
+
+
+        .virello-qr-header p {
+
+            margin: 0;
+
+            color: #64748b;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+        }
+
+
+        .virello-qr-code {
+
+            width: 270px;
+            height: 270px;
+
+            margin: 25px auto 15px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            background: white;
+
+            padding: 14px;
+
+            border-radius: 18px;
+
+            border: 1px solid #e2e8f0;
+
+        }
+
+
+        .virello-qr-code img,
+        .virello-qr-code canvas {
+
+            max-width: 100%;
+            max-height: 100%;
+
+        }
+
+
+        .virello-qr-student {
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            gap: 4px;
+
+            text-align: center;
+
+        }
+
+
+        .virello-qr-student strong {
+
+            font-size: 18px;
+
+        }
+
+
+        .virello-qr-student span {
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        .virello-qr-code-display {
+
+            margin-top: 18px;
+
+            padding: 14px;
+
+            border-radius: 14px;
+
+            background: #f8fafc;
+
+            text-align: center;
+
+        }
+
+
+        .virello-qr-code-display span {
+
+            display: block;
+
+            color: #64748b;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: .08em;
+
+        }
+
+
+        .virello-qr-code-display strong {
+
+            display: block;
+
+            margin-top: 5px;
+
+            font-size: 18px;
+
+            letter-spacing: .08em;
+
+        }
+
+
+        .virello-qr-url {
+
+            margin-top: 12px;
+
+            padding: 10px;
+
+            background: #f8fafc;
+
+            border-radius: 10px;
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            word-break: break-all;
+
+        }
+
+
+        .virello-qr-actions {
+
+            display: grid;
+
+            grid-template-columns: 1fr 1fr;
+
+            gap: 10px;
+
+            margin-top: 18px;
+
+        }
+
+
+        .virello-qr-actions button {
+
+            min-height: 45px;
+
+            border-radius: 12px;
+
+            border: 0;
+
+            cursor: pointer;
+
+            font-weight: 700;
+
+        }
+
+
+        .virello-qr-primary {
+
+            background: #0f766e;
+
+            color: white;
+
+        }
+
+
+        .virello-qr-secondary {
+
+            background: #e2e8f0;
+
+            color: #0f172a;
+
+        }
+
+
+        @media(max-width:600px) {
+
+            .virello-qr-modal {
+
+                padding: 20px;
+
+                border-radius: 18px;
+
+            }
+
+
+            .virello-qr-code {
+
+                width: 230px;
+                height: 230px;
+
+            }
+
+
+            .virello-qr-actions {
+
+                grid-template-columns: 1fr;
+
+            }
+
+        }
+
+    `;
+
+
+    document.head.appendChild(
+        style
+    );
+
+}
+
+
+/* =========================================================
+   CLEAR RESULT BUTTON
+   ========================================================= */
 
 if (clearResultButton) {
 
@@ -4755,8 +5427,8 @@ if (clearResultButton) {
 
 
 /* =========================================================
-CLEAR EDITOR
-========================================================= */
+   CLEAR EDITOR
+   ========================================================= */
 
 function clearEditor() {
 
@@ -4820,11 +5492,9 @@ function clearEditor() {
 
     window.scrollTo({
 
-        top:
-            0,
+        top: 0,
 
-        behavior:
-            "smooth"
+        behavior: "smooth"
 
     });
 
@@ -4832,8 +5502,8 @@ function clearEditor() {
 
 
 /* =========================================================
-RESET FINAL CALCULATION UI
-========================================================= */
+   RESET FINAL CALCULATION UI
+   ========================================================= */
 
 function resetFinalCalculationUI() {
 
@@ -4933,8 +5603,8 @@ function resetFinalCalculationUI() {
 
 
 /* =========================================================
-FILTER EVENTS
-========================================================= */
+   FILTER EVENTS
+   ========================================================= */
 
 if (resultClassFilter) {
 
@@ -4967,8 +5637,8 @@ if (resultSearch) {
 
 
 /* =========================================================
-TERM CHANGE
-========================================================= */
+   TERM CHANGE
+   ========================================================= */
 
 if (termSelect) {
 
@@ -4994,8 +5664,8 @@ if (termSelect) {
 
 
 /* =========================================================
-ACADEMIC YEAR CHANGE
-========================================================= */
+   ACADEMIC YEAR CHANGE
+   ========================================================= */
 
 if (academicYear) {
 
@@ -5021,8 +5691,8 @@ if (academicYear) {
 
 
 /* =========================================================
-STATUS
-========================================================= */
+   STATUS
+   ========================================================= */
 
 function setResultStatus(
     status
@@ -5052,8 +5722,8 @@ function setResultStatus(
 
 
 /* =========================================================
-DASHBOARD STATISTICS
-========================================================= */
+   DASHBOARD STATISTICS
+   ========================================================= */
 
 function updateDashboardStatistics() {
 
@@ -5080,8 +5750,8 @@ function updateDashboardStatistics() {
 
 
 /* =========================================================
-GRADE SYSTEM
-========================================================= */
+   GRADE SYSTEM
+   ========================================================= */
 
 function calculateGrade(
     score
@@ -5095,11 +5765,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "1",
+            grade: "1",
 
-            remark:
-                "Excellent"
+            remark: "Excellent"
 
         };
 
@@ -5110,11 +5778,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "2",
+            grade: "2",
 
-            remark:
-                "Very Good"
+            remark: "Very Good"
 
         };
 
@@ -5125,11 +5791,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "3",
+            grade: "3",
 
-            remark:
-                "Good"
+            remark: "Good"
 
         };
 
@@ -5140,11 +5804,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "4",
+            grade: "4",
 
-            remark:
-                "Credit"
+            remark: "Credit"
 
         };
 
@@ -5155,11 +5817,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "5",
+            grade: "5",
 
-            remark:
-                "Credit"
+            remark: "Credit"
 
         };
 
@@ -5170,11 +5830,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "6",
+            grade: "6",
 
-            remark:
-                "Credit"
+            remark: "Credit"
 
         };
 
@@ -5185,11 +5843,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "7",
+            grade: "7",
 
-            remark:
-                "Pass"
+            remark: "Pass"
 
         };
 
@@ -5200,11 +5856,9 @@ function calculateGrade(
 
         return {
 
-            grade:
-                "8",
+            grade: "8",
 
-            remark:
-                "Pass"
+            remark: "Pass"
 
         };
 
@@ -5213,11 +5867,9 @@ function calculateGrade(
 
     return {
 
-        grade:
-            "9",
+        grade: "9",
 
-        remark:
-            "Fail"
+        remark: "Fail"
 
     };
 
@@ -5225,8 +5877,8 @@ function calculateGrade(
 
 
 /* =========================================================
-NUMBER
-========================================================= */
+   NUMBER
+   ========================================================= */
 
 function numberValue(
     value
@@ -5256,8 +5908,8 @@ function numberValue(
 
 
 /* =========================================================
-CLAMP
-========================================================= */
+   CLAMP
+   ========================================================= */
 
 function clamp(
     value,
@@ -5277,8 +5929,8 @@ function clamp(
 
 
 /* =========================================================
-TIMESTAMP
-========================================================= */
+   TIMESTAMP
+   ========================================================= */
 
 function getTimestampMillis(
     timestamp
@@ -5327,8 +5979,8 @@ function getTimestampMillis(
 
 
 /* =========================================================
-ESCAPE HTML
-========================================================= */
+   ESCAPE HTML
+   ========================================================= */
 
 function escapeHTML(
     value
@@ -5368,8 +6020,8 @@ function escapeHTML(
 
 
 /* =========================================================
-BUTTON LOADING
-========================================================= */
+   BUTTON LOADING
+   ========================================================= */
 
 function setButtonLoading(
     button,
@@ -5396,8 +6048,8 @@ function setButtonLoading(
 
 
 /* =========================================================
-RESET BUTTON
-========================================================= */
+   RESET BUTTON
+   ========================================================= */
 
 function resetButton(
     button,
@@ -5424,8 +6076,8 @@ function resetButton(
 
 
 /* =========================================================
-LOGOUT
-========================================================= */
+   LOGOUT
+   ========================================================= */
 
 if (logoutButton) {
 
@@ -5477,8 +6129,8 @@ if (logoutButton) {
 
 
 /* =========================================================
-HIDE LOADING
-========================================================= */
+   HIDE LOADING
+   ========================================================= */
 
 function hideLoading() {
 
@@ -5493,8 +6145,8 @@ function hideLoading() {
 
 
 /* =========================================================
-SHOW ERROR
-========================================================= */
+   SHOW ERROR
+   ========================================================= */
 
 function showError(
     message
@@ -5527,8 +6179,8 @@ function showError(
 
 
 /* =========================================================
-READY
-========================================================= */
+   READY
+   ========================================================= */
 
 console.log(
     "Virello Academic Results Management loaded successfully."
@@ -5540,4 +6192,8 @@ console.log(
 
 console.log(
     "Automatic random Result Access Code system enabled."
+);
+
+console.log(
+    "Result Verification + QR Code system enabled."
 );
