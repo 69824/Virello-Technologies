@@ -157,7 +157,7 @@ const publishResult =
     document.getElementById("publishResult");
 
 const positionInput =
-    document.getElementById("positionInput");
+    document.getElementById("position");
 
 const teacherComment =
     document.getElementById("teacherComment");
