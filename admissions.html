@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>School Admission Application | Virello</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,Arial,sans-serif;background:#f5f7fb;color:#172033}.wrap{max-width:980px;margin:auto;padding:28px 18px 60px}.brand{background:#2563eb;color:#fff;border-radius:18px;padding:28px;margin-bottom:20px}.brand h1{font-size:27px}.brand p{opacity:.9;margin-top:7px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 5px 18px rgba(15,23,42,.04)}h2{font-size:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}label{font-size:13px;font-weight:700;color:#334155}input,select,textarea{width:100%;padding:12px 13px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:#fff}textarea{min-height:95px;resize:vertical}.hint{font-size:12px;color:#64748b}.btn{border:0;border-radius:10px;padding:12px 18px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}.btn:disabled{opacity:.6;cursor:not-allowed}.notice{display:none;padding:13px;border-radius:10px;margin-bottom:16px;font-size:13px}.notice.show{display:block}.success{background:#ecfdf5;color:#047857}.error{background:#fef2f2;color:#b91c1c}.school{font-weight:800}.files{border:1px dashed #94a3b8;padding:16px;border-radius:12px}.result{display:none;text-align:center}.appno{font-size:28px;font-weight:900;margin:12px 0;color:#2563eb}.footer{font-size:12px;color:#64748b;text-align:center;margin-top:20px}@media(max-width:700px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><h1>Online Admission Application</h1><p id="schoolLine">Loading school...</p></div>
+  <div id="notice" class="notice"></div>
+  <form id="applicationForm">
+    <section class="card"><h2>Student Information</h2><div class="grid">
+      <div class="field"><label>First Name *</label><input id="firstName" required></div>
+      <div class="field"><label>Last Name *</label><input id="lastName" required></div>
+      <div class="field"><label>Date of Birth *</label><input id="dateOfBirth" type="date" required></div>
+      <div class="field"><label>Gender</label><select id="gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div class="field"><label>Class Applying For *</label><select id="classId" required><option value="">Loading classes...</option></select></div>
+      <div class="field"><label>Previous School</label><input id="previousSchool"></div>
+      <div class="field full"><label>Student Address</label><textarea id="studentAddress"></textarea></div>
+    </div></section>
+    <section class="card"><h2>Parent / Guardian</h2><div class="grid">
+      <div class="field"><label>Parent / Guardian Name *</label><input id="parentName" required></div>
+      <div class="field"><label>Telephone *</label><input id="parentTelephone" required></div>
+      <div class="field"><label>Email</label><input id="parentEmail" type="email"></div>
+      <div class="field"><label>Relationship</label><input id="relationship" placeholder="e.g. Mother, Father, Guardian"></div>
+      <div class="field full"><label>Parent / Guardian Address</label><textarea id="parentAddress"></textarea></div>
+    </div></section>
+    <section class="card"><h2>Admission Documents</h2><p class="hint" style="margin-bottom:12px">You may upload supporting documents such as previous results, birth certificate or passport-size photo. PDF, JPG and PNG are accepted. Maximum 5 MB per file.</p><div class="files"><input id="documents" type="file" multiple accept=".pdf,.jpg,.jpeg,.png"><div id="fileList" class="hint" style="margin-top:8px"></div></div></section>
+    <section class="card"><h2>Application</h2><div class="field"><label>Additional Message</label><textarea id="message" placeholder="Anything the school should know..."></textarea></div><div style="margin-top:18px"><button class="btn" id="submitButton" type="submit">Submit Admission Application</button></div></section>
+  </form>
+  <section id="result" class="card result"><h2>Application Submitted</h2><p>Please keep your application number for reference.</p><div class="appno" id="applicationNumber"></div><p class="hint">The school will review your application and contact the parent/guardian.</p></section>
+  <div class="footer">Powered by Virello Technologies</div>
+</div>
+<script type="module" src="./js/admissions-public.js"></script>
+</body></html>
