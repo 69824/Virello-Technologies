@@ -1215,6 +1215,9 @@ function normalizeStatus(status) {
    Firestore document ID, and then reads attendance records.
 ========================================================= */
 
+let __virelloAttendanceTimer = null;
+let __virelloAttendanceRequestKey = "";
+
 (function initPublicResultAttendance() {
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", setupPublicResultAttendance, { once: true });
@@ -1253,9 +1256,6 @@ function setupPublicResultAttendance() {
 
     console.log("Virello public result portal attendance integration ready.");
 }
-
-let __virelloAttendanceTimer = null;
-let __virelloAttendanceRequestKey = "";
 
 function schedulePublicAttendanceLoad(result) {
     clearTimeout(__virelloAttendanceTimer);
