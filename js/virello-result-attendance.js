@@ -1,1172 +1,868 @@
 /*
 =========================================================
 VIRELLO TECHNOLOGIES
-RESULT ATTENDANCE SUMMARY - ADD-ON
+PUBLIC RESULT PORTAL - STUDENT ATTENDANCE HISTORY
 
-This file is an ADD-ON only.
-It does not replace or modify results.js.
+This file is specifically for result-portal.html.
 
-On results.html:
-- Adds an Attendance Summary section to the result editor.
-- Automatically calculates Present / Late / Absent totals
-  from the existing "attendance" collection.
-- Allows the administrator to edit the numbers if needed.
-- Saves the numbers into the existing result document as
-  "attendanceSummary".
+It works with the existing:
+    result-portal.js
+    attendance collection
 
-The section is injected automatically after the result
-editor becomes visible.
+When a parent checks a published result, this add-on
+displays the student's attendance history.
 
-Expected saved shape:
-
-attendanceSummary: {
-    present: number,
-    absent: number,
-    late: number,
-    totalRecorded: number,
-    manuallyAdjusted: boolean,
-    updatedAt: server timestamp
-}
+It does NOT replace result-portal.js.
 =========================================================
 */
-
-import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 import {
     collection,
     query,
     where,
-    getDocs,
-    doc,
-    updateDoc,
-    serverTimestamp
+    getDocs
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 import {
-    auth,
     db
 } from "./firebase-config.js";
 
 
-let currentUser = null;
-let currentOrganization = null;
+/*
+=========================================================
+STATE
+=========================================================
+*/
 
-let lastLoadedStudentDocumentId = "";
-let lastLoadedYear = "";
-let lastLoadedTerm = "";
+let pendingResult = null;
 
+let currentAttendanceRequest = 0;
+
+
+/*
+=========================================================
+INITIALIZATION
+=========================================================
+*/
 
 document.addEventListener("DOMContentLoaded", () => {
-    /*
-       Activate only on the academic results page.
-    */
-    if (
-        !document.getElementById("resultEditor") ||
-        !document.getElementById("studentSelect")
-    ) {
-        return;
-    }
 
-    injectStyles();
-    startAttendanceIntegration();
+    injectAttendanceStyles();
+
 });
 
 
-function startAttendanceIntegration() {
-    onAuthStateChanged(auth, async user => {
-        if (!user) {
-            return;
-        }
+/*
+=========================================================
+PUBLIC FUNCTION
+=========================================================
 
-        currentUser = user;
+result-portal.js already calls:
 
-        try {
-            await loadOrganization();
+window.virelloLoadResultAttendance(result);
 
-            if (!currentOrganization) {
+We expose that function here.
+*/
+
+window.virelloLoadResultAttendance =
+    loadAttendanceForResult;
+
+
+/*
+=========================================================
+LOAD ATTENDANCE FOR SELECTED RESULT
+=========================================================
+*/
+
+function loadAttendanceForResult(result) {
+
+    if (!result) {
+        return;
+    }
+
+    pendingResult = result;
+
+    const requestId =
+        ++currentAttendanceRequest;
+
+
+    /*
+    IMPORTANT:
+
+    result-portal.js currently calls this function BEFORE
+    renderResult().
+
+    Therefore we wait until the current JavaScript
+    rendering cycle has finished before inserting the
+    attendance section.
+    */
+
+    requestAnimationFrame(() => {
+
+        requestAnimationFrame(() => {
+
+            if (
+                requestId !==
+                currentAttendanceRequest
+            ) {
                 return;
             }
 
-            /*
-               The existing results.js controls when the result
-               editor is opened. A MutationObserver lets this
-               add-on react to that without changing results.js.
-            */
-            const editor =
-                document.getElementById(
-                    "resultEditor"
-                );
+            renderAttendanceSection(result);
 
-            if (editor) {
-                observeResultEditor(editor);
-            }
-
-            /*
-               Also watch the page briefly for the editor if
-               the DOM is initialized after this script.
-            */
-            waitForEditor();
-        } catch (error) {
-            console.error(
-                "Virello result attendance add-on startup error:",
-                error
-            );
-        }
-    });
-}
-
-
-async function loadOrganization() {
-    const organizationsRef =
-        collection(
-            db,
-            "organizations"
-        );
-
-    const organizationQuery =
-        query(
-            organizationsRef,
-            where(
-                "ownerUid",
-                "==",
-                currentUser.uid
-            )
-        );
-
-    const snapshot =
-        await getDocs(
-            organizationQuery
-        );
-
-    if (snapshot.empty) {
-        return;
-    }
-
-    const organizationDocument =
-        snapshot.docs[0];
-
-    currentOrganization = {
-        id: organizationDocument.id,
-        ...organizationDocument.data()
-    };
-}
-
-
-function waitForEditor() {
-    let attempts = 0;
-
-    const timer =
-        setInterval(() => {
-            attempts++;
-
-            const editor =
-                document.getElementById(
-                    "resultEditor"
-                );
-
-            if (editor) {
-                clearInterval(timer);
-                observeResultEditor(editor);
-            }
-
-            if (attempts >= 60) {
-                clearInterval(timer);
-            }
-        }, 500);
-}
-
-
-function observeResultEditor(editor) {
-    if (
-        editor.dataset
-            .virelloAttendanceObserver === "true"
-    ) {
-        return;
-    }
-
-    editor.dataset
-        .virelloAttendanceObserver = "true";
-
-    const observer =
-        new MutationObserver(() => {
-            maybeLoadAttendanceSection();
         });
 
-    observer.observe(
-        editor,
-        {
-            attributes: true,
-            attributeFilter: ["class"]
-        }
-    );
+    });
 
-    maybeLoadAttendanceSection();
-
-    const studentSelect =
-        document.getElementById(
-            "studentSelect"
-        );
-
-    const academicYear =
-        document.getElementById(
-            "academicYear"
-        );
-
-    const termSelect =
-        document.getElementById(
-            "termSelect"
-        );
-
-    if (studentSelect) {
-        studentSelect.addEventListener(
-            "change",
-            () => {
-                lastLoadedStudentDocumentId = "";
-                maybeLoadAttendanceSection();
-            }
-        );
-    }
-
-    if (academicYear) {
-        academicYear.addEventListener(
-            "change",
-            () => {
-                lastLoadedYear = "";
-                maybeLoadAttendanceSection();
-            }
-        );
-    }
-
-    if (termSelect) {
-        termSelect.addEventListener(
-            "change",
-            () => {
-                lastLoadedTerm = "";
-                maybeLoadAttendanceSection();
-            }
-        );
-    }
 }
 
 
-function isEditorVisible() {
-    const editor =
+/*
+=========================================================
+RENDER ATTENDANCE SECTION
+=========================================================
+*/
+
+async function renderAttendanceSection(result) {
+
+    const resultDisplay =
         document.getElementById(
-            "resultEditor"
+            "resultDisplay"
         );
 
-    if (!editor) {
-        return false;
-    }
-
-    return !editor.classList.contains(
-        "hidden"
-    );
-}
-
-
-function getSelectedStudentDocumentId() {
-    return String(
-        document.getElementById(
-            "studentSelect"
-        )?.value || ""
-    ).trim();
-}
-
-
-function getAcademicYear() {
-    return String(
-        document.getElementById(
-            "academicYear"
-        )?.value || ""
-    ).trim();
-}
-
-
-function getTerm() {
-    return String(
-        document.getElementById(
-            "termSelect"
-        )?.value || ""
-    ).trim();
-}
-
-
-async function maybeLoadAttendanceSection() {
-    if (
-        !currentOrganization ||
-        !isEditorVisible()
-    ) {
+    if (!resultDisplay) {
         return;
     }
 
-    const studentDocumentId =
-        getSelectedStudentDocumentId();
-
-    if (!studentDocumentId) {
-        removeAttendanceSection();
-        return;
-    }
-
-    const year =
-        getAcademicYear();
-
-    const term =
-        getTerm();
-
-    if (!year || !term) {
-        return;
-    }
 
     /*
-       Avoid reloading the same student/year/term on
-       every mutation.
+    Remove previous attendance section.
     */
-    if (
-        studentDocumentId ===
-            lastLoadedStudentDocumentId &&
-        year === lastLoadedYear &&
-        term === lastLoadedTerm &&
+
+    const oldSection =
         document.getElementById(
-            "virelloResultAttendanceSection"
-        )
-    ) {
-        return;
-    }
-
-    lastLoadedStudentDocumentId =
-        studentDocumentId;
-
-    lastLoadedYear = year;
-    lastLoadedTerm = term;
-
-    await createOrRefreshAttendanceSection(
-        studentDocumentId,
-        year,
-        term
-    );
-}
-
-
-function removeAttendanceSection() {
-    const existing =
-        document.getElementById(
-            "virelloResultAttendanceSection"
+            "virelloPublicAttendance"
         );
 
-    if (existing) {
-        existing.remove();
-    }
-}
-
-
-function injectStyles() {
-    if (
-        document.getElementById(
-            "virello-result-attendance-styles"
-        )
-    ) {
-        return;
+    if (oldSection) {
+        oldSection.remove();
     }
 
-    const style =
-        document.createElement("style");
 
-    style.id =
-        "virello-result-attendance-styles";
+    /*
+    Create attendance section.
+    */
 
-    style.textContent = `
-        .vra-section {
-            margin-top: 22px;
-            margin-bottom: 22px;
-            padding: 20px;
-            border: 1px solid #dbe4f0;
-            border-radius: 14px;
-            background: #f8fafc;
-        }
+    const section =
+        document.createElement("section");
 
-        .vra-title {
-            margin: 0 0 6px;
-            color: #172033;
-            font-size: 18px;
-        }
+    section.id =
+        "virelloPublicAttendance";
 
-        .vra-description {
-            margin: 0 0 17px;
-            color: #64748b;
-            font-size: 12px;
-            line-height: 1.5;
-        }
+    section.className =
+        "vpa-section";
 
-        .vra-grid {
-            display: grid;
-            grid-template-columns:
-                repeat(4, minmax(0, 1fr));
-            gap: 12px;
-        }
 
-        .vra-field {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 12px;
-        }
+    section.innerHTML = `
 
-        .vra-field label {
-            display: block;
-            margin-bottom: 7px;
-            color: #475569;
-            font-size: 11px;
-            font-weight: 800;
-        }
+        <div class="vpa-header">
 
-        .vra-field input {
-            width: 100%;
-            border: 1px solid #cbd5e1;
-            border-radius: 7px;
-            padding: 9px 10px;
-            font-size: 14px;
-            font-weight: 700;
-        }
+            <div>
 
-        .vra-total {
-            margin-top: 13px;
-            color: #475569;
-            font-size: 12px;
-        }
+                <h3 class="vpa-title">
+                    Student Attendance History
+                </h3>
 
-        .vra-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 15px;
-        }
+                <p class="vpa-subtitle">
+                    Attendance records currently stored
+                    by the school for this student.
+                </p>
 
-        .vra-save {
-            border: 0;
-            border-radius: 8px;
-            padding: 10px 15px;
-            background: #172554;
-            color: #ffffff;
-            font-weight: 800;
-            cursor: pointer;
-        }
+            </div>
 
-        .vra-save:disabled {
-            opacity: .6;
-            cursor: wait;
-        }
+            <div class="vpa-badge">
+                ATTENDANCE
+            </div>
 
-        .vra-refresh {
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 9px 14px;
-            background: #ffffff;
-            color: #172033;
-            font-weight: 700;
-            cursor: pointer;
-        }
+        </div>
 
-        .vra-message {
-            font-size: 12px;
-            color: #475569;
-        }
 
-        .vra-error {
-            margin-top: 10px;
-            color: #991b1b;
-        }
+        <div class="vpa-loading">
 
-        @media (max-width: 800px) {
-            .vra-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
+            <div class="vpa-spinner"></div>
 
-        @media (max-width: 500px) {
-            .vra-grid {
-                grid-template-columns: 1fr 1fr;
-            }
+            <span>
+                Loading attendance history...
+            </span>
 
-            .vra-section {
-                padding: 15px;
-            }
-        }
+        </div>
+
+        <div
+            id="vpaContent"
+            style="display:none;"
+        ></div>
+
+        <div
+            id="vpaError"
+            class="vpa-error"
+            style="display:none;"
+        ></div>
+
     `;
 
-    document.head.appendChild(style);
+
+    /*
+    Put attendance AFTER the result.
+    */
+
+    resultDisplay.appendChild(section);
+
+
+    /*
+    Load records.
+    */
+
+    await loadAttendanceRecords(result);
+
 }
 
 
-async function createOrRefreshAttendanceSection(
-    studentDocumentId,
-    year,
-    term
-) {
-    const editor =
-        document.getElementById(
-            "resultEditor"
-        );
+/*
+=========================================================
+LOAD ATTENDANCE RECORDS
+=========================================================
+*/
 
-    if (!editor) {
-        return;
-    }
+async function loadAttendanceRecords(result) {
 
-    let section =
+    const section =
         document.getElementById(
-            "virelloResultAttendanceSection"
+            "virelloPublicAttendance"
         );
 
     if (!section) {
-        section =
-            document.createElement("section");
-
-        section.id =
-            "virelloResultAttendanceSection";
-
-        section.className =
-            "vra-section";
-
-        /*
-           Put it immediately before the comments section
-           if possible; otherwise place it at the end of
-           the existing result editor.
-        */
-        const commentsGrid =
-            editor.querySelector(
-                ".comments-grid"
-            );
-
-        if (
-            commentsGrid &&
-            commentsGrid.parentNode
-        ) {
-            commentsGrid.parentNode.insertBefore(
-                section,
-                commentsGrid
-            );
-        } else {
-            editor.appendChild(section);
-        }
+        return;
     }
 
-    section.innerHTML = `
-        <h3 class="vra-title">
-            Student Attendance Summary
-        </h3>
 
-        <p class="vra-description">
-            Attendance is calculated from the existing Virello
-            student attendance records. You can adjust the
-            numbers before saving them to this student's result.
-        </p>
+    const loading =
+        section.querySelector(
+            ".vpa-loading"
+        );
 
-        <div class="vra-grid">
-            <div class="vra-field">
-                <label for="vraPresent">
-                    Times Present
-                </label>
-                <input
-                    id="vraPresent"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value="0"
-                >
-            </div>
-
-            <div class="vra-field">
-                <label for="vraAbsent">
-                    Times Absent
-                </label>
-                <input
-                    id="vraAbsent"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value="0"
-                >
-            </div>
-
-            <div class="vra-field">
-                <label for="vraLate">
-                    Times Late
-                </label>
-                <input
-                    id="vraLate"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value="0"
-                >
-            </div>
-
-            <div class="vra-field">
-                <label for="vraTotal">
-                    Total Recorded
-                </label>
-                <input
-                    id="vraTotal"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value="0"
-                    readonly
-                >
-            </div>
-        </div>
-
-        <div
-            id="vraCalculationMessage"
-            class="vra-total"
-        >
-            Loading attendance...
-        </div>
-
-        <div class="vra-actions">
-            <button
-                id="vraSaveButton"
-                class="vra-save"
-                type="button"
-            >
-                Save Attendance to Result
-            </button>
-
-            <button
-                id="vraRefreshButton"
-                class="vra-refresh"
-                type="button"
-            >
-                Recalculate
-            </button>
-
-            <span
-                id="vraMessage"
-                class="vra-message"
-            ></span>
-        </div>
-
-        <div
-            id="vraError"
-            class="vra-error"
-        ></div>
-    `;
-
-    bindAttendanceSectionEvents(
-        studentDocumentId,
-        year,
-        term
-    );
-
-    await loadAttendanceCounts(
-        studentDocumentId,
-        year,
-        term
-    );
-}
-
-
-function bindAttendanceSectionEvents(
-    studentDocumentId,
-    year,
-    term
-) {
-    const presentInput =
+    const content =
         document.getElementById(
-            "vraPresent"
-        );
-
-    const absentInput =
-        document.getElementById(
-            "vraAbsent"
-        );
-
-    const lateInput =
-        document.getElementById(
-            "vraLate"
-        );
-
-    const totalInput =
-        document.getElementById(
-            "vraTotal"
-        );
-
-    const saveButton =
-        document.getElementById(
-            "vraSaveButton"
-        );
-
-    const refreshButton =
-        document.getElementById(
-            "vraRefreshButton"
-        );
-
-    const updateTotal = () => {
-        const present =
-            safeInteger(
-                presentInput?.value
-            );
-
-        const absent =
-            safeInteger(
-                absentInput?.value
-            );
-
-        const late =
-            safeInteger(
-                lateInput?.value
-            );
-
-        const total =
-            present +
-            absent +
-            late;
-
-        if (totalInput) {
-            totalInput.value =
-                total;
-        }
-    };
-
-    [
-        presentInput,
-        absentInput,
-        lateInput
-    ].forEach(input => {
-        if (input) {
-            input.addEventListener(
-                "input",
-                updateTotal
-            );
-        }
-    });
-
-    if (refreshButton) {
-        refreshButton.addEventListener(
-            "click",
-            () => {
-                loadAttendanceCounts(
-                    studentDocumentId,
-                    year,
-                    term
-                );
-            }
-        );
-    }
-
-    if (saveButton) {
-        saveButton.addEventListener(
-            "click",
-            () => {
-                saveAttendanceSummary(
-                    studentDocumentId,
-                    year,
-                    term
-                );
-            }
-        );
-    }
-}
-
-
-async function loadAttendanceCounts(
-    studentDocumentId,
-    year,
-    term
-) {
-    const message =
-        document.getElementById(
-            "vraMessage"
+            "vpaContent"
         );
 
     const errorElement =
         document.getElementById(
-            "vraError"
+            "vpaError"
         );
 
-    if (message) {
-        message.textContent =
-            "Calculating...";
-    }
-
-    if (errorElement) {
-        errorElement.textContent =
-            "";
-    }
 
     try {
+
+        /*
+        -------------------------------------------------
+        IDENTIFY STUDENT
+        -------------------------------------------------
+        */
+
+        const studentDocumentId =
+            String(
+                result.studentDocumentId || ""
+            ).trim();
+
+
+        const studentId =
+            String(
+                result.studentId || ""
+            ).trim();
+
+
+        const organizationId =
+            String(
+                result.organizationId || ""
+            ).trim();
+
+
+        if (!organizationId) {
+
+            throw new Error(
+                "This result does not contain a school organization ID."
+            );
+
+        }
+
+
+        if (
+            !studentDocumentId &&
+            !studentId
+        ) {
+
+            throw new Error(
+                "This result does not contain enough student information to load attendance."
+            );
+
+        }
+
+
+        /*
+        -------------------------------------------------
+        QUERY ATTENDANCE
+        -------------------------------------------------
+
+        We query only by organization.
+
+        Then we match the student in JavaScript.
+
+        This avoids requiring a new composite Firestore
+        index.
+        */
+
         const attendanceRef =
             collection(
                 db,
                 "attendance"
             );
 
-        /*
-           We query by organization only and filter the
-           student in JavaScript. This avoids introducing
-           a required composite Firestore index for the
-           add-on.
-        */
+
         const attendanceQuery =
             query(
                 attendanceRef,
+
                 where(
                     "organizationId",
                     "==",
-                    currentOrganization.id
+                    organizationId
                 )
             );
+
 
         const snapshot =
             await getDocs(
                 attendanceQuery
             );
 
-        let present = 0;
-        let absent = 0;
-        let late = 0;
+
+        const records = [];
+
 
         snapshot.forEach(
             attendanceDocument => {
+
                 const record =
                     attendanceDocument.data();
 
-                const recordStudentId =
+
+                const recordDocumentId =
                     String(
                         record.studentDocumentId ||
+                        ""
+                    ).trim();
+
+
+                const recordStudentId =
+                    String(
                         record.studentId ||
                         ""
                     ).trim();
 
+
                 /*
-                   studentDocumentId is the Firestore student
-                   document ID in the existing attendance data.
-                   studentId may be the human-facing Student ID,
-                   so the document ID comparison is preferred.
+                -------------------------------------------------
+                STUDENT MATCHING
+                -------------------------------------------------
+
+                Existing Virello attendance uses
+                studentDocumentId.
+
+                We also check studentId as a fallback.
                 */
+
+                let matchesStudent = false;
+
+
                 if (
-                    recordStudentId !==
+                    studentDocumentId &&
+                    recordDocumentId ===
                     studentDocumentId
                 ) {
+
+                    matchesStudent = true;
+
+                }
+
+
+                if (
+                    !matchesStudent &&
+                    studentId &&
+                    recordStudentId ===
+                    studentId
+                ) {
+
+                    matchesStudent = true;
+
+                }
+
+
+                if (!matchesStudent) {
                     return;
                 }
+
 
                 const status =
                     normalizeStatus(
                         record.status
                     );
 
-                if (status === "present") {
+
+                /*
+                Ignore unknown statuses.
+                */
+
+                if (
+                    status ===
+                    "not_recorded"
+                ) {
+
+                    return;
+
+                }
+
+
+                records.push({
+
+                    id:
+                        attendanceDocument.id,
+
+                    date:
+                        getAttendanceDate(
+                            record
+                        ),
+
+                    className:
+                        record.className ||
+                        "-",
+
+                    formMasterName:
+                        record.formMasterName ||
+                        "-",
+
+                    status:
+                        status,
+
+                    raw:
+                        record
+
+                });
+
+            }
+        );
+
+
+        /*
+        -------------------------------------------------
+        SORT NEWEST FIRST
+        -------------------------------------------------
+        */
+
+        records.sort(
+            (a, b) => {
+
+                return String(b.date)
+                    .localeCompare(
+                        String(a.date)
+                    );
+
+            }
+        );
+
+
+        /*
+        -------------------------------------------------
+        SUMMARY
+        -------------------------------------------------
+        */
+
+        let present = 0;
+        let absent = 0;
+        let late = 0;
+
+
+        records.forEach(
+            record => {
+
+                if (
+                    record.status ===
+                    "present"
+                ) {
                     present++;
                 }
 
-                if (status === "absent") {
+                if (
+                    record.status ===
+                    "absent"
+                ) {
                     absent++;
                 }
 
-                if (status === "late") {
+                if (
+                    record.status ===
+                    "late"
+                ) {
                     late++;
                 }
+
             }
         );
 
-        setAttendanceInputs(
-            present,
-            absent,
-            late
-        );
 
         const total =
-            present +
-            absent +
-            late;
+            records.length;
 
-        if (message) {
-            message.textContent =
-                `Calculated from ${total} recorded attendance day${total === 1 ? "" : "s"} for this student. Academic year: ${year}. Term: ${term}.`;
+
+        /*
+        -------------------------------------------------
+        BUILD CONTENT
+        -------------------------------------------------
+        */
+
+        if (loading) {
+            loading.style.display =
+                "none";
         }
+
+
+        if (!content) {
+            return;
+        }
+
+
+        content.style.display =
+            "block";
+
+
+        content.innerHTML = `
+
+            <div class="vpa-summary-grid">
+
+                <div class="vpa-summary-card">
+
+                    <div class="vpa-summary-label">
+                        Present
+                    </div>
+
+                    <div class="vpa-summary-number">
+                        ${present}
+                    </div>
+
+                </div>
+
+
+                <div class="vpa-summary-card">
+
+                    <div class="vpa-summary-label">
+                        Absent
+                    </div>
+
+                    <div class="vpa-summary-number">
+                        ${absent}
+                    </div>
+
+                </div>
+
+
+                <div class="vpa-summary-card">
+
+                    <div class="vpa-summary-label">
+                        Late
+                    </div>
+
+                    <div class="vpa-summary-number">
+                        ${late}
+                    </div>
+
+                </div>
+
+
+                <div class="vpa-summary-card">
+
+                    <div class="vpa-summary-label">
+                        Total Records
+                    </div>
+
+                    <div class="vpa-summary-number">
+                        ${total}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="vpa-table-wrapper">
+
+                <table class="vpa-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Class
+                            </th>
+
+                            <th>
+                                Form Master
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        ${
+                            records.length > 0
+                                ? records
+                                    .map(
+                                        record =>
+                                            createAttendanceRow(
+                                                record
+                                            )
+                                    )
+                                    .join("")
+                                : `
+                                    <tr>
+
+                                        <td
+                                            colspan="4"
+                                            class="vpa-empty"
+                                        >
+                                            No attendance records
+                                            are currently available
+                                            for this student.
+                                        </td>
+
+                                    </tr>
+                                `
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <div class="vpa-footer-note">
+
+                Attendance history is based on records
+                currently stored by the school.
+
+            </div>
+
+        `;
+
+
     } catch (error) {
+
         console.error(
-            "Virello attendance count error:",
+            "Virello public attendance error:",
             error
         );
 
+
+        if (loading) {
+            loading.style.display =
+                "none";
+        }
+
+
         if (errorElement) {
+
+            errorElement.style.display =
+                "block";
+
             errorElement.textContent =
-                error.message ||
-                "Unable to calculate attendance.";
+                "Attendance history could not be loaded at this time.";
+
         }
 
-        if (message) {
-            message.textContent =
-                "";
-        }
     }
+
 }
 
 
-function setAttendanceInputs(
-    present,
-    absent,
-    late
-) {
-    const presentInput =
-        document.getElementById(
-            "vraPresent"
+/*
+=========================================================
+CREATE ATTENDANCE TABLE ROW
+=========================================================
+*/
+
+function createAttendanceRow(record) {
+
+    const statusLabel =
+        capitalize(
+            record.status
         );
 
-    const absentInput =
-        document.getElementById(
-            "vraAbsent"
-        );
 
-    const lateInput =
-        document.getElementById(
-            "vraLate"
-        );
+    const statusClass =
+        `vpa-status-${record.status}`;
 
-    const totalInput =
-        document.getElementById(
-            "vraTotal"
-        );
 
-    if (presentInput) {
-        presentInput.value =
-            present;
-    }
+    return `
 
-    if (absentInput) {
-        absentInput.value =
-            absent;
-    }
+        <tr>
 
-    if (lateInput) {
-        lateInput.value =
-            late;
-    }
+            <td>
+                ${escapeHTML(
+                    formatDate(
+                        record.date
+                    )
+                )}
+            </td>
 
-    if (totalInput) {
-        totalInput.value =
-            present +
-            absent +
-            late;
-    }
+            <td>
+                ${escapeHTML(
+                    String(
+                        record.className ||
+                        "-"
+                    )
+                )}
+            </td>
+
+            <td>
+                ${escapeHTML(
+                    String(
+                        record.formMasterName ||
+                        "-"
+                    )
+                )}
+            </td>
+
+            <td>
+
+                <span
+                    class="
+                        vpa-status
+                        ${statusClass}
+                    "
+                >
+                    ${escapeHTML(
+                        statusLabel
+                    )}
+                </span>
+
+            </td>
+
+        </tr>
+
+    `;
+
 }
 
 
-function safeInteger(value) {
-    const number =
-        Number(value);
+/*
+=========================================================
+GET ATTENDANCE DATE
+=========================================================
+*/
 
-    if (!Number.isFinite(number)) {
-        return 0;
+function getAttendanceDate(record) {
+
+    /*
+    Existing attendance uses "date".
+    */
+
+    if (record.date) {
+
+        return String(
+            record.date
+        );
+
     }
 
-    return Math.max(
-        0,
-        Math.floor(number)
+
+    /*
+    Fallbacks for future records.
+    */
+
+    if (record.attendanceDate) {
+
+        return String(
+            record.attendanceDate
+        );
+
+    }
+
+
+    return "";
+
+}
+
+
+/*
+=========================================================
+FORMAT DATE
+=========================================================
+*/
+
+function formatDate(value) {
+
+    if (!value) {
+        return "-";
+    }
+
+
+    const date =
+        new Date(
+            `${value}T00:00:00`
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return value;
+
+    }
+
+
+    return date.toLocaleDateString(
+        undefined,
+        {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        }
     );
+
 }
 
 
-async function saveAttendanceSummary(
-    studentDocumentId,
-    year,
-    term
-) {
-    const saveButton =
-        document.getElementById(
-            "vraSaveButton"
-        );
-
-    const message =
-        document.getElementById(
-            "vraMessage"
-        );
-
-    const errorElement =
-        document.getElementById(
-            "vraError"
-        );
-
-    if (!currentOrganization) {
-        return;
-    }
-
-    const present =
-        safeInteger(
-            document.getElementById(
-                "vraPresent"
-            )?.value
-        );
-
-    const absent =
-        safeInteger(
-            document.getElementById(
-                "vraAbsent"
-            )?.value
-        );
-
-    const late =
-        safeInteger(
-            document.getElementById(
-                "vraLate"
-            )?.value
-        );
-
-    const totalRecorded =
-        present +
-        absent +
-        late;
-
-    if (saveButton) {
-        saveButton.disabled = true;
-        saveButton.textContent =
-            "Saving...";
-    }
-
-    if (message) {
-        message.textContent =
-            "";
-    }
-
-    if (errorElement) {
-        errorElement.textContent =
-            "";
-    }
-
-    try {
-        const resultsRef =
-            collection(
-                db,
-                "results"
-            );
-
-        /*
-           Query by organization only, then locate the
-           exact student/year/term result in JavaScript.
-        */
-        const resultsQuery =
-            query(
-                resultsRef,
-                where(
-                    "organizationId",
-                    "==",
-                    currentOrganization.id
-                )
-            );
-
-        const snapshot =
-            await getDocs(
-                resultsQuery
-            );
-
-        let matchingResult = null;
-
-        snapshot.forEach(
-            resultDocument => {
-                if (matchingResult) {
-                    return;
-                }
-
-                const result =
-                    resultDocument.data();
-
-                const resultStudentDocumentId =
-                    String(
-                        result.studentDocumentId ||
-                        ""
-                    ).trim();
-
-                if (
-                    resultStudentDocumentId ===
-                        studentDocumentId &&
-                    String(
-                        result.academicYear ||
-                        ""
-                    ).trim() === year &&
-                    String(
-                        result.term ||
-                        ""
-                    ).trim() === term
-                ) {
-                    matchingResult = {
-                        id:
-                            resultDocument.id,
-                        ...result
-                    };
-                }
-            }
-        );
-
-        if (!matchingResult) {
-            throw new Error(
-                "Save the academic result first, then save the attendance summary to that result."
-            );
-        }
-
-        await updateDoc(
-            doc(
-                db,
-                "results",
-                matchingResult.id
-            ),
-            {
-                attendanceSummary: {
-                    present,
-                    absent,
-                    late,
-                    totalRecorded,
-                    manuallyAdjusted: true,
-                    academicYear: year,
-                    term: term,
-                    updatedAt:
-                        serverTimestamp(),
-                    updatedBy:
-                        currentUser.uid
-                }
-            }
-        );
-
-        if (message) {
-            message.textContent =
-                "Attendance summary saved to the student result.";
-        }
-
-        /*
-           Keep the original results page untouched while
-           updating its in-memory result object when possible.
-           The next normal save from results.js may replace
-           the document with its existing resultData. If the
-           administrator changes subjects/comments afterwards,
-           save the attendance summary again after saving the
-           result. This is explained in INSTALL.txt.
-        */
-    } catch (error) {
-        console.error(
-            "Virello attendance summary save error:",
-            error
-        );
-
-        if (errorElement) {
-            errorElement.textContent =
-                error.message ||
-                "Unable to save attendance summary.";
-        }
-    } finally {
-        if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.textContent =
-                "Save Attendance to Result";
-        }
-    }
-}
-
+/*
+=========================================================
+NORMALIZE STATUS
+=========================================================
+*/
 
 function normalizeStatus(status) {
+
     const value =
         String(
             status || ""
@@ -1174,26 +870,519 @@ function normalizeStatus(status) {
         .trim()
         .toLowerCase();
 
+
     if (
         value === "present" ||
         value === "p"
     ) {
+
         return "present";
+
     }
+
 
     if (
         value === "absent" ||
         value === "a"
     ) {
+
         return "absent";
+
     }
+
 
     if (
         value === "late" ||
         value === "l"
     ) {
+
         return "late";
+
     }
 
+
     return "not_recorded";
+
 }
+
+
+/*
+=========================================================
+CAPITALIZE
+=========================================================
+*/
+
+function capitalize(value) {
+
+    const text =
+        String(
+            value || ""
+        );
+
+
+    return text.charAt(0)
+        .toUpperCase() +
+        text.slice(1);
+
+}
+
+
+/*
+=========================================================
+ESCAPE HTML
+=========================================================
+*/
+
+function escapeHTML(value) {
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/*
+=========================================================
+STYLES
+=========================================================
+*/
+
+function injectAttendanceStyles() {
+
+    if (
+        document.getElementById(
+            "virello-public-attendance-styles"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const style =
+        document.createElement(
+            "style"
+        );
+
+
+    style.id =
+        "virello-public-attendance-styles";
+
+
+    style.textContent = `
+
+        .vpa-section {
+
+            margin-top: 28px;
+            padding: 22px;
+
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+
+            background: #ffffff;
+
+            box-shadow:
+                0 5px 18px
+                rgba(15, 23, 42, 0.05);
+
+        }
+
+
+        .vpa-header {
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 15px;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .vpa-title {
+
+            margin: 0 0 5px;
+
+            font-size: 20px;
+            font-weight: 800;
+
+            color: #0b3d91;
+
+        }
+
+
+        .vpa-subtitle {
+
+            margin: 0;
+
+            color: #64748b;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+        }
+
+
+        .vpa-badge {
+
+            padding: 7px 11px;
+
+            border-radius: 999px;
+
+            background: #eff6ff;
+
+            color: #1d4ed8;
+
+            font-size: 10px;
+
+            font-weight: 800;
+
+            letter-spacing: .5px;
+
+            white-space: nowrap;
+
+        }
+
+
+        .vpa-summary-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+
+            gap: 12px;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .vpa-summary-card {
+
+            padding: 15px;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 10px;
+
+            background: #f8fafc;
+
+        }
+
+
+        .vpa-summary-label {
+
+            color: #64748b;
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            letter-spacing: .4px;
+
+        }
+
+
+        .vpa-summary-number {
+
+            margin-top: 6px;
+
+            color: #0f172a;
+
+            font-size: 25px;
+
+            font-weight: 800;
+
+        }
+
+
+        .vpa-table-wrapper {
+
+            width: 100%;
+
+            overflow-x: auto;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 10px;
+
+        }
+
+
+        .vpa-table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 620px;
+
+        }
+
+
+        .vpa-table th {
+
+            padding: 12px;
+
+            text-align: left;
+
+            background: #f8fafc;
+
+            border-bottom:
+                1px solid #e2e8f0;
+
+            color: #475569;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+        }
+
+
+        .vpa-table td {
+
+            padding: 13px 12px;
+
+            border-bottom:
+                1px solid #eef2f7;
+
+            color: #334155;
+
+            font-size: 13px;
+
+        }
+
+
+        .vpa-table tbody tr:last-child td {
+
+            border-bottom: 0;
+
+        }
+
+
+        .vpa-status {
+
+            display: inline-block;
+
+            padding: 5px 9px;
+
+            border-radius: 999px;
+
+            font-size: 11px;
+
+            font-weight: 800;
+
+        }
+
+
+        .vpa-status-present {
+
+            background: #ecfdf3;
+            color: #027a48;
+
+        }
+
+
+        .vpa-status-absent {
+
+            background: #fef3f2;
+            color: #b42318;
+
+        }
+
+
+        .vpa-status-late {
+
+            background: #fffaeb;
+            color: #b54708;
+
+        }
+
+
+        .vpa-empty {
+
+            padding: 30px !important;
+
+            text-align: center;
+
+            color: #64748b !important;
+
+        }
+
+
+        .vpa-footer-note {
+
+            margin-top: 12px;
+
+            color: #94a3b8;
+
+            font-size: 11px;
+
+        }
+
+
+        .vpa-loading {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            padding: 20px;
+
+            color: #64748b;
+
+            font-size: 13px;
+
+        }
+
+
+        .vpa-spinner {
+
+            width: 18px;
+            height: 18px;
+
+            border:
+                2px solid #e2e8f0;
+
+            border-top-color:
+                #0b3d91;
+
+            border-radius: 50%;
+
+            animation:
+                vpaSpin .7s linear infinite;
+
+        }
+
+
+        @keyframes vpaSpin {
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+
+        .vpa-error {
+
+            padding: 15px;
+
+            border-radius: 8px;
+
+            background: #fef2f2;
+
+            color: #991b1b;
+
+            font-size: 13px;
+
+        }
+
+
+        @media (max-width: 800px) {
+
+            .vpa-summary-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+        }
+
+
+        @media (max-width: 500px) {
+
+            .vpa-section {
+
+                padding: 15px;
+
+            }
+
+
+            .vpa-header {
+
+                align-items: flex-start;
+
+                flex-direction: column;
+
+            }
+
+
+            .vpa-summary-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+        }
+
+
+        @media print {
+
+            .vpa-section {
+
+                box-shadow: none;
+
+                break-inside: avoid;
+
+            }
+
+        }
+
+    `;
+
+
+    document.head.appendChild(
+        style
+    );
+
+}
+
+
+/*
+=========================================================
+END
+=========================================================
+*/
+
+console.log(
+    "Virello public result attendance add-on loaded successfully."
+);
