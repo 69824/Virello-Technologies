@@ -1197,3 +1197,598 @@ function normalizeStatus(status) {
 
     return "not_recorded";
 }
+
+
+/* =========================================================
+   VIRELLO PUBLIC RESULT PORTAL ATTENDANCE HISTORY
+   ADDITIVE MODULE
+
+   IMPORTANT:
+   The same file is also used by results.html for the admin
+   attendance summary. The admin code above is intentionally
+   preserved. This section activates only on result-portal.html.
+
+   It does NOT depend on result-portal.js calling a global
+   attendance function. Instead it watches resultDisplay after
+   the portal renders a result, finds the displayed Student ID,
+   retrieves the published result document, obtains the student's
+   Firestore document ID, and then reads attendance records.
+========================================================= */
+
+(function initPublicResultAttendance() {
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupPublicResultAttendance, { once: true });
+    } else {
+        setupPublicResultAttendance();
+    }
+})();
+
+function setupPublicResultAttendance() {
+    const resultDisplay = document.getElementById("resultDisplay");
+
+    // This file is shared with results.html. Do nothing there.
+    if (!resultDisplay || !document.getElementById("resultSearchForm")) {
+        return;
+    }
+
+    injectPublicAttendanceStyles();
+
+    // Keep compatibility with result-portal.js if it calls this hook.
+    window.virelloLoadResultAttendance = function(result) {
+        window.__virelloPendingPortalResult = result || null;
+        schedulePublicAttendanceLoad(result || null);
+    };
+
+    const observer = new MutationObserver(() => {
+        schedulePublicAttendanceLoad(null);
+    });
+
+    observer.observe(resultDisplay, {
+        childList: true,
+        subtree: true
+    });
+
+    // If a result is already rendered before this script finishes.
+    schedulePublicAttendanceLoad(null);
+
+    console.log("Virello public result portal attendance integration ready.");
+}
+
+let __virelloAttendanceTimer = null;
+let __virelloAttendanceRequestKey = "";
+
+function schedulePublicAttendanceLoad(result) {
+    clearTimeout(__virelloAttendanceTimer);
+
+    __virelloAttendanceTimer = setTimeout(() => {
+        loadPublicAttendanceHistory(result);
+    }, 80);
+}
+
+async function loadPublicAttendanceHistory(resultFromPortal) {
+    const resultDisplay = document.getElementById("resultDisplay");
+    if (!resultDisplay) return;
+
+    // Don't inject while the portal is empty.
+    const studentIdElement = document.getElementById("studentId");
+    const visibleStudentId = String(studentIdElement?.textContent || "").trim();
+
+    if (!visibleStudentId || visibleStudentId === "-") {
+        removePublicAttendanceSection();
+        return;
+    }
+
+    const termText = getVisiblePortalTerm();
+    const yearText = getVisiblePortalAcademicYear();
+    const requestKey = [visibleStudentId, termText, yearText].join("|");
+
+    if (
+        requestKey === __virelloAttendanceRequestKey &&
+        document.getElementById("virelloPublicAttendanceSection")
+    ) {
+        return;
+    }
+
+    __virelloAttendanceRequestKey = requestKey;
+
+    // Avoid querying while resultDisplay is still being rebuilt.
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    const studentIdNow = String(
+        document.getElementById("studentId")?.textContent || ""
+    ).trim();
+
+    if (!studentIdNow || studentIdNow === "-") return;
+
+    const section = ensurePublicAttendanceSection();
+    if (!section) return;
+
+    const message = document.getElementById("vpaMessage");
+    if (message) message.textContent = "Loading attendance history...";
+
+    try {
+        const publishedResult = await findPublishedResultForPortal(
+            resultFromPortal,
+            studentIdNow,
+            termText,
+            yearText
+        );
+
+        if (!publishedResult) {
+            renderPublicAttendanceError(
+                "Attendance history could not be matched to this published result."
+            );
+            return;
+        }
+
+        const studentDocumentId = String(
+            publishedResult.studentDocumentId || ""
+        ).trim();
+
+        if (!studentDocumentId) {
+            renderPublicAttendanceError(
+                "This result does not contain the student's attendance link yet."
+            );
+            return;
+        }
+
+        const records = await getPublicStudentAttendance(
+            publishedResult.organizationId || "",
+            studentDocumentId,
+            publishedResult.studentId || studentIdNow
+        );
+
+        renderPublicAttendance(records);
+
+    } catch (error) {
+        console.error("Virello public attendance error:", error);
+
+        const message = String(error?.message || error || "");
+
+        if (
+            message.toLowerCase().includes("permission") ||
+            message.toLowerCase().includes("missing or insufficient")
+        ) {
+            renderPublicAttendanceError(
+                "Attendance history is available, but Firebase permissions are blocking the public portal from reading it."
+            );
+        } else {
+            renderPublicAttendanceError(
+                "Attendance history could not be loaded at this time."
+            );
+        }
+    }
+}
+
+async function findPublishedResultForPortal(
+    resultFromPortal,
+    studentId,
+    term,
+    year
+) {
+    // Best case: result-portal.js supplied the exact result object.
+    if (
+        resultFromPortal &&
+        resultFromPortal.studentDocumentId
+    ) {
+        return resultFromPortal;
+    }
+
+    // Otherwise recover the published result using the same public
+    // Student ID that the portal already displays.
+    const resultsRef = collection(db, "results");
+
+    const q = query(
+        resultsRef,
+        where("studentId", "==", studentId),
+        where("status", "==", "published")
+    );
+
+    const snapshot = await getDocs(q);
+
+    const matches = [];
+
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data() || {};
+        matches.push({
+            ...data,
+            id: docSnap.id
+        });
+    });
+
+    if (!matches.length) {
+        return null;
+    }
+
+    const normalizedTerm = String(term || "").trim().toLowerCase();
+    const normalizedYear = String(year || "").trim().toLowerCase();
+
+    const exact = matches.find(item =>
+        String(item.term || "").trim().toLowerCase() === normalizedTerm &&
+        String(item.academicYear || "").trim().toLowerCase() === normalizedYear
+    );
+
+    return exact || matches[0];
+}
+
+async function getPublicStudentAttendance(
+    organizationId,
+    studentDocumentId,
+    studentId
+) {
+    const attendanceRef = collection(db, "attendance");
+
+    // Query by organization when available. We then match the student
+    // in JavaScript because older attendance records may use different
+    // student ID fields.
+    let snapshot;
+
+    if (organizationId) {
+        const q = query(
+            attendanceRef,
+            where("organizationId", "==", organizationId)
+        );
+        snapshot = await getDocs(q);
+    } else {
+        snapshot = await getDocs(attendanceRef);
+    }
+
+    const records = [];
+
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data() || {};
+
+        const sameDocument =
+            String(data.studentDocumentId || "") === String(studentDocumentId);
+
+        const sameLegacyDocument =
+            String(data.studentId || "") === String(studentDocumentId);
+
+        const samePublicStudentId =
+            String(data.studentId || "") === String(studentId);
+
+        if (sameDocument || sameLegacyDocument || samePublicStudentId) {
+            records.push({
+                id: docSnap.id,
+                ...data
+            });
+        }
+    });
+
+    records.sort((a, b) => {
+        return String(b.date || "").localeCompare(String(a.date || ""));
+    });
+
+    return records;
+}
+
+function ensurePublicAttendanceSection() {
+    const resultDisplay = document.getElementById("resultDisplay");
+    if (!resultDisplay) return null;
+
+    let section = document.getElementById("virelloPublicAttendanceSection");
+
+    if (!section) {
+        section = document.createElement("section");
+        section.id = "virelloPublicAttendanceSection";
+        section.className = "vpa-section";
+        resultDisplay.appendChild(section);
+    }
+
+    section.innerHTML = `
+        <div class="vpa-header">
+            <div>
+                <h3 class="vpa-title">Student Attendance History</h3>
+                <p class="vpa-subtitle">
+                    Attendance recorded by the school for this student.
+                </p>
+            </div>
+            <div class="vpa-live-badge">ATTENDANCE</div>
+        </div>
+
+        <div class="vpa-summary-grid">
+            <div class="vpa-summary-box">
+                <span>Present</span>
+                <strong id="vpaPresent">0</strong>
+            </div>
+            <div class="vpa-summary-box">
+                <span>Absent</span>
+                <strong id="vpaAbsent">0</strong>
+            </div>
+            <div class="vpa-summary-box">
+                <span>Late</span>
+                <strong id="vpaLate">0</strong>
+            </div>
+            <div class="vpa-summary-box">
+                <span>Total Records</span>
+                <strong id="vpaTotal">0</strong>
+            </div>
+        </div>
+
+        <div id="vpaMessage" class="vpa-message">
+            Loading attendance history...
+        </div>
+
+        <div class="vpa-table-wrap">
+            <table class="vpa-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Class</th>
+                        <th>Form Master</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="vpaRows"></tbody>
+            </table>
+        </div>
+    `;
+
+    return section;
+}
+
+function renderPublicAttendance(records) {
+    const present = records.filter(r => normalizeAttendanceStatus(r.status) === "present").length;
+    const absent = records.filter(r => normalizeAttendanceStatus(r.status) === "absent").length;
+    const late = records.filter(r => normalizeAttendanceStatus(r.status) === "late").length;
+
+    setText("vpaPresent", present);
+    setText("vpaAbsent", absent);
+    setText("vpaLate", late);
+    setText("vpaTotal", records.length);
+
+    const message = document.getElementById("vpaMessage");
+    const rows = document.getElementById("vpaRows");
+
+    if (!rows) return;
+
+    if (!records.length) {
+        rows.innerHTML = `
+            <tr>
+                <td colspan="4" class="vpa-empty">
+                    No attendance records have been recorded for this student yet.
+                </td>
+            </tr>
+        `;
+        if (message) message.textContent = "No attendance records found.";
+        return;
+    }
+
+    rows.innerHTML = records.map(record => {
+        const status = normalizeAttendanceStatus(record.status);
+        const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+        const statusClass = `vpa-status-${status}`;
+
+        return `
+            <tr>
+                <td>${escapePublicAttendanceHtml(record.date || "-")}</td>
+                <td>${escapePublicAttendanceHtml(record.className || "-")}</td>
+                <td>${escapePublicAttendanceHtml(record.formMasterName || "-")}</td>
+                <td>
+                    <span class="vpa-status ${statusClass}">
+                        ${escapePublicAttendanceHtml(statusLabel)}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    if (message) {
+        message.textContent = `${records.length} attendance record${records.length === 1 ? "" : "s"} found.`;
+    }
+}
+
+function renderPublicAttendanceError(text) {
+    ensurePublicAttendanceSection();
+    const message = document.getElementById("vpaMessage");
+    const rows = document.getElementById("vpaRows");
+
+    if (message) message.textContent = text;
+
+    if (rows) {
+        rows.innerHTML = `
+            <tr>
+                <td colspan="4" class="vpa-empty vpa-error-cell">
+                    ${escapePublicAttendanceHtml(text)}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function removePublicAttendanceSection() {
+    const section = document.getElementById("virelloPublicAttendanceSection");
+    if (section) section.remove();
+    __virelloAttendanceRequestKey = "";
+}
+
+function getVisiblePortalTerm() {
+    const title = document.querySelector(".result-card-title");
+    const text = String(title?.textContent || "").trim();
+    return text === "Student Result" ? "" : text;
+}
+
+function getVisiblePortalAcademicYear() {
+    const subtitle = document.querySelector(".result-card-subtitle");
+    const text = String(subtitle?.textContent || "").trim();
+    return text.replace(/^Academic Year:\s*/i, "").trim();
+}
+
+function normalizeAttendanceStatus(value) {
+    const status = String(value || "").trim().toLowerCase();
+    if (status === "late") return "late";
+    if (status === "absent") return "absent";
+    if (status === "present") return "present";
+    return status || "unknown";
+}
+
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = String(value);
+}
+
+function escapePublicAttendanceHtml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function injectPublicAttendanceStyles() {
+    if (document.getElementById("virello-public-attendance-styles")) {
+        return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "virello-public-attendance-styles";
+    style.textContent = `
+        .vpa-section {
+            margin-top: 24px;
+            padding: 20px;
+            border: 1px solid #dbe4f0;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 5px 18px rgba(15, 23, 42, .05);
+        }
+
+        .vpa-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 16px;
+        }
+
+        .vpa-title {
+            margin: 0;
+            font-size: 19px;
+            color: #172033;
+        }
+
+        .vpa-subtitle {
+            margin: 5px 0 0;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .vpa-live-badge {
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 10px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .vpa-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .vpa-summary-box {
+            padding: 13px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .vpa-summary-box span {
+            display: block;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .vpa-summary-box strong {
+            display: block;
+            margin-top: 5px;
+            color: #172554;
+            font-size: 22px;
+        }
+
+        .vpa-message {
+            margin: 8px 0 12px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .vpa-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .vpa-table {
+            width: 100%;
+            min-width: 620px;
+            border-collapse: collapse;
+        }
+
+        .vpa-table th,
+        .vpa-table td {
+            padding: 11px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        .vpa-table th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 900;
+        }
+
+        .vpa-status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 11px;
+        }
+
+        .vpa-status-present {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .vpa-status-absent {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .vpa-status-late {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .vpa-empty {
+            padding: 22px !important;
+            text-align: center !important;
+            color: #64748b;
+        }
+
+        .vpa-error-cell {
+            color: #991b1b;
+        }
+
+        @media (max-width: 700px) {
+            .vpa-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .vpa-header {
+                flex-direction: column;
+            }
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+console.log("Virello public result attendance history module loaded.");
