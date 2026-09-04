@@ -636,8 +636,7 @@ function selectResult(
 
     selectedResult =
         result;
-
-
+    
     /*
     Update active button
     */
@@ -696,6 +695,11 @@ function selectResult(
     );
 
 }
+
+if (window.virelloLoadResultAttendance) {
+       window.virelloLoadResultAttendance(result);
+   }
+
 
 
 
