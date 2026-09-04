@@ -59,18 +59,21 @@ let lastLoadedTerm = "";
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    /*
-       Activate only on the academic results page.
-    */
-    if (
-        !document.getElementById("resultEditor") ||
-        !document.getElementById("studentSelect")
-    ) {
+    injectStyles();
+
+    // Public parent result portal. No authentication is required.
+    if (document.getElementById("resultDisplay")) {
+        startPublicResultAttendance();
         return;
     }
 
-    injectStyles();
-    startAttendanceIntegration();
+    // Administrator results editor.
+    if (
+        document.getElementById("resultEditor") &&
+        document.getElementById("studentSelect")
+    ) {
+        startAttendanceIntegration();
+    }
 });
 
 
@@ -108,6 +111,7 @@ function startAttendanceIntegration() {
                the DOM is initialized after this script.
             */
             waitForEditor();
+            setupPublicationSnapshotHooks();
         } catch (error) {
             console.error(
                 "Virello result attendance add-on startup error:",
@@ -437,6 +441,26 @@ function injectStyles() {
             font-size: 12px;
         }
 
+        .vra-term-box {
+            margin-top: 14px;
+            padding: 12px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            background: #ffffff;
+        }
+
+        .vra-date-field {
+            max-width: 360px;
+        }
+
+        .vra-field small {
+            display: block;
+            margin-top: 7px;
+            color: #64748b;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
         .vra-actions {
             display: flex;
             align-items: center;
@@ -619,6 +643,22 @@ async function createOrRefreshAttendanceSection(
             </div>
         </div>
 
+        <div class="vra-term-box">
+            <div class="vra-field vra-date-field">
+                <label for="vraTermStartDate">
+                    Attendance Term Start Date
+                </label>
+                <input
+                    id="vraTermStartDate"
+                    type="date"
+                    title="The first date of this academic term"
+                >
+                <small>
+                    Attendance from this date through the publication date will be frozen into the published result.
+                </small>
+            </div>
+        </div>
+
         <div
             id="vraCalculationMessage"
             class="vra-total"
@@ -633,6 +673,14 @@ async function createOrRefreshAttendanceSection(
                 type="button"
             >
                 Save Attendance to Result
+            </button>
+
+            <button
+                id="vraSnapshotButton"
+                class="vra-refresh"
+                type="button"
+            >
+                Create / Update Term Snapshot
             </button>
 
             <button
@@ -656,6 +704,12 @@ async function createOrRefreshAttendanceSection(
     `;
 
     bindAttendanceSectionEvents(
+        studentDocumentId,
+        year,
+        term
+    );
+
+    await loadExistingSnapshotState(
         studentDocumentId,
         year,
         term
@@ -769,6 +823,22 @@ function bindAttendanceSectionEvents(
             }
         );
     }
+
+    const snapshotButton =
+        document.getElementById("vraSnapshotButton");
+
+    if (snapshotButton) {
+        snapshotButton.addEventListener(
+            "click",
+            () => {
+                createTermAttendanceSnapshot(
+                    studentDocumentId,
+                    year,
+                    term
+                );
+            }
+        );
+    }
 }
 
 
@@ -829,6 +899,10 @@ async function loadAttendanceCounts(
         let absent = 0;
         let late = 0;
 
+        const termStartDate =
+            getTermStartInputValue();
+        const today = getTodayISODate();
+
         snapshot.forEach(
             attendanceDocument => {
                 const record =
@@ -850,6 +924,18 @@ async function loadAttendanceCounts(
                 if (
                     recordStudentId !==
                     studentDocumentId
+                ) {
+                    return;
+                }
+
+                const recordDate =
+                    normalizeDateValue(record.date);
+
+                if (
+                    termStartDate &&
+                    recordDate &&
+                    (recordDate < termStartDate ||
+                     recordDate > today)
                 ) {
                     return;
                 }
@@ -1166,6 +1252,308 @@ async function saveAttendanceSummary(
 }
 
 
+
+/* =========================================================
+   TERM ATTENDANCE SNAPSHOT
+   ---------------------------------------------------------
+   A published result receives a frozen attendanceSnapshot.
+   This prevents future attendance records from appearing in
+   an older published term result.
+========================================================= */
+
+function getTodayISODate() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function normalizeDateValue(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value.slice(0, 10);
+    if (typeof value?.toDate === "function") {
+        const date = value.toDate();
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    }
+    return "";
+}
+
+function getTermStartInputValue() {
+    return String(
+        document.getElementById("vraTermStartDate")?.value || ""
+    ).trim();
+}
+
+async function createTermAttendanceSnapshot(
+    studentDocumentId,
+    year,
+    term,
+    options = {}
+) {
+    const message = document.getElementById("vraMessage");
+    const errorElement = document.getElementById("vraError");
+    const snapshotButton = document.getElementById("vraSnapshotButton");
+
+    let termStartDate = getTermStartInputValue();
+
+    if (!termStartDate) {
+        try {
+            const inferred = await inferEarliestAttendanceDate(studentDocumentId);
+            if (inferred) {
+                termStartDate = inferred;
+                const input = document.getElementById("vraTermStartDate");
+                if (input) input.value = inferred;
+            }
+        } catch (error) {
+            console.warn("Unable to infer attendance term start date:", error);
+        }
+    }
+
+    if (!termStartDate) {
+        if (errorElement) {
+            errorElement.textContent =
+                "Enter the Attendance Term Start Date before creating the term snapshot.";
+        }
+        return false;
+    }
+
+    const snapshotEndDate = getTodayISODate();
+
+    if (termStartDate > snapshotEndDate) {
+        if (errorElement) {
+            errorElement.textContent =
+                "The term start date cannot be after today.";
+        }
+        return false;
+    }
+
+    if (snapshotButton) {
+        snapshotButton.disabled = true;
+        snapshotButton.textContent = "Creating Snapshot...";
+    }
+    if (message) message.textContent = "Freezing term attendance...";
+    if (errorElement) errorElement.textContent = "";
+
+    try {
+        const resultsSnapshot = await getDocs(
+            query(
+                collection(db, "results"),
+                where("organizationId", "==", currentOrganization.id)
+            )
+        );
+
+        let matchingResult = null;
+        resultsSnapshot.forEach(resultDocument => {
+            if (matchingResult) return;
+            const result = resultDocument.data();
+            if (
+                String(result.studentDocumentId || "").trim() === String(studentDocumentId).trim() &&
+                String(result.academicYear || "").trim() === year &&
+                String(result.term || "").trim() === term
+            ) {
+                matchingResult = { id: resultDocument.id, ...result };
+            }
+        });
+
+        if (!matchingResult) {
+            throw new Error(
+                "Save the academic result first, then create its attendance snapshot."
+            );
+        }
+
+        const attendanceSnapshot = await buildAttendanceSnapshot(
+            studentDocumentId,
+            year,
+            term,
+            termStartDate,
+            snapshotEndDate
+        );
+
+        await updateDoc(
+            doc(db, "results", matchingResult.id),
+            {
+                attendanceSnapshot: {
+                    ...attendanceSnapshot,
+                    capturedAt: serverTimestamp(),
+                    capturedBy: currentUser?.uid || null
+                },
+                // Keep the simple summary in sync with the frozen snapshot.
+                attendanceSummary: {
+                    present: attendanceSnapshot.present,
+                    absent: attendanceSnapshot.absent,
+                    late: attendanceSnapshot.late,
+                    totalRecorded: attendanceSnapshot.totalRecorded,
+                    manuallyAdjusted: false,
+                    academicYear: year,
+                    term: term,
+                    termStartDate,
+                    snapshotEndDate,
+                    updatedAt: serverTimestamp(),
+                    updatedBy: currentUser?.uid || null
+                },
+                updatedAt: serverTimestamp()
+            }
+        );
+
+        if (message) {
+            message.textContent =
+                `Term snapshot saved: ${attendanceSnapshot.totalRecorded} attendance record${attendanceSnapshot.totalRecorded === 1 ? "" : "s"} from ${termStartDate} to ${snapshotEndDate}.`;
+        }
+        return true;
+    } catch (error) {
+        console.error("Virello term attendance snapshot error:", error);
+        if (errorElement) {
+            errorElement.textContent = error.message || "Unable to create attendance snapshot.";
+        }
+        if (message) message.textContent = "";
+        return false;
+    } finally {
+        if (snapshotButton) {
+            snapshotButton.disabled = false;
+            snapshotButton.textContent = "Create / Update Term Snapshot";
+        }
+    }
+}
+
+async function inferEarliestAttendanceDate(studentDocumentId) {
+    if (!currentOrganization) return "";
+
+    const snapshot = await getDocs(
+        query(
+            collection(db, "attendance"),
+            where("organizationId", "==", currentOrganization.id)
+        )
+    );
+
+    const dates = [];
+    snapshot.forEach(attendanceDocument => {
+        const record = attendanceDocument.data();
+        const recordStudent = String(
+            record.studentDocumentId || record.studentId || ""
+        ).trim();
+        if (recordStudent !== String(studentDocumentId).trim()) return;
+        const date = normalizeDateValue(record.date);
+        if (date) dates.push(date);
+    });
+
+    dates.sort();
+    return dates[0] || "";
+}
+
+async function buildAttendanceSnapshot(
+    studentDocumentId,
+    year,
+    term,
+    startDate,
+    endDate
+) {
+    const snapshot = await getDocs(
+        query(
+            collection(db, "attendance"),
+            where("organizationId", "==", currentOrganization.id)
+        )
+    );
+
+    const records = [];
+    let present = 0;
+    let absent = 0;
+    let late = 0;
+
+    snapshot.forEach(attendanceDocument => {
+        const record = attendanceDocument.data();
+        const recordStudent = String(
+            record.studentDocumentId || record.studentId || ""
+        ).trim();
+        if (recordStudent !== String(studentDocumentId).trim()) return;
+
+        const date = normalizeDateValue(record.date);
+        if (!date || date < startDate || date > endDate) return;
+
+        const status = normalizeStatus(record.status);
+        if (status === "present") present++;
+        if (status === "absent") absent++;
+        if (status === "late") late++;
+        if (status === "not_recorded") return;
+
+        records.push({
+            date,
+            className: String(record.className || "").trim(),
+            classId: String(record.classId || "").trim(),
+            formMasterName: String(
+                record.formMasterName || record.staffName || ""
+            ).trim(),
+            formMasterId: String(
+                record.formMasterId || record.staffId || ""
+            ).trim(),
+            status
+        });
+    });
+
+    records.sort((a, b) => b.date.localeCompare(a.date));
+
+    return {
+        version: 1,
+        academicYear: year,
+        term,
+        startDate,
+        endDate,
+        present,
+        absent,
+        late,
+        totalRecorded: present + absent + late,
+        records
+    };
+}
+
+/* Populate the term start date and indicate whether a frozen snapshot exists. */
+async function loadExistingSnapshotState(studentDocumentId, year, term) {
+    const input = document.getElementById("vraTermStartDate");
+    const message = document.getElementById("vraCalculationMessage");
+    if (!input || !currentOrganization) return;
+
+    try {
+        const snapshot = await getDocs(
+            query(
+                collection(db, "results"),
+                where("organizationId", "==", currentOrganization.id)
+            )
+        );
+
+        let matchingResult = null;
+        snapshot.forEach(resultDocument => {
+            if (matchingResult) return;
+            const result = resultDocument.data();
+            if (
+                String(result.studentDocumentId || "").trim() === String(studentDocumentId).trim() &&
+                String(result.academicYear || "").trim() === year &&
+                String(result.term || "").trim() === term
+            ) {
+                matchingResult = result;
+            }
+        });
+
+        const frozen = matchingResult?.attendanceSnapshot;
+        if (frozen?.startDate) input.value = frozen.startDate;
+        else if (matchingResult?.attendanceSummary?.termStartDate) {
+            input.value = matchingResult.attendanceSummary.termStartDate;
+        } else if (!input.value) {
+            const inferred = await inferEarliestAttendanceDate(studentDocumentId);
+            if (inferred) input.value = inferred;
+        }
+
+        if (message && frozen) {
+            message.textContent =
+                `Frozen term snapshot: ${frozen.totalRecorded || 0} records from ${frozen.startDate || "-"} to ${frozen.endDate || "-"}.`;
+        }
+    } catch (error) {
+        console.warn("Unable to load attendance snapshot state:", error);
+    }
+}
+
 function normalizeStatus(status) {
     const value =
         String(
@@ -1199,315 +1587,347 @@ function normalizeStatus(status) {
 }
 
 
+
+
 /* =========================================================
-   VIRELLO PUBLIC RESULT PORTAL ATTENDANCE HISTORY
-   ADDITIVE MODULE
-
-   IMPORTANT:
-   The same file is also used by results.html for the admin
-   attendance summary. The admin code above is intentionally
-   preserved. This section activates only on result-portal.html.
-
-   It does NOT depend on result-portal.js calling a global
-   attendance function. Instead it watches resultDisplay after
-   the portal renders a result, finds the displayed Student ID,
-   retrieves the published result document, obtains the student's
-   Firestore document ID, and then reads attendance records.
+   AUTOMATIC SNAPSHOT AFTER PUBLISH
+   ---------------------------------------------------------
+   This is additive: the original results.js remains intact.
+   We watch the existing Save/Publish controls and, after the
+   original save/publish operation finishes, freeze attendance
+   into the published result if no snapshot exists yet.
 ========================================================= */
 
-let __virelloAttendanceTimer = null;
-let __virelloAttendanceRequestKey = "";
+let __virelloPublicationHooksInstalled = false;
 
-(function initPublicResultAttendance() {
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", setupPublicResultAttendance, { once: true });
-    } else {
-        setupPublicResultAttendance();
+function setupPublicationSnapshotHooks() {
+    if (__virelloPublicationHooksInstalled) return;
+    __virelloPublicationHooksInstalled = true;
+
+    const saveButton = document.getElementById("saveResultButton");
+    if (saveButton) {
+        saveButton.addEventListener("click", () => {
+            // results.js performs its async Firestore save first.
+            setTimeout(() => {
+                snapshotPublishedEditorResult();
+            }, 1800);
+        }, true);
     }
-})();
 
-function setupPublicResultAttendance() {
-    const resultDisplay = document.getElementById("resultDisplay");
+    // Existing-result Publish buttons are generated dynamically.
+    document.addEventListener("click", event => {
+        const button = event.target.closest?.(".publish-existing-button");
+        if (!button) return;
 
-    // This file is shared with results.html. Do nothing there.
-    if (!resultDisplay || !document.getElementById("resultSearchForm")) {
+        const row = button.closest("tr");
+        const cells = row?.querySelectorAll("td") || [];
+        const studentId = String(cells[1]?.textContent || "").trim();
+        const year = String(cells[3]?.textContent || "").trim();
+        const term = String(cells[4]?.textContent || "").trim();
+
+        setTimeout(() => {
+            snapshotPublishedResultByPublicFields(studentId, year, term);
+        }, 1800);
+    }, true);
+}
+
+async function snapshotPublishedEditorResult() {
+    if (!currentOrganization) return;
+
+    const checkbox = document.getElementById("publishResult");
+    if (!checkbox?.checked) return;
+
+    const studentDocumentId = getSelectedStudentDocumentId();
+    const year = getAcademicYear();
+    const term = getTerm();
+    if (!studentDocumentId || !year || !term) return;
+
+    await snapshotPublishedResultByStudentDocumentId(
+        studentDocumentId,
+        year,
+        term
+    );
+}
+
+async function snapshotPublishedResultByPublicFields(studentId, year, term) {
+    if (!currentOrganization || !studentId || !year || !term) return;
+
+    try {
+        const snapshot = await getDocs(
+            query(
+                collection(db, "results"),
+                where("organizationId", "==", currentOrganization.id)
+            )
+        );
+
+        for (const resultDocument of snapshot.docs) {
+            const result = resultDocument.data();
+            if (
+                String(result.studentId || "").trim() === studentId &&
+                String(result.academicYear || "").trim() === year &&
+                String(result.term || "").trim() === term &&
+                result.status === "published"
+            ) {
+                await snapshotPublishedResultDocument(
+                    { id: resultDocument.id, ...result }
+                );
+                return;
+            }
+        }
+    } catch (error) {
+        console.error("Automatic published attendance snapshot error:", error);
+    }
+}
+
+async function snapshotPublishedResultByStudentDocumentId(
+    studentDocumentId,
+    year,
+    term
+) {
+    try {
+        const snapshot = await getDocs(
+            query(
+                collection(db, "results"),
+                where("organizationId", "==", currentOrganization.id)
+            )
+        );
+
+        for (const resultDocument of snapshot.docs) {
+            const result = resultDocument.data();
+            if (
+                String(result.studentDocumentId || "").trim() === String(studentDocumentId).trim() &&
+                String(result.academicYear || "").trim() === year &&
+                String(result.term || "").trim() === term &&
+                result.status === "published"
+            ) {
+                await snapshotPublishedResultDocument(
+                    { id: resultDocument.id, ...result }
+                );
+                return;
+            }
+        }
+    } catch (error) {
+        console.error("Automatic editor attendance snapshot error:", error);
+    }
+}
+
+async function snapshotPublishedResultDocument(result) {
+    if (!result || result.attendanceSnapshot?.records) {
         return;
     }
 
-    injectPublicAttendanceStyles();
+    const studentDocumentId = String(result.studentDocumentId || "").trim();
+    if (!studentDocumentId) return;
 
-    // Keep compatibility with result-portal.js if it calls this hook.
-    window.virelloLoadResultAttendance = function(result) {
-        window.__virelloPendingPortalResult = result || null;
-        schedulePublicAttendanceLoad(result || null);
-    };
+    let startDate = String(
+        result.attendanceSummary?.termStartDate || ""
+    ).trim();
 
-    const observer = new MutationObserver(() => {
-        schedulePublicAttendanceLoad(null);
+    if (!startDate) {
+        startDate = await inferEarliestAttendanceDate(studentDocumentId);
+    }
+
+    if (!startDate) {
+        console.warn(
+            "No attendance date found; published result was not snapshotted:",
+            result.id
+        );
+        return;
+    }
+
+    const endDate = getTodayISODate();
+    const attendanceSnapshot = await buildAttendanceSnapshot(
+        studentDocumentId,
+        result.academicYear || "",
+        result.term || "",
+        startDate,
+        endDate
+    );
+
+    await updateDoc(
+        doc(db, "results", result.id),
+        {
+            attendanceSnapshot: {
+                ...attendanceSnapshot,
+                capturedAt: serverTimestamp(),
+                capturedBy: currentUser?.uid || null
+            },
+            attendanceSummary: {
+                present: attendanceSnapshot.present,
+                absent: attendanceSnapshot.absent,
+                late: attendanceSnapshot.late,
+                totalRecorded: attendanceSnapshot.totalRecorded,
+                manuallyAdjusted: false,
+                academicYear: result.academicYear || "",
+                term: result.term || "",
+                termStartDate: startDate,
+                snapshotEndDate: endDate,
+                updatedAt: serverTimestamp(),
+                updatedBy: currentUser?.uid || null
+            }
+        }
+    );
+
+    console.log(
+        `Virello: frozen attendance snapshot created for ${result.studentName || result.studentId || "student"} — ${result.term || "term"}.`
+    );
+}
+
+/* =========================================================
+   PUBLIC PARENT RESULT PORTAL
+   ---------------------------------------------------------
+   The portal prefers the frozen attendanceSnapshot stored
+   inside the published result. Legacy results without a
+   snapshot fall back to live attendance for compatibility.
+========================================================= */
+
+let __virelloPublicAttendanceTimer = null;
+let __virelloPublicAttendanceObserver = null;
+let __virelloPublicAttendancePendingResult = null;
+let __virelloPublicAttendanceRequestId = 0;
+
+function startPublicResultAttendance() {
+    const resultDisplay = document.getElementById("resultDisplay");
+    if (!resultDisplay) return;
+
+    window.virelloLoadResultAttendance = loadPublicAttendanceForResult;
+
+    __virelloPublicAttendanceObserver = new MutationObserver(() => {
+        schedulePublicAttendanceLoad();
     });
 
-    observer.observe(resultDisplay, {
+    __virelloPublicAttendanceObserver.observe(resultDisplay, {
         childList: true,
         subtree: true
     });
 
-    // If a result is already rendered before this script finishes.
-    schedulePublicAttendanceLoad(null);
-
-    console.log("Virello public result portal attendance integration ready.");
+    schedulePublicAttendanceLoad();
+    console.log("Virello public term attendance module loaded successfully.");
 }
 
-function schedulePublicAttendanceLoad(result) {
-    clearTimeout(__virelloAttendanceTimer);
-
-    __virelloAttendanceTimer = setTimeout(() => {
-        loadPublicAttendanceHistory(result);
-    }, 80);
+function loadPublicAttendanceForResult(result) {
+    __virelloPublicAttendancePendingResult = result || null;
+    schedulePublicAttendanceLoad();
 }
 
-async function loadPublicAttendanceHistory(resultFromPortal) {
+function schedulePublicAttendanceLoad() {
+    if (__virelloPublicAttendanceTimer) {
+        clearTimeout(__virelloPublicAttendanceTimer);
+    }
+
+    __virelloPublicAttendanceTimer = setTimeout(() => {
+        __virelloPublicAttendanceTimer = null;
+        renderPublicAttendanceForCurrentResult();
+    }, 0);
+}
+
+async function renderPublicAttendanceForCurrentResult() {
+    const result = __virelloPublicAttendancePendingResult;
     const resultDisplay = document.getElementById("resultDisplay");
-    if (!resultDisplay) return;
+    if (!result || !resultDisplay) return;
 
-    // Don't inject while the portal is empty.
-    const studentIdElement = document.getElementById("studentId");
-    const visibleStudentId = String(studentIdElement?.textContent || "").trim();
+    const requestId = ++__virelloPublicAttendanceRequestId;
+    const existing = document.getElementById("virelloPublicAttendanceHistory");
+    if (existing) existing.remove();
 
-    if (!visibleStudentId || visibleStudentId === "-") {
-        removePublicAttendanceSection();
-        return;
-    }
-
-    const termText = getVisiblePortalTerm();
-    const yearText = getVisiblePortalAcademicYear();
-    const requestKey = [visibleStudentId, termText, yearText].join("|");
-
-    if (
-        requestKey === __virelloAttendanceRequestKey &&
-        document.getElementById("virelloPublicAttendanceSection")
-    ) {
-        return;
-    }
-
-    __virelloAttendanceRequestKey = requestKey;
-
-    // Avoid querying while resultDisplay is still being rebuilt.
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    const studentIdNow = String(
-        document.getElementById("studentId")?.textContent || ""
-    ).trim();
-
-    if (!studentIdNow || studentIdNow === "-") return;
-
-    const section = ensurePublicAttendanceSection();
-    if (!section) return;
-
-    const message = document.getElementById("vpaMessage");
-    if (message) message.textContent = "Loading attendance history...";
+    const section = document.createElement("section");
+    section.id = "virelloPublicAttendanceHistory";
+    section.className = "vpa-section";
+    section.innerHTML = `
+        <div class="vpa-header">
+            <div>
+                <h3 class="vpa-title">Student Attendance History</h3>
+                <p class="vpa-description">Attendance recorded for this published academic result.</p>
+            </div>
+            <span class="vpa-term-badge">${escapeVPA(result.term || "Term")}</span>
+        </div>
+        <div class="vpa-loading">Loading attendance...</div>
+    `;
+    resultDisplay.appendChild(section);
 
     try {
-        const publishedResult = await findPublishedResultForPortal(
-            resultFromPortal,
-            studentIdNow,
-            termText,
-            yearText
-        );
+        let snapshot = result.attendanceSnapshot;
 
-        if (!publishedResult) {
-            renderPublicAttendanceError(
-                "Attendance history could not be matched to this published result."
-            );
+        // Preferred: frozen data captured when the result was published.
+        if (
+            snapshot &&
+            Array.isArray(snapshot.records)
+        ) {
+            renderPublicAttendanceSnapshot(section, snapshot);
             return;
         }
 
-        const studentDocumentId = String(
-            publishedResult.studentDocumentId || ""
-        ).trim();
-
-        if (!studentDocumentId) {
-            renderPublicAttendanceError(
-                "This result does not contain the student's attendance link yet."
-            );
-            return;
-        }
-
-        const records = await getPublicStudentAttendance(
-            publishedResult.organizationId || "",
-            studentDocumentId,
-            publishedResult.studentId || studentIdNow
-        );
-
-        renderPublicAttendance(records);
-
+        // Security-first behavior: public parents should not read the
+        // entire attendance collection. Older published results must be
+        // snapshotted by an administrator before attendance is shown.
+        if (requestId !== __virelloPublicAttendanceRequestId) return;
+        renderPublicAttendanceSnapshotUnavailable(section, result);
     } catch (error) {
         console.error("Virello public attendance error:", error);
-
-        const message = String(error?.message || error || "");
-
-        if (
-            message.toLowerCase().includes("permission") ||
-            message.toLowerCase().includes("missing or insufficient")
-        ) {
-            renderPublicAttendanceError(
-                "Attendance history is available, but Firebase permissions are blocking the public portal from reading it."
-            );
-        } else {
-            renderPublicAttendanceError(
-                "Attendance history could not be loaded at this time."
-            );
+        const loading = section.querySelector(".vpa-loading");
+        if (loading) {
+            loading.textContent =
+                "Attendance history could not be loaded at this time.";
         }
     }
 }
 
-async function findPublishedResultForPortal(
-    resultFromPortal,
-    studentId,
-    term,
-    year
-) {
-    // Best case: result-portal.js supplied the exact result object.
-    if (
-        resultFromPortal &&
-        resultFromPortal.studentDocumentId
-    ) {
-        return resultFromPortal;
-    }
-
-    // Otherwise recover the published result using the same public
-    // Student ID that the portal already displays.
-    const resultsRef = collection(db, "results");
-
-    const q = query(
-        resultsRef,
-        where("studentId", "==", studentId),
-        where("status", "==", "published")
-    );
-
-    const snapshot = await getDocs(q);
-
-    const matches = [];
-
-    snapshot.forEach(docSnap => {
-        const data = docSnap.data() || {};
-        matches.push({
-            ...data,
-            id: docSnap.id
-        });
-    });
-
-    if (!matches.length) {
-        return null;
-    }
-
-    const normalizedTerm = String(term || "").trim().toLowerCase();
-    const normalizedYear = String(year || "").trim().toLowerCase();
-
-    const exact = matches.find(item =>
-        String(item.term || "").trim().toLowerCase() === normalizedTerm &&
-        String(item.academicYear || "").trim().toLowerCase() === normalizedYear
-    );
-
-    return exact || matches[0];
+function renderPublicAttendanceSnapshotUnavailable(section, result) {
+    section.innerHTML = `
+        <div class="vpa-header">
+            <div>
+                <h3 class="vpa-title">Student Attendance History</h3>
+                <p class="vpa-description">Attendance for this published result has not been frozen yet.</p>
+            </div>
+            <span class="vpa-term-badge">${escapeVPA(result.term || "Term")}</span>
+        </div>
+        <div class="vpa-unavailable">
+            The school has not yet attached the term attendance snapshot to this published result.
+        </div>
+    `;
 }
 
-async function getPublicStudentAttendance(
-    organizationId,
-    studentDocumentId,
-    studentId
-) {
-    const attendanceRef = collection(db, "attendance");
+function renderPublicAttendanceSnapshot(section, snapshot, legacy = false) {
+    const records = Array.isArray(snapshot.records) ? snapshot.records : [];
+    const present = Number(snapshot.present || 0);
+    const absent = Number(snapshot.absent || 0);
+    const late = Number(snapshot.late || 0);
+    const total = Number(snapshot.totalRecorded ?? present + absent + late);
 
-    // Query by organization when available. We then match the student
-    // in JavaScript because older attendance records may use different
-    // student ID fields.
-    let snapshot;
+    const range = snapshot.startDate && snapshot.endDate
+        ? `<div class="vpa-range">Term attendance period: <strong>${escapeVPA(snapshot.startDate)}</strong> to <strong>${escapeVPA(snapshot.endDate)}</strong>${legacy ? "" : " · frozen at publication"}</div>`
+        : `<div class="vpa-range">Frozen at publication.</div>`;
 
-    if (organizationId) {
-        const q = query(
-            attendanceRef,
-            where("organizationId", "==", organizationId)
-        );
-        snapshot = await getDocs(q);
-    } else {
-        snapshot = await getDocs(attendanceRef);
-    }
-
-    const records = [];
-
-    snapshot.forEach(docSnap => {
-        const data = docSnap.data() || {};
-
-        const sameDocument =
-            String(data.studentDocumentId || "") === String(studentDocumentId);
-
-        const sameLegacyDocument =
-            String(data.studentId || "") === String(studentDocumentId);
-
-        const samePublicStudentId =
-            String(data.studentId || "") === String(studentId);
-
-        if (sameDocument || sameLegacyDocument || samePublicStudentId) {
-            records.push({
-                id: docSnap.id,
-                ...data
-            });
-        }
-    });
-
-    records.sort((a, b) => {
-        return String(b.date || "").localeCompare(String(a.date || ""));
-    });
-
-    return records;
-}
-
-function ensurePublicAttendanceSection() {
-    const resultDisplay = document.getElementById("resultDisplay");
-    if (!resultDisplay) return null;
-
-    let section = document.getElementById("virelloPublicAttendanceSection");
-
-    if (!section) {
-        section = document.createElement("section");
-        section.id = "virelloPublicAttendanceSection";
-        section.className = "vpa-section";
-        resultDisplay.appendChild(section);
-    }
+    const rows = records.length
+        ? records.map(record => `
+            <tr>
+                <td>${escapeVPA(record.date || "-")}</td>
+                <td>${escapeVPA(record.className || "-")}</td>
+                <td>${escapeVPA(record.formMasterName || "-")}</td>
+                <td><span class="vpa-status ${escapeVPA(record.status || "")}">${escapeVPA(capitalizeVPA(record.status || "Not recorded"))}</span></td>
+            </tr>
+        `).join("")
+        : `<tr><td colspan="4" class="vpa-empty">No attendance records were recorded for this period.</td></tr>`;
 
     section.innerHTML = `
         <div class="vpa-header">
             <div>
                 <h3 class="vpa-title">Student Attendance History</h3>
-                <p class="vpa-subtitle">
-                    Attendance recorded by the school for this student.
-                </p>
+                <p class="vpa-description">Attendance recorded by the school for this student.</p>
             </div>
-            <div class="vpa-live-badge">ATTENDANCE</div>
+            <span class="vpa-term-badge">${escapeVPA(snapshot.term || "Term")}</span>
         </div>
 
-        <div class="vpa-summary-grid">
-            <div class="vpa-summary-box">
-                <span>Present</span>
-                <strong id="vpaPresent">0</strong>
-            </div>
-            <div class="vpa-summary-box">
-                <span>Absent</span>
-                <strong id="vpaAbsent">0</strong>
-            </div>
-            <div class="vpa-summary-box">
-                <span>Late</span>
-                <strong id="vpaLate">0</strong>
-            </div>
-            <div class="vpa-summary-box">
-                <span>Total Records</span>
-                <strong id="vpaTotal">0</strong>
-            </div>
+        ${range}
+
+        <div class="vpa-stats">
+            <div class="vpa-stat"><span>Present</span><strong>${present}</strong></div>
+            <div class="vpa-stat"><span>Absent</span><strong>${absent}</strong></div>
+            <div class="vpa-stat"><span>Late</span><strong>${late}</strong></div>
+            <div class="vpa-stat"><span>Total Records</span><strong>${total}</strong></div>
         </div>
 
-        <div id="vpaMessage" class="vpa-message">
-            Loading attendance history...
-        </div>
+        <p class="vpa-count">${total} attendance record${total === 1 ? "" : "s"} found.</p>
 
         <div class="vpa-table-wrap">
             <table class="vpa-table">
@@ -1519,116 +1939,14 @@ function ensurePublicAttendanceSection() {
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody id="vpaRows"></tbody>
+                <tbody>${rows}</tbody>
             </table>
         </div>
     `;
-
-    return section;
 }
 
-function renderPublicAttendance(records) {
-    const present = records.filter(r => normalizeAttendanceStatus(r.status) === "present").length;
-    const absent = records.filter(r => normalizeAttendanceStatus(r.status) === "absent").length;
-    const late = records.filter(r => normalizeAttendanceStatus(r.status) === "late").length;
-
-    setText("vpaPresent", present);
-    setText("vpaAbsent", absent);
-    setText("vpaLate", late);
-    setText("vpaTotal", records.length);
-
-    const message = document.getElementById("vpaMessage");
-    const rows = document.getElementById("vpaRows");
-
-    if (!rows) return;
-
-    if (!records.length) {
-        rows.innerHTML = `
-            <tr>
-                <td colspan="4" class="vpa-empty">
-                    No attendance records have been recorded for this student yet.
-                </td>
-            </tr>
-        `;
-        if (message) message.textContent = "No attendance records found.";
-        return;
-    }
-
-    rows.innerHTML = records.map(record => {
-        const status = normalizeAttendanceStatus(record.status);
-        const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
-        const statusClass = `vpa-status-${status}`;
-
-        return `
-            <tr>
-                <td>${escapePublicAttendanceHtml(record.date || "-")}</td>
-                <td>${escapePublicAttendanceHtml(record.className || "-")}</td>
-                <td>${escapePublicAttendanceHtml(record.formMasterName || "-")}</td>
-                <td>
-                    <span class="vpa-status ${statusClass}">
-                        ${escapePublicAttendanceHtml(statusLabel)}
-                    </span>
-                </td>
-            </tr>
-        `;
-    }).join("");
-
-    if (message) {
-        message.textContent = `${records.length} attendance record${records.length === 1 ? "" : "s"} found.`;
-    }
-}
-
-function renderPublicAttendanceError(text) {
-    ensurePublicAttendanceSection();
-    const message = document.getElementById("vpaMessage");
-    const rows = document.getElementById("vpaRows");
-
-    if (message) message.textContent = text;
-
-    if (rows) {
-        rows.innerHTML = `
-            <tr>
-                <td colspan="4" class="vpa-empty vpa-error-cell">
-                    ${escapePublicAttendanceHtml(text)}
-                </td>
-            </tr>
-        `;
-    }
-}
-
-function removePublicAttendanceSection() {
-    const section = document.getElementById("virelloPublicAttendanceSection");
-    if (section) section.remove();
-    __virelloAttendanceRequestKey = "";
-}
-
-function getVisiblePortalTerm() {
-    const title = document.querySelector(".result-card-title");
-    const text = String(title?.textContent || "").trim();
-    return text === "Student Result" ? "" : text;
-}
-
-function getVisiblePortalAcademicYear() {
-    const subtitle = document.querySelector(".result-card-subtitle");
-    const text = String(subtitle?.textContent || "").trim();
-    return text.replace(/^Academic Year:\s*/i, "").trim();
-}
-
-function normalizeAttendanceStatus(value) {
-    const status = String(value || "").trim().toLowerCase();
-    if (status === "late") return "late";
-    if (status === "absent") return "absent";
-    if (status === "present") return "present";
-    return status || "unknown";
-}
-
-function setText(id, value) {
-    const element = document.getElementById(id);
-    if (element) element.textContent = String(value);
-}
-
-function escapePublicAttendanceHtml(value) {
-    return String(value)
+function escapeVPA(value) {
+    return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -1636,159 +1954,39 @@ function escapePublicAttendanceHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
-function injectPublicAttendanceStyles() {
-    if (document.getElementById("virello-public-attendance-styles")) {
-        return;
-    }
+function capitalizeVPA(value) {
+    const text = String(value || "");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
+(function injectPublicAttendanceStyles() {
+    if (document.getElementById("virello-public-attendance-styles")) return;
     const style = document.createElement("style");
     style.id = "virello-public-attendance-styles";
     style.textContent = `
-        .vpa-section {
-            margin-top: 24px;
-            padding: 20px;
-            border: 1px solid #dbe4f0;
-            border-radius: 14px;
-            background: #ffffff;
-            box-shadow: 0 5px 18px rgba(15, 23, 42, .05);
-        }
-
-        .vpa-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 15px;
-            margin-bottom: 16px;
-        }
-
-        .vpa-title {
-            margin: 0;
-            font-size: 19px;
-            color: #172033;
-        }
-
-        .vpa-subtitle {
-            margin: 5px 0 0;
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .vpa-live-badge {
-            padding: 7px 10px;
-            border-radius: 999px;
-            background: #eef2ff;
-            color: #3730a3;
-            font-size: 10px;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-
-        .vpa-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-
-        .vpa-summary-box {
-            padding: 13px;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            background: #f8fafc;
-            text-align: center;
-        }
-
-        .vpa-summary-box span {
-            display: block;
-            color: #64748b;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-
-        .vpa-summary-box strong {
-            display: block;
-            margin-top: 5px;
-            color: #172554;
-            font-size: 22px;
-        }
-
-        .vpa-message {
-            margin: 8px 0 12px;
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .vpa-table-wrap {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        .vpa-table {
-            width: 100%;
-            min-width: 620px;
-            border-collapse: collapse;
-        }
-
-        .vpa-table th,
-        .vpa-table td {
-            padding: 11px 10px;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-            font-size: 12px;
-        }
-
-        .vpa-table th {
-            background: #f8fafc;
-            color: #475569;
-            font-weight: 900;
-        }
-
-        .vpa-status {
-            display: inline-block;
-            padding: 5px 9px;
-            border-radius: 999px;
-            font-weight: 800;
-            font-size: 11px;
-        }
-
-        .vpa-status-present {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .vpa-status-absent {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .vpa-status-late {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .vpa-empty {
-            padding: 22px !important;
-            text-align: center !important;
-            color: #64748b;
-        }
-
-        .vpa-error-cell {
-            color: #991b1b;
-        }
-
-        @media (max-width: 700px) {
-            .vpa-summary-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .vpa-header {
-                flex-direction: column;
-            }
-        }
+        .vpa-section{margin-top:24px;margin-bottom:24px;padding:20px;border:1px solid #dbe4f0;border-radius:14px;background:#f8fafc;font-family:inherit}
+        .vpa-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+        .vpa-title{margin:0 0 5px;font-size:19px;color:#172033}
+        .vpa-description{margin:0;color:#64748b;font-size:12px;line-height:1.5}
+        .vpa-term-badge{padding:7px 10px;border-radius:999px;background:#e2e8f0;color:#334155;font-size:11px;font-weight:800}
+        .vpa-range{margin-top:14px;color:#64748b;font-size:11px;line-height:1.5}
+        .vpa-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:15px}
+        .vpa-stat{padding:13px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+        .vpa-stat span{display:block;color:#64748b;font-size:10px;font-weight:800;text-transform:uppercase}
+        .vpa-stat strong{display:block;margin-top:5px;color:#172033;font-size:21px}
+        .vpa-count{margin:14px 0 10px;color:#475569;font-size:12px}
+        .vpa-table-wrap{overflow-x:auto}
+        .vpa-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0}
+        .vpa-table th,.vpa-table td{padding:10px 11px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:11px;white-space:nowrap}
+        .vpa-table th{background:#f1f5f9;color:#475569;font-weight:800}
+        .vpa-status{display:inline-block;padding:4px 8px;border-radius:999px;font-weight:800}
+        .vpa-status.present{background:#dcfce7;color:#166534}
+        .vpa-status.absent{background:#fee2e2;color:#991b1b}
+        .vpa-status.late{background:#fef3c7;color:#92400e}
+        .vpa-empty{text-align:center;color:#64748b;padding:20px!important}
+        .vpa-loading{margin-top:14px;color:#64748b;font-size:12px}
+        .vpa-unavailable{margin-top:14px;padding:14px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12px;line-height:1.5}
+        @media(max-width:700px){.vpa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vpa-section{padding:15px}}
     `;
-
     document.head.appendChild(style);
-}
-
-console.log("Virello public result attendance history module loaded.");
+})();
