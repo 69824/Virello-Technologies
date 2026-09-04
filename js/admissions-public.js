@@ -1,18 +1,54 @@
 import { auth, db } from "./firebase-config.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import { collection, query, where, getDocs, getDoc, doc, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-storage.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
-let user=null, school=null, classes=[], applications=[], selected=null;
-const $=id=>document.getElementById(id);
-const esc=v=>String(v??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-function fmt(ts){if(!ts)return "";try{return ts.toDate().toLocaleDateString()}catch{return ""}}
-function badge(s){return `<span class="badge ${esc(s||'pending')}">${esc((s||'pending').replace('_',' '))}</span>`}
-async function loadSchool(){const q=await getDocs(query(collection(db,"organizations"),where("ownerUid","==",user.uid)));if(q.empty)throw new Error("No school organization found for this account.");school={id:q.docs[0].id,...q.docs[0].data()};$("schoolName").textContent=school.organizationName||school.name||"School";const cq=await getDocs(query(collection(db,"classes"),where("organizationId","==",school.id)));classes=cq.docs.map(d=>({id:d.id,...d.data()}));const link=`${location.origin}${location.pathname.replace(/[^/]+$/,'')}admissions.html?school=${encodeURIComponent(school.id)}`;$("shareLink").innerHTML=`<code>${esc(link)}</code>`;$("shareButton").onclick=async()=>{try{await navigator.clipboard.writeText(link);alert("Application link copied.")}catch{prompt("Copy this application link:",link)}};}
-async function loadApplications(){const q=await getDocs(query(collection(db,"admissionApplications"),where("organizationId","==",school.id)));applications=q.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));render();}
-function render(){const search=$("searchInput").value.trim().toLowerCase(),filter=$("statusFilter").value;const rows=applications.filter(a=>(filter==='all'||a.status===filter)&&(!search||`${a.applicationNumber} ${a.fullName} ${a.parentName}`.toLowerCase().includes(search)));$("applicationsBody").innerHTML=rows.length?rows.map(a=>`<tr><td><strong>${esc(a.applicationNumber)}</strong><br><small>${esc(fmt(a.createdAt))}</small></td><td>${esc(a.fullName)}</td><td>${esc(a.className)}</td><td>${esc(a.parentName)}</td><td>${esc(a.parentTelephone)}</td><td>${badge(a.status)}</td><td>${esc(fmt(a.createdAt))}</td><td><button class="btn secondary view" data-id="${a.id}">Review</button></td></tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:#64748b">No applications found.</td></tr>`;$("totalCount").textContent=applications.length;$("pendingCount").textContent=applications.filter(a=>a.status==='pending').length;$("approvedCount").textContent=applications.filter(a=>a.status==='approved').length;$("rejectedCount").textContent=applications.filter(a=>a.status==='rejected').length;document.querySelectorAll('.view').forEach(b=>b.onclick=()=>openReview(b.dataset.id));}
-function openReview(id){selected=applications.find(a=>a.id===id);if(!selected)return;const docs=(selected.documents||[]).map(d=>`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>`).join('')||'<span style="color:#64748b">No documents</span>';$("details").innerHTML=`<div class="grid"><div class="item"><small>Application</small>${esc(selected.applicationNumber)}</div><div class="item"><small>Status</small>${badge(selected.status)}</div><div class="item"><small>Student</small>${esc(selected.fullName)}</div><div class="item"><small>Date of Birth</small>${esc(selected.dateOfBirth)}</div><div class="item"><small>Gender</small>${esc(selected.gender)}</div><div class="item"><small>Class Applying For</small>${esc(selected.className)}</div><div class="item"><small>Previous School</small>${esc(selected.previousSchool)}</div><div class="item"><small>Student Address</small>${esc(selected.studentAddress)}</div><div class="item"><small>Parent / Guardian</small>${esc(selected.parentName)}</div><div class="item"><small>Telephone</small>${esc(selected.parentTelephone)}</div><div class="item"><small>Email</small>${esc(selected.parentEmail)}</div><div class="item"><small>Relationship</small>${esc(selected.relationship)}</div><div class="item" style="grid-column:1/-1"><small>Parent Address</small>${esc(selected.parentAddress)}</div><div class="item" style="grid-column:1/-1"><small>Message</small>${esc(selected.message)||'—'}</div><div class="item docs" style="grid-column:1/-1"><small>Documents</small>${docs}</div></div>`;const cls=classes.filter(c=>c.id===selected.classId||c.className===selected.className);const opts=classes.map(c=>`<option value="${esc(c.id)}" ${c.id===selected.classId?'selected':''}>${esc(c.className||c.name)}</option>`).join('');$("actions").innerHTML=`<select id="approveClass" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">${opts}</select><button class="btn" id="approveBtn">Approve & Enrol Student</button><button class="btn secondary" id="reviewBtn">Mark Under Review</button><button class="btn danger" id="rejectBtn">Reject</button>`;$("modal").classList.add('open');$("approveBtn").onclick=()=>approve();$("reviewBtn").onclick=()=>setStatus('review');$("rejectBtn").onclick=()=>setStatus('rejected');}
-async function setStatus(status){if(!selected)return;await updateDoc(doc(db,"admissionApplications",selected.id),{status,updatedAt:serverTimestamp()});selected.status=status;$("modal").classList.remove('open');await loadApplications();}
-async function approve(){if(!selected)return;const classId=$("approveClass").value;const c=classes.find(x=>x.id===classId);if(!c){alert('Select a class.');return;}const sid=`STU-${new Date().getFullYear()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;const students=collection(db,"students");const student={organizationId:school.id,classId:c.id,className:c.className||c.name||selected.className,studentId:sid,fullName:selected.fullName,dateOfBirth:selected.dateOfBirth,address:selected.studentAddress||"",parentTelephone:selected.parentTelephone||"",parentName:selected.parentName||"",parentEmail:selected.parentEmail||"",gender:selected.gender||"",previousSchool:selected.previousSchool||"",status:"active",admissionApplicationId:selected.id,createdAt:serverTimestamp(),updatedAt:serverTimestamp(),createdBy:user.uid};await addDoc(students,student);await updateDoc(doc(db,"admissionApplications",selected.id),{status:"approved",approvedAt:serverTimestamp(),approvedBy:user.uid,studentId:sid,enrolledClassId:c.id,enrolledClassName:c.className||c.name||selected.className,updatedAt:serverTimestamp()});alert(`Application approved. Student ID: ${sid}`);$("modal").classList.remove('open');await loadApplications();}
+const params = new URLSearchParams(location.search);
+const schoolId = params.get("school");
+const storage = getStorage();
+const form = document.getElementById("applicationForm");
+const notice = document.getElementById("notice");
+const schoolLine = document.getElementById("schoolLine");
+const classSelect = document.getElementById("classId");
+const filesInput = document.getElementById("documents");
+const fileList = document.getElementById("fileList");
+let school = null;
 
-onAuthStateChanged(auth,async u=>{if(!u){location.href='login.html';return;}user=u;try{await loadSchool();await loadApplications();}catch(e){console.error(e);alert(e.message||'Unable to load admissions.');}});
-$("logoutButton").onclick=()=>signOut(auth).then(()=>location.href='login.html');$("refreshButton").onclick=()=>loadApplications();$("searchInput").oninput=render;$("statusFilter").onchange=render;$("closeModal").onclick=()=>$("modal").classList.remove('open');
+function show(msg,type="error"){notice.textContent=msg;notice.className=`notice show ${type}`;window.scrollTo({top:0,behavior:"smooth"});}
+function esc(v){return String(v??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+
+async function loadSchool(){
+  if(!schoolId){show("This admission link is incomplete. Please ask the school for its official application link.");form.style.display="none";return;}
+  const snap=await getDoc(doc(db,"organizations",schoolId));
+  if(!snap.exists()){show("School application link not found.");form.style.display="none";return;}
+  school={id:snap.id,...snap.data()};
+  schoolLine.textContent=school.organizationName||school.name||"School";
+  const qs=await getDocs(query(collection(db,"classes"),where("organizationId","==",schoolId)));
+  classSelect.innerHTML='<option value="">Select class</option>';
+  qs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.className||"").localeCompare(String(b.className||""))).forEach(c=>{
+    const o=document.createElement("option");o.value=c.id;o.textContent=c.className||c.name||"Class";classSelect.appendChild(o);
+  });
+}
+filesInput.addEventListener("change",()=>{const fs=[...filesInput.files];fileList.textContent=fs.length?fs.map(f=>`${f.name} (${Math.round(f.size/1024)} KB)`).join(" • "):"No files selected";});
+
+form.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("submitButton");
+  const files=[...filesInput.files];
+  if(files.some(f=>f.size>5*1024*1024)){show("Each document must be 5 MB or smaller.");return;}
+  if(files.some(f=>!['application/pdf','image/jpeg','image/png'].includes(f.type))){show("Only PDF, JPG and PNG documents are accepted.");return;}
+  btn.disabled=true;btn.textContent="Submitting Application...";
+  try{
+    const selected=classSelect.options[classSelect.selectedIndex];
+    const firstName=document.getElementById("firstName").value.trim();
+    const lastName=document.getElementById("lastName").value.trim();
+    const applicationNo=`ADM-${new Date().getFullYear()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+    const data={organizationId:schoolId,applicationNumber:applicationNo,firstName,lastName,fullName:`${firstName} ${lastName}`.trim(),dateOfBirth:document.getElementById("dateOfBirth").value,gender:document.getElementById("gender").value,classId:classSelect.value,className:selected?.textContent||"",previousSchool:document.getElementById("previousSchool").value.trim(),studentAddress:document.getElementById("studentAddress").value.trim(),parentName:document.getElementById("parentName").value.trim(),parentTelephone:document.getElementById("parentTelephone").value.trim(),parentEmail:document.getElementById("parentEmail").value.trim(),relationship:document.getElementById("relationship").value.trim(),parentAddress:document.getElementById("parentAddress").value.trim(),message:document.getElementById("message").value.trim(),status:"pending",documentCount:files.length,documents:[],createdAt:serverTimestamp(),updatedAt:serverTimestamp()};
+    const appRef=await addDoc(collection(db,"admissionApplications"),data);
+    const docs=[];
+    for(const file of files){const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const storageRef=ref(storage,`admissionApplications/${schoolId}/${appRef.id}/${safe}`);await uploadBytes(storageRef,file,{contentType:file.type});docs.push({name:file.name,type:file.type,size:file.size,url:await getDownloadURL(storageRef)});}
+    if(docs.length) await updateDoc(appRef,{documents:docs,documentCount:docs.length,updatedAt:serverTimestamp()});
+    form.style.display="none";document.getElementById("result").style.display="block";document.getElementById("applicationNumber").textContent=applicationNo;notice.className="notice";
+  }catch(err){console.error(err);show(err.message||"Unable to submit application. Please try again.");btn.disabled=false;btn.textContent="Submit Admission Application";}
+});
+loadSchool().catch(err=>{console.error(err);show("Unable to load this school application page.");});
