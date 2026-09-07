@@ -1044,6 +1044,37 @@ function renderStatistics() {
     }
 
 
+    const boys = new Set();
+    const girls = new Set();
+
+    visibleRecords.forEach(record => {
+        const id = getStudentId(record) || getStudentName(record);
+        const gender = getGender(record);
+        if (gender === "male") boys.add(id);
+        if (gender === "female") girls.add(id);
+    });
+
+    const boysAttendance = visibleRecords.filter(record =>
+        getGender(record) === "male" &&
+        ["present", "late"].includes(getStatus(record))
+    ).length;
+
+    const girlsAttendance = visibleRecords.filter(record =>
+        getGender(record) === "female" &&
+        ["present", "late"].includes(getStatus(record))
+    ).length;
+
+    const termAttendance = visibleRecords.filter(record =>
+        ["present", "late"].includes(getStatus(record))
+    ).length;
+
+    if ($("boysCount")) $("boysCount").textContent = boys.size;
+    if ($("girlsCount")) $("girlsCount").textContent = girls.size;
+    if ($("boysAttendance")) $("boysAttendance").textContent = boysAttendance;
+    if ($("girlsAttendance")) $("girlsAttendance").textContent = girlsAttendance;
+    if ($("termAttendance")) $("termAttendance").textContent = termAttendance;
+
+
     const className =
         classFilter?.value
             ? classFilter
@@ -1208,6 +1239,12 @@ function renderReport() {
                             </td>
 
                             <td>
+                                ${escapeHtml(
+                                    getGender(record) === "male" ? "Male" : getGender(record) === "female" ? "Female" : "—"
+                                )}
+                            </td>
+
+                            <td>
 
                                 ${escapeHtml(
                                     getDate(
@@ -1353,6 +1390,24 @@ function getStudentName(record) {
         "Student"
     ).trim();
 
+}
+
+
+/* =========================================================
+   GET GENDER
+========================================================= */
+
+function getGender(record) {
+    const value = String(
+        record.gender ||
+        record.sex ||
+        record.studentGender ||
+        ""
+    ).trim().toLowerCase();
+
+    if (["male", "m", "boy", "boys"].includes(value)) return "male";
+    if (["female", "f", "girl", "girls"].includes(value)) return "female";
+    return "";
 }
 
 
@@ -1754,6 +1809,7 @@ function exportCSV() {
             "Student",
             "Student ID",
             "Class",
+            "Gender",
             "Date",
             "Status",
             "Check-in"
@@ -1778,6 +1834,8 @@ function exportCSV() {
                 getClassName(
                     record
                 ),
+
+                getGender(record) === "male" ? "Male" : getGender(record) === "female" ? "Female" : "",
 
                 getDate(
                     record
