@@ -1853,6 +1853,9 @@ if (saveAttendanceButton) {
                             student.fullName ||
                             "Student",
 
+                        gender:
+                            String(student.gender || "").trim().toLowerCase(),
+
                         studentNumber:
                             student.studentId ||
                             "",
