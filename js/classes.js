@@ -162,6 +162,9 @@ const studentNameInput =
 const studentDobInput =
     document.getElementById("studentDobInput");
 
+const studentGenderInput =
+    document.getElementById("studentGenderInput");
+
 const studentAddressInput =
     document.getElementById("studentAddressInput");
 
@@ -196,6 +199,9 @@ const editStudentName =
 
 const editStudentDob =
     document.getElementById("editStudentDob");
+
+const editStudentGender =
+    document.getElementById("editStudentGender");
 
 const editStudentAddress =
     document.getElementById("editStudentAddress");
@@ -1646,6 +1652,7 @@ if (studentForm) {
                 !studentId ||
                 !fullName ||
                 !dateOfBirth ||
+                !String(studentGenderInput?.value || "").trim() ||
                 !address ||
                 !parentTelephone
             ) {
@@ -1759,6 +1766,9 @@ if (studentForm) {
 
                     dateOfBirth:
                         dateOfBirth,
+
+                    gender:
+                        String(studentGenderInput?.value || "").trim().toLowerCase(),
 
                     address:
                         address,
@@ -2091,13 +2101,13 @@ function renderStudents() {
                 <div class="student-dob">
 
                     <strong>
-                        DOB
+                        Gender / DOB
                     </strong>
 
                     <br>
 
                     ${escapeHtml(
-                        formattedDob
+                        (String(student.gender || "").toLowerCase() === "female" ? "Female" : String(student.gender || "").toLowerCase() === "male" ? "Male" : "Not set") + " • " + formattedDob
                     )}
 
                 </div>
@@ -2332,6 +2342,10 @@ function viewStudent(
             dob
         }\n\n` +
 
+        `Gender: ${
+            String(student.gender || "").toLowerCase() === "female" ? "Female" : String(student.gender || "").toLowerCase() === "male" ? "Male" : "Not provided"
+        }\n\n` +
+
         `Address: ${
             student.address || "Not provided"
         }\n\n` +
@@ -2408,6 +2422,14 @@ function openEditStudentModal(
         editStudentDob.value =
             student.dateOfBirth ||
             "";
+
+    }
+
+
+    if (editStudentGender) {
+
+        editStudentGender.value =
+            String(student.gender || "").toLowerCase();
 
     }
 
@@ -2566,6 +2588,12 @@ if (editStudentForm) {
                     ""
                 ).trim();
 
+            const gender =
+                String(
+                    editStudentGender?.value ||
+                    ""
+                ).trim().toLowerCase();
+
 
             const address =
                 String(
@@ -2585,6 +2613,7 @@ if (editStudentForm) {
                 !cleanStudentId ||
                 !cleanName ||
                 !dateOfBirth ||
+                !["male", "female"].includes(gender) ||
                 !address ||
                 !parentTelephone
             ) {
@@ -2707,6 +2736,9 @@ if (editStudentForm) {
 
                         dateOfBirth:
                             dateOfBirth,
+
+                        gender:
+                            gender,
 
                         address:
                             address,
