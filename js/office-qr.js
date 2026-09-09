@@ -37,7 +37,7 @@
    SETTINGS
 ========================================================= */
 
-const QR_LIFETIME_SECONDS = 30;
+const QR_LIFETIME_SECONDS = 60;
 
 
 /*
