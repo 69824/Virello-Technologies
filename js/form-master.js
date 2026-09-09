@@ -161,6 +161,474 @@ const markAllAbsentButton =
 const logoutButton =
     document.getElementById("logoutButton");
 
+/* =========================================================
+   FORM MASTER ADD STUDENT
+========================================================= */
+
+const addStudentButton =
+    document.getElementById("addStudentButton");
+
+const studentModal =
+    document.getElementById("studentModal");
+
+const closeStudentModalButton =
+    document.getElementById("closeStudentModal");
+
+const cancelStudentModalButton =
+    document.getElementById("cancelStudentModal");
+
+const formMasterStudentForm =
+    document.getElementById("formMasterStudentForm");
+
+const studentModalClass =
+    document.getElementById("studentModalClass");
+
+const fmStudentId =
+    document.getElementById("fmStudentId");
+
+const fmStudentName =
+    document.getElementById("fmStudentName");
+
+const fmStudentDob =
+    document.getElementById("fmStudentDob");
+
+const fmStudentGender =
+    document.getElementById("fmStudentGender");
+
+const fmStudentAddress =
+    document.getElementById("fmStudentAddress");
+
+const fmParentTelephone =
+    document.getElementById("fmParentTelephone");
+
+const saveFormMasterStudent =
+    document.getElementById("saveFormMasterStudent");
+
+
+/* =========================================================
+   OPEN ADD STUDENT
+========================================================= */
+
+function openStudentModal() {
+
+    if (!selectedClass) {
+
+        alert(
+            "Please select your assigned class first."
+        );
+
+        return;
+
+    }
+
+    if (studentModalClass) {
+
+        studentModalClass.textContent =
+            `Adding student to ${selectedClass.className}.`;
+
+    }
+
+    if (studentModal) {
+
+        studentModal.classList.add("show");
+
+        studentModal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+    }
+
+    fmStudentId?.focus();
+
+}
+
+
+/* =========================================================
+   CLOSE ADD STUDENT
+========================================================= */
+
+function closeStudentModal() {
+
+    if (studentModal) {
+
+        studentModal.classList.remove("show");
+
+        studentModal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+    }
+
+    if (formMasterStudentForm) {
+
+        formMasterStudentForm.reset();
+
+    }
+
+}
+
+
+/* =========================================================
+   ADD STUDENT MODAL EVENTS
+========================================================= */
+
+if (addStudentButton) {
+
+    addStudentButton.addEventListener(
+        "click",
+        openStudentModal
+    );
+
+}
+
+if (closeStudentModalButton) {
+
+    closeStudentModalButton.addEventListener(
+        "click",
+        closeStudentModal
+    );
+
+}
+
+if (cancelStudentModalButton) {
+
+    cancelStudentModalButton.addEventListener(
+        "click",
+        closeStudentModal
+    );
+
+}
+
+if (studentModal) {
+
+    studentModal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                studentModal
+            ) {
+
+                closeStudentModal();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   FORM MASTER ADD STUDENT
+========================================================= */
+
+if (formMasterStudentForm) {
+
+    formMasterStudentForm.addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+            if (!currentUser) {
+
+                alert(
+                    "Your session has expired. Please sign in again."
+                );
+
+                return;
+
+            }
+
+            if (!currentOrganization) {
+
+                alert(
+                    "Your organization could not be identified."
+                );
+
+                return;
+
+            }
+
+            if (!selectedClass) {
+
+                alert(
+                    "Please select your assigned class first."
+                );
+
+                closeStudentModal();
+
+                return;
+
+            }
+
+            const studentId =
+                String(
+                    fmStudentId?.value || ""
+                ).trim();
+
+            const fullName =
+                String(
+                    fmStudentName?.value || ""
+                ).trim();
+
+            const dateOfBirth =
+                String(
+                    fmStudentDob?.value || ""
+                ).trim();
+
+            const gender =
+                String(
+                    fmStudentGender?.value || ""
+                ).trim().toLowerCase();
+
+            const address =
+                String(
+                    fmStudentAddress?.value || ""
+                ).trim();
+
+            const parentTelephone =
+                String(
+                    fmParentTelephone?.value || ""
+                ).trim();
+
+            if (
+                !studentId ||
+                !fullName ||
+                !dateOfBirth ||
+                !gender ||
+                !address ||
+                !parentTelephone
+            ) {
+
+                alert(
+                    "Please complete all student registration fields."
+                );
+
+                return;
+
+            }
+
+            const today =
+                new Date()
+                    .toISOString()
+                    .split("T")[0];
+
+            if (
+                dateOfBirth >
+                today
+            ) {
+
+                alert(
+                    "Date of birth cannot be in the future."
+                );
+
+                return;
+
+            }
+
+            if (saveFormMasterStudent) {
+
+                saveFormMasterStudent.disabled =
+                    true;
+
+                saveFormMasterStudent.textContent =
+                    "Adding...";
+
+            }
+
+            try {
+
+                const studentsRef =
+                    collection(
+                        db,
+                        "students"
+                    );
+
+                /*
+                   Keep the same Student ID uniqueness rule
+                   used by the Administrator.
+                */
+
+                const duplicateQuery =
+                    query(
+
+                        studentsRef,
+
+                        where(
+                            "organizationId",
+                            "==",
+                            currentOrganization.id
+                        ),
+
+                        where(
+                            "studentId",
+                            "==",
+                            studentId
+                        )
+
+                    );
+
+                const duplicateSnapshot =
+                    await getDocs(
+                        duplicateQuery
+                    );
+
+                if (
+                    !duplicateSnapshot.empty
+                ) {
+
+                    throw new Error(
+                        "This Student ID already exists in this organization."
+                    );
+
+                }
+
+                /*
+                   The Form Master can only add the student
+                   to the class currently assigned to them.
+                */
+
+                const studentData = {
+
+                    organizationId:
+                        currentOrganization.id,
+
+                    classId:
+                        selectedClass.id,
+
+                    className:
+                        selectedClass.className,
+
+                    studentId:
+                        studentId,
+
+                    fullName:
+                        fullName,
+
+                    dateOfBirth:
+                        dateOfBirth,
+
+                    gender:
+                        gender,
+
+                    address:
+                        address,
+
+                    parentTelephone:
+                        parentTelephone,
+
+                    status:
+                        "active",
+
+                    createdAt:
+                        serverTimestamp(),
+
+                    updatedAt:
+                        serverTimestamp(),
+
+                    createdBy:
+                        currentUser.uid,
+
+                    createdByRole:
+                        "form_master",
+
+                    createdByName:
+                        currentTeacher?.fullName ||
+                        currentTeacher?.name ||
+                        currentUser.displayName ||
+                        "Form Master"
+
+                };
+
+                const newStudent =
+                    await addDoc(
+                        studentsRef,
+                        studentData
+                    );
+
+                console.log(
+                    "✅ Form Master added student:",
+                    newStudent.id
+                );
+
+                /*
+                   Refresh the selected class without
+                   changing the existing attendance system.
+                */
+
+                await loadAssignedClasses();
+
+                const refreshedClass =
+                    assignedClasses.find(
+                        item =>
+                            item.id ===
+                            selectedClass.id
+                    );
+
+                if (refreshedClass) {
+
+                    selectedClass =
+                        refreshedClass;
+
+                }
+
+                await loadStudents();
+
+                renderClasses();
+
+                await loadAttendanceForSelectedDate();
+
+                renderAttendanceRegister();
+
+                updateStatistics();
+
+                closeStudentModal();
+
+                alert(
+                    `${fullName} added to ${selectedClass.className} successfully.`
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "❌ Form Master add student error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Unable to add student."
+                );
+
+            }
+
+            finally {
+
+                if (saveFormMasterStudent) {
+
+                    saveFormMasterStudent.disabled =
+                        false;
+
+                    saveFormMasterStudent.textContent =
+                        "+ Add Student";
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
 
 /* =========================================================
    ATTENDANCE HISTORY BUTTON
