@@ -12,7 +12,7 @@
 
    FEATURES:
    - Office QR verification
-   - 30-second QR lifetime
+   - 60-second QR lifetime
    - Staff ID lookup
    - Active staff verification
    - Daily attendance
@@ -131,7 +131,7 @@ const DEVICE_STORAGE_KEY =
    QR SETTINGS
 ========================================================= */
 
-const QR_LIFETIME_SECONDS = 30;
+const QR_LIFETIME_SECONDS = 60;
 
 
 /* =========================================================
