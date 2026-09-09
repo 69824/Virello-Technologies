@@ -872,6 +872,178 @@
 
         }
 
+    
+        /* =====================================================
+           FORM MASTER ADD STUDENT
+        ===================================================== */
+
+        .add-student-button {
+            border: 0;
+            background: #172554;
+            color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .add-student-button:hover {
+            background: #1e3a8a;
+        }
+
+        .student-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .student-modal.show {
+            display: flex;
+        }
+
+        .student-modal-card {
+            width: min(820px, 100%);
+            max-height: 90vh;
+            overflow-y: auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.22);
+        }
+
+        .student-modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .student-modal-header h2 {
+            margin-bottom: 5px;
+        }
+
+        .student-modal-header p {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .close-student-modal {
+            border: 0;
+            background: #f1f5f9;
+            color: #475569;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .student-modal-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .student-modal-field {
+            min-width: 0;
+        }
+
+        .student-modal-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .student-modal-field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .student-modal-field input,
+        .student-modal-field select,
+        .student-modal-field textarea {
+            width: 100%;
+            border: 1px solid #d8dee9;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: #ffffff;
+            outline: none;
+        }
+
+        .student-modal-field textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .student-modal-field input:focus,
+        .student-modal-field select:focus,
+        .student-modal-field textarea:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.10);
+        }
+
+        .student-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .student-modal-actions button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 700;
+        }
+
+        .student-modal-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .student-modal-submit {
+            background: #172554;
+            color: #ffffff;
+        }
+
+        .student-modal-submit:hover {
+            background: #1e3a8a;
+        }
+
+        .student-modal-note {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #1e40af;
+            font-size: 12px;
+        }
+
+        @media (max-width: 650px) {
+            .student-modal-form {
+                grid-template-columns: 1fr;
+            }
+
+            .student-modal-field.full {
+                grid-column: auto;
+            }
+
+            .student-modal-actions {
+                flex-direction: column-reverse;
+            }
+
+            .student-modal-actions button {
+                width: 100%;
+            }
+        }
+
     </style>
 
 </head>
@@ -1010,11 +1182,23 @@
         </div>
 
 
-        <div
-            id="organizationName"
-            class="organization-badge"
-        >
-            Organization
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+
+            <button
+                id="addStudentButton"
+                class="add-student-button"
+                type="button"
+            >
+                + Add Student
+            </button>
+
+                <div
+                id="organizationName"
+                class="organization-badge"
+            >
+                Organization
+            </div>
+
         </div>
 
     </div>
@@ -1259,6 +1443,134 @@
 
 </main>
 
+
+
+<!-- =====================================================
+     ADD STUDENT MODAL
+===================================================== -->
+
+<div
+    id="studentModal"
+    class="student-modal"
+    aria-hidden="true"
+>
+    <div class="student-modal-card">
+
+        <div class="student-modal-header">
+
+            <div>
+                <h2>Add Student</h2>
+                <p id="studentModalClass">
+                    Select one of your assigned classes first.
+                </p>
+            </div>
+
+            <button
+                id="closeStudentModal"
+                class="close-student-modal"
+                type="button"
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <form id="formMasterStudentForm">
+
+            <div class="student-modal-form">
+
+                <div class="student-modal-field">
+                    <label for="fmStudentId">Student ID</label>
+                    <input
+                        id="fmStudentId"
+                        type="text"
+                        required
+                        autocomplete="off"
+                        placeholder="Enter student ID"
+                    >
+                </div>
+
+                <div class="student-modal-field">
+                    <label for="fmStudentName">Full Name</label>
+                    <input
+                        id="fmStudentName"
+                        type="text"
+                        required
+                        autocomplete="name"
+                        placeholder="Enter student's full name"
+                    >
+                </div>
+
+                <div class="student-modal-field">
+                    <label for="fmStudentDob">Date of Birth</label>
+                    <input
+                        id="fmStudentDob"
+                        type="date"
+                        required
+                    >
+                </div>
+
+                <div class="student-modal-field">
+                    <label for="fmStudentGender">Gender</label>
+                    <select id="fmStudentGender" required>
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+
+                <div class="student-modal-field full">
+                    <label for="fmStudentAddress">Address</label>
+                    <textarea
+                        id="fmStudentAddress"
+                        required
+                        placeholder="Enter student's address"
+                    ></textarea>
+                </div>
+
+                <div class="student-modal-field">
+                    <label for="fmParentTelephone">Parent Telephone</label>
+                    <input
+                        id="fmParentTelephone"
+                        type="tel"
+                        required
+                        autocomplete="tel"
+                        placeholder="Enter parent telephone"
+                    >
+                </div>
+
+            </div>
+
+            <div class="student-modal-note">
+                This student will be added directly to your selected assigned class.
+                The administrator's class assignment system remains unchanged.
+            </div>
+
+            <div class="student-modal-actions">
+
+                <button
+                    id="cancelStudentModal"
+                    class="student-modal-cancel"
+                    type="button"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    id="saveFormMasterStudent"
+                    class="student-modal-submit"
+                    type="submit"
+                >
+                    + Add Student
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
 
 <!-- =====================================================
      JAVASCRIPT
