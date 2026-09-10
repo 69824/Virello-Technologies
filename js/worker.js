@@ -116,6 +116,45 @@ let officeQRVerified = false;
 let officeQRTimestamp = null;
 let officeQRToken = null;
 
+let serverClockOffsetMs = 0;
+let serverClockReady = false;
+
+async function syncServerClock() {
+    try {
+        const response = await fetch(window.location.href, {
+            method: "HEAD",
+            cache: "no-store",
+            credentials: "same-origin"
+        });
+
+        const serverDate = response.headers.get("Date");
+
+        if (serverDate) {
+            serverClockOffsetMs =
+                new Date(serverDate).getTime() - Date.now();
+            serverClockReady = true;
+            console.log(
+                "🕒 Server clock synchronized. Offset:",
+                serverClockOffsetMs,
+                "ms"
+            );
+            return;
+        }
+    } catch (error) {
+        console.warn(
+            "⚠️ Server clock synchronization failed. Using local clock.",
+            error
+        );
+    }
+
+    serverClockOffsetMs = 0;
+    serverClockReady = true;
+}
+
+function getTrustedNow() {
+    return Date.now() + serverClockOffsetMs;
+}
+
 
 /* =========================================================
    DEVICE STATE
@@ -221,7 +260,7 @@ const leaveSuccess =
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
         console.log(
             "🔥 Virello Worker Attendance starting..."
@@ -237,7 +276,11 @@ document.addEventListener(
             currentDeviceId
         );
 
+        await syncServerClock();
         verifyOfficeQR();
+
+        // Keep the trusted clock aligned while the worker page stays open.
+        setInterval(syncServerClock, 5 * 60 * 1000);
 
 
         if (checkInButton) {
@@ -990,7 +1033,7 @@ function verifyOfficeQR() {
 
     const age =
         Math.abs(
-            Date.now() -
+            getTrustedNow() -
             qrTimestamp
         );
 
@@ -3302,7 +3345,7 @@ function isOfficeQRStillValid() {
 
     const age =
         Math.abs(
-            Date.now() -
+            getTrustedNow() -
             officeQRTimestamp
         );
 
