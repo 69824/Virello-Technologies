@@ -65,6 +65,46 @@ let countdownSeconds =
     QR_LIFETIME_SECONDS;
 
 let currentQRUrl = "";
+let currentQRTimestamp = null;
+
+let serverClockOffsetMs = 0;
+let serverClockReady = false;
+
+async function syncServerClock() {
+    try {
+        const response = await fetch(window.location.href, {
+            method: "HEAD",
+            cache: "no-store",
+            credentials: "same-origin"
+        });
+
+        const serverDate = response.headers.get("Date");
+
+        if (serverDate) {
+            serverClockOffsetMs =
+                new Date(serverDate).getTime() - Date.now();
+            serverClockReady = true;
+            console.log(
+                "🕒 Server clock synchronized. Offset:",
+                serverClockOffsetMs,
+                "ms"
+            );
+            return;
+        }
+    } catch (error) {
+        console.warn(
+            "⚠️ Server clock synchronization failed. Using local clock.",
+            error
+        );
+    }
+
+    serverClockOffsetMs = 0;
+    serverClockReady = true;
+}
+
+function getTrustedNow() {
+    return Date.now() + serverClockOffsetMs;
+}
 
 
 /* =========================================================
@@ -107,7 +147,7 @@ const qrUrl =
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
         console.log(
             "🔥 Virello Office QR Generator starting..."
@@ -135,7 +175,7 @@ document.addEventListener(
 
         }
 
-
+        await syncServerClock();
         generateOfficeQR();
 
     }
@@ -200,7 +240,7 @@ function getWorkerPageURL() {
 function buildAttendanceURL() {
 
     const timestamp =
-        Date.now();
+        getTrustedNow();
 
 
     const token =
@@ -314,6 +354,10 @@ function buildQRImageURL(
 
 async function generateOfficeQR() {
 
+    if (!serverClockReady) {
+        await syncServerClock();
+    }
+
     console.log(
         "🔄 Generating new Office QR..."
     );
@@ -352,6 +396,9 @@ async function generateOfficeQR() {
 
         currentQRUrl =
             access.url;
+
+        currentQRTimestamp =
+            access.timestamp;
 
 
         console.log(
@@ -630,8 +677,20 @@ function startCountdown() {
     stopCountdown();
 
 
+    const remainingMs =
+        currentQRTimestamp
+            ? (currentQRTimestamp +
+                QR_LIFETIME_SECONDS * 1000 -
+                getTrustedNow())
+            : QR_LIFETIME_SECONDS * 1000;
+
     countdownSeconds =
-        QR_LIFETIME_SECONDS;
+        Math.max(
+            0,
+            Math.ceil(
+                remainingMs / 1000
+            )
+        );
 
 
     updateCountdown();
