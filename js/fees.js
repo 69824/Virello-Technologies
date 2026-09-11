@@ -1,134 +1,1307 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, addDoc, setDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+/* =========================================================
+   VIRELLO TECHNOLOGIES
+   FEES MANAGEMENT
+========================================================= */
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+import {
+    auth,
+    db
+} from "./firebase-config.js";
 
-const $ = id => document.getElementById(id);
-const money = n => "GMD " + Number(n || 0).toLocaleString();
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+
+/* =========================================================
+   GLOBAL VARIABLES
+========================================================= */
+
+let currentUser = null;
+
+let currentOrganization = null;
+
 let students = [];
+
 let records = [];
-let organizationId = null;
 
-function orgId(user){
-  return user?.organizationId || user?.orgId || user?.uid || null;
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+const $ = id =>
+    document.getElementById(id);
+
+
+function money(value) {
+
+    return (
+        "GMD " +
+        Number(value || 0)
+            .toLocaleString()
+    );
+
 }
 
-async function loadStudents(){
-  if(!organizationId) return;
-  const sources = ["students"];
-  let all = [];
-  for(const name of sources){
-    try{
-      const snap = await getDocs(query(collection(db,name), where("organizationId","==",organizationId)));
-      snap.forEach(d => all.push({id:d.id,...d.data()}));
-    }catch(e){}
-  }
-  if(!all.length){
-    try{
-      const snap = await getDocs(collection(db,"students"));
-      snap.forEach(d => {
-        const x={id:d.id,...d.data()};
-        if(!x.organizationId || x.organizationId===organizationId) all.push(x);
-      });
-    }catch(e){}
-  }
-  const seen=new Set();
-  students=all.filter(s=>{
-    const key=s.studentId||s.id;
-    if(seen.has(key)) return false;
-    seen.add(key); return true;
-  }).sort((a,b)=>(a.fullName||a.name||"").localeCompare(b.fullName||b.name||""));
-  $("student").innerHTML='<option value="">Select student</option>'+students.map(s=>{
-    const name=s.fullName||s.name||"Unnamed Student";
-    const sid=s.studentId||s.id;
-    return `<option value="${s.id}">${name} — ${sid}</option>`;
-  }).join("");
-  const classes=[...new Set(students.map(s=>s.className||s.class||s.grade).filter(Boolean))].sort();
-  $("classFilter").innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option>${c}</option>`).join("");
-  $("totalStudents").textContent=students.length;
+
+/* =========================================================
+   LOAD ORGANIZATION
+   SAME SYSTEM USED BY DASHBOARD.JS
+========================================================= */
+
+async function loadOrganization() {
+
+    console.log(
+        "🏢 Loading organization for fees..."
+    );
+
+
+    const organizationsRef =
+        collection(
+            db,
+            "organizations"
+        );
+
+
+    const organizationQuery =
+        query(
+            organizationsRef,
+
+            where(
+                "ownerUid",
+                "==",
+                currentUser.uid
+            )
+        );
+
+
+    const snapshot =
+        await getDocs(
+            organizationQuery
+        );
+
+
+    console.log(
+        "🏢 Organizations found:",
+        snapshot.size
+    );
+
+
+    if (snapshot.empty) {
+
+        console.error(
+            "❌ No organization found."
+        );
+
+        if ($("message")) {
+
+            $("message").textContent =
+                "No organization was found for this administrator account.";
+
+        }
+
+        return false;
+
+    }
+
+
+    const organizationDocument =
+        snapshot.docs[0];
+
+
+    currentOrganization = {
+
+        id:
+            organizationDocument.id,
+
+        ...organizationDocument.data()
+
+    };
+
+
+    console.log(
+        "✅ Organization loaded:",
+        currentOrganization.id
+    );
+
+
+    return true;
+
 }
 
-async function loadRecords(){
-  if(!organizationId) return;
-  records=[];
-  try{
-    const snap=await getDocs(query(collection(db,"fees"),where("organizationId","==",organizationId)));
-    snap.forEach(d=>records.push({id:d.id,...d.data()}));
-  }catch(e){
-    try{
-      const snap=await getDocs(collection(db,"fees"));
-      snap.forEach(d=>{const x={id:d.id,...d.data()}; if(!x.organizationId || x.organizationId===organizationId) records.push(x);});
-    }catch(err){console.error(err)}
-  }
-  render();
+
+/* =========================================================
+   LOAD STUDENTS
+========================================================= */
+
+async function loadStudents() {
+
+    if (
+        !currentOrganization ||
+        !currentOrganization.id
+    ) {
+
+        console.error(
+            "❌ Organization ID missing."
+        );
+
+        return;
+
+    }
+
+
+    console.log(
+        "👨‍🎓 Loading students..."
+    );
+
+
+    students = [];
+
+
+    const studentsRef =
+        collection(
+            db,
+            "students"
+        );
+
+
+    const studentsQuery =
+        query(
+            studentsRef,
+
+            where(
+                "organizationId",
+                "==",
+                currentOrganization.id
+            )
+        );
+
+
+    try {
+
+        const snapshot =
+            await getDocs(
+                studentsQuery
+            );
+
+
+        snapshot.forEach(
+            studentDocument => {
+
+                const student =
+                    studentDocument.data();
+
+
+                /*
+                 * Keep the Firestore document ID.
+                 */
+
+                students.push({
+
+                    id:
+                        studentDocument.id,
+
+                    ...student
+
+                });
+
+            }
+        );
+
+
+        /*
+         * Sort alphabetically.
+         */
+
+        students.sort(
+            (a, b) => {
+
+                const nameA =
+                    String(
+                        a.fullName || ""
+                    );
+
+                const nameB =
+                    String(
+                        b.fullName || ""
+                    );
+
+                return nameA.localeCompare(
+                    nameB
+                );
+
+            }
+        );
+
+
+        console.log(
+            "✅ Students loaded:",
+            students.length
+        );
+
+
+        populateStudents();
+
+        populateClasses();
+
+
+        if ($("totalStudents")) {
+
+            $("totalStudents").textContent =
+                students.length;
+
+        }
+
+
+        if (
+            students.length === 0
+        ) {
+
+            if ($("message")) {
+
+                $("message").textContent =
+                    "No students were found in this organization.";
+
+            }
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Error loading students:",
+            error
+        );
+
+
+        if ($("student")) {
+
+            $("student").innerHTML = `
+                <option value="">
+                    Unable to load students
+                </option>
+            `;
+
+        }
+
+
+        if ($("message")) {
+
+            $("message").textContent =
+                "Unable to load students. Please check Firestore permissions.";
+
+        }
+
+    }
+
 }
 
-function render(){
-  const search=($("search").value||"").toLowerCase();
-  const cls=$("classFilter").value;
-  const term=$("termFilter").value;
-  const rows=records.filter(r=>{
-    const s=(r.studentName||"").toLowerCase(), id=(r.studentId||"").toLowerCase();
-    const c=r.className||r.class||r.grade||"";
-    return (!search || s.includes(search)||id.includes(search)) && (!cls||c===cls) && (!term||r.term===term);
-  });
-  let due=0,paid=0;
-  rows.forEach(r=>{due+=Number(r.feesDue||0);paid+=Number(r.amountPaid||0)});
-  $("totalDue").textContent=money(due);
-  $("totalPaid").textContent=money(paid);
-  $("totalBalance").textContent=money(Math.max(0,due-paid));
-  $("feesBody").innerHTML=rows.length?rows.map(r=>{
-    const d=Number(r.feesDue||0), p=Number(r.amountPaid||0), b=Math.max(0,d-p);
-    const status=b<=0&&d>0?"Paid":p>0?"Part Paid":"Not Paid";
-    const cls2=status==="Paid"?"paid":status==="Part Paid"?"part":"unpaid";
-    return `<tr><td>${r.studentId||""}</td><td>${r.studentName||""}</td><td>${r.className||r.class||r.grade||""}</td><td>${r.term||""}</td><td>${money(d)}</td><td>${money(p)}</td><td>${money(b)}</td><td><span class="status ${cls2.toLowerCase().replace(" ","")}">${status}</span></td><td>${r.paymentDate||""}</td><td>${r.paymentMethod||""}</td></tr>`;
-  }).join(""):'<tr><td colspan="10">No fees records found.</td></tr>';
+
+/* =========================================================
+   POPULATE STUDENT DROPDOWN
+========================================================= */
+
+function populateStudents() {
+
+    const studentSelect =
+        $("student");
+
+
+    if (!studentSelect) {
+
+        console.error(
+            "❌ Student select element not found."
+        );
+
+        return;
+
+    }
+
+
+    studentSelect.innerHTML = `
+        <option value="">
+            Select student
+        </option>
+    `;
+
+
+    students.forEach(
+        student => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                student.id;
+
+
+            option.textContent =
+                `${student.fullName || "Unnamed Student"} — ${student.studentId || student.id}`;
+
+
+            studentSelect.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    console.log(
+        "✅ Student dropdown populated:",
+        students.length
+    );
+
 }
 
-$("student").addEventListener("change",()=>{
-  const s=students.find(x=>x.id===$("student").value);
-  if(!s)return;
-  $("feesDue").value=s.feesDue||"";
-});
-$("saveBtn").addEventListener("click",async()=>{
-  const s=students.find(x=>x.id===$("student").value);
-  if(!s){$("message").textContent="Please select a student.";return}
-  const feesDue=Number($("feesDue").value||0), amountPaid=Number($("amountPaid").value||0);
-  if(feesDue<0||amountPaid<0){$("message").textContent="Amounts cannot be negative.";return}
-  const data={
-    organizationId, studentId:s.studentId||s.id, studentName:s.fullName||s.name||"",
-    className:s.className||s.class||s.grade||"", gender:s.gender||"",
-    parentGuardian:s.parentGuardian||s.parentName||"", parentPhone:s.parentPhone||s.phone||"",
-    academicYear:$("academicYear").value.trim(), term:$("term").value,
-    feesDue, amountPaid, balance:Math.max(0,feesDue-amountPaid),
-    paymentDate:$("paymentDate").value, receiptNo:$("receiptNo").value.trim(),
-    paymentMethod:$("paymentMethod").value, updatedAt:new Date().toISOString()
-  };
-  try{
-    await addDoc(collection(db,"fees"),data);
-    $("message").textContent="Fees record saved successfully.";
-    clearForm(); await loadRecords();
-  }catch(e){
-    console.error(e); $("message").textContent="Unable to save. Check your Firestore permissions.";
-  }
-});
-function clearForm(){
-  $("student").value="";$("feesDue").value="";$("amountPaid").value="";$("receiptNo").value="";
-  $("paymentDate").value=new Date().toISOString().slice(0,10);$("message").textContent="";
-}
-$("clearBtn").onclick=clearForm;
-$("refreshBtn").onclick=async()=>{await loadStudents();await loadRecords()};
-["search","classFilter","termFilter"].forEach(id=>$(id).addEventListener("input",render));
 
-onAuthStateChanged(auth,async user=>{
-  if(!user){location.href="login.html";return}
-  organizationId=orgId(user);
-  $("paymentDate").value=new Date().toISOString().slice(0,10);
-  $("academicYear").value="2026/2027";
-  await loadStudents();
-  await loadRecords();
-});
+/* =========================================================
+   POPULATE CLASS FILTER
+========================================================= */
+
+function populateClasses() {
+
+    const classFilter =
+        $("classFilter");
+
+
+    if (!classFilter) {
+
+        return;
+
+    }
+
+
+    const classes =
+        [
+            ...new Set(
+
+                students
+
+                    .map(
+                        student =>
+                            student.className ||
+                            student.class ||
+                            ""
+                    )
+
+                    .filter(Boolean)
+
+            )
+        ];
+
+
+    classes.sort();
+
+
+    classFilter.innerHTML = `
+        <option value="">
+            All Classes
+        </option>
+    `;
+
+
+    classes.forEach(
+        className => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                className;
+
+
+            option.textContent =
+                className;
+
+
+            classFilter.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   STUDENT SELECTION
+========================================================= */
+
+if ($("student")) {
+
+    $("student").addEventListener(
+        "change",
+        function () {
+
+            const studentId =
+                this.value;
+
+
+            if (!studentId) {
+
+                return;
+
+            }
+
+
+            const student =
+                students.find(
+                    item =>
+                        item.id ===
+                        studentId
+                );
+
+
+            if (!student) {
+
+                console.error(
+                    "❌ Selected student not found."
+                );
+
+                return;
+
+            }
+
+
+            console.log(
+                "👨‍🎓 Selected student:",
+                student
+            );
+
+
+            /*
+             * Automatically load existing
+             * student information.
+             */
+
+            if ($("feesDue")) {
+
+                $("feesDue").value =
+                    student.feesDue ||
+                    "";
+
+            }
+
+
+            /*
+             * If the page has these fields,
+             * fill them automatically.
+             */
+
+            if ($("parentGuardian")) {
+
+                $("parentGuardian").value =
+                    student.parentName ||
+                    "";
+
+            }
+
+
+            if ($("parentPhone")) {
+
+                $("parentPhone").value =
+                    student.parentTelephone ||
+                    student.parentPhone ||
+                    "";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   LOAD FEES RECORDS
+========================================================= */
+
+async function loadRecords() {
+
+    if (
+        !currentOrganization ||
+        !currentOrganization.id
+    ) {
+
+        return;
+
+    }
+
+
+    records = [];
+
+
+    try {
+
+        const feesRef =
+            collection(
+                db,
+                "fees"
+            );
+
+
+        const feesQuery =
+            query(
+                feesRef,
+
+                where(
+                    "organizationId",
+                    "==",
+                    currentOrganization.id
+                )
+            );
+
+
+        const snapshot =
+            await getDocs(
+                feesQuery
+            );
+
+
+        snapshot.forEach(
+            feeDocument => {
+
+                records.push({
+
+                    id:
+                        feeDocument.id,
+
+                    ...feeDocument.data()
+
+                });
+
+            }
+        );
+
+
+        console.log(
+            "💰 Fees records loaded:",
+            records.length
+        );
+
+
+        render();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Error loading fees:",
+            error
+        );
+
+
+        render();
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER FEES REGISTER
+========================================================= */
+
+function render() {
+
+    const body =
+        $("feesBody");
+
+
+    if (!body) {
+
+        return;
+
+    }
+
+
+    const search =
+        String(
+            $("search")?.value || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const selectedClass =
+        $("classFilter")?.value ||
+        "";
+
+
+    const selectedTerm =
+        $("termFilter")?.value ||
+        "";
+
+
+    const rows =
+        records.filter(
+            record => {
+
+                const studentName =
+                    String(
+                        record.studentName ||
+                        ""
+                    )
+                    .toLowerCase();
+
+
+                const studentId =
+                    String(
+                        record.studentId ||
+                        ""
+                    )
+                    .toLowerCase();
+
+
+                const className =
+                    record.className ||
+                    record.class ||
+                    "";
+
+
+                return (
+
+                    (
+                        !search ||
+
+                        studentName.includes(
+                            search
+                        ) ||
+
+                        studentId.includes(
+                            search
+                        )
+                    )
+
+                    &&
+
+                    (
+                        !selectedClass ||
+                        className === selectedClass
+                    )
+
+                    &&
+
+                    (
+                        !selectedTerm ||
+                        record.term === selectedTerm
+                    )
+
+                );
+
+            }
+        );
+
+
+    let totalDue = 0;
+
+    let totalPaid = 0;
+
+
+    rows.forEach(
+        record => {
+
+            totalDue +=
+                Number(
+                    record.feesDue ||
+                    0
+                );
+
+
+            totalPaid +=
+                Number(
+                    record.amountPaid ||
+                    0
+                );
+
+        }
+    );
+
+
+    if ($("totalDue")) {
+
+        $("totalDue").textContent =
+            money(totalDue);
+
+    }
+
+
+    if ($("totalPaid")) {
+
+        $("totalPaid").textContent =
+            money(totalPaid);
+
+    }
+
+
+    if ($("totalBalance")) {
+
+        $("totalBalance").textContent =
+            money(
+                Math.max(
+                    0,
+                    totalDue -
+                    totalPaid
+                )
+            );
+
+    }
+
+
+    if (!rows.length) {
+
+        body.innerHTML = `
+            <tr>
+                <td colspan="10">
+                    No fees records found.
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+
+    body.innerHTML =
+        rows
+            .map(
+                record => {
+
+                    const due =
+                        Number(
+                            record.feesDue ||
+                            0
+                        );
+
+
+                    const paid =
+                        Number(
+                            record.amountPaid ||
+                            0
+                        );
+
+
+                    const balance =
+                        Math.max(
+                            0,
+                            due - paid
+                        );
+
+
+                    const status =
+                        balance <= 0 &&
+                        due > 0
+
+                            ? "Paid"
+
+                            : paid > 0
+
+                                ? "Part Paid"
+
+                                : "Not Paid";
+
+
+                    const statusClass =
+                        status === "Paid"
+
+                            ? "paid"
+
+                            : status === "Part Paid"
+
+                                ? "part"
+
+                                : "unpaid";
+
+
+                    return `
+
+                        <tr>
+
+                            <td>
+                                ${record.studentId || ""}
+                            </td>
+
+                            <td>
+                                ${record.studentName || ""}
+                            </td>
+
+                            <td>
+                                ${
+                                    record.className ||
+                                    record.class ||
+                                    ""
+                                }
+                            </td>
+
+                            <td>
+                                ${record.term || ""}
+                            </td>
+
+                            <td>
+                                ${money(due)}
+                            </td>
+
+                            <td>
+                                ${money(paid)}
+                            </td>
+
+                            <td>
+                                ${money(balance)}
+                            </td>
+
+                            <td>
+
+                                <span
+                                    class="status ${statusClass}"
+                                >
+                                    ${status}
+                                </span>
+
+                            </td>
+
+                            <td>
+                                ${record.paymentDate || ""}
+                            </td>
+
+                            <td>
+                                ${record.paymentMethod || ""}
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =========================================================
+   SAVE FEES RECORD
+========================================================= */
+
+if ($("saveBtn")) {
+
+    $("saveBtn").addEventListener(
+        "click",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            const student =
+                students.find(
+                    item =>
+                        item.id ===
+                        $("student").value
+                );
+
+
+            if (!student) {
+
+                $("message").textContent =
+                    "Please select a student.";
+
+                return;
+
+            }
+
+
+            const feesDue =
+                Number(
+                    $("feesDue").value ||
+                    0
+                );
+
+
+            const amountPaid =
+                Number(
+                    $("amountPaid").value ||
+                    0
+                );
+
+
+            if (
+                feesDue < 0 ||
+                amountPaid < 0
+            ) {
+
+                $("message").textContent =
+                    "Amounts cannot be negative.";
+
+                return;
+
+            }
+
+
+            if (
+                amountPaid >
+                feesDue
+            ) {
+
+                const confirmOverpayment =
+                    confirm(
+                        "The amount paid is greater than the fees due. Continue?"
+                    );
+
+
+                if (!confirmOverpayment) {
+
+                    return;
+
+                }
+
+            }
+
+
+            const studentId =
+                student.studentId ||
+                student.id;
+
+
+            const className =
+                student.className ||
+                student.class ||
+                "";
+
+
+            const studentName =
+                student.fullName ||
+                "";
+
+
+            const data = {
+
+                organizationId:
+                    currentOrganization.id,
+
+                studentId:
+                    studentId,
+
+                studentDocumentId:
+                    student.id,
+
+                studentName:
+                    studentName,
+
+                classId:
+                    student.classId ||
+                    "",
+
+                className:
+                    className,
+
+                gender:
+                    student.gender ||
+                    "",
+
+                parentName:
+                    student.parentName ||
+                    "",
+
+                parentTelephone:
+                    student.parentTelephone ||
+                    student.parentPhone ||
+                    "",
+
+                academicYear:
+                    $("academicYear").value.trim(),
+
+                term:
+                    $("term").value,
+
+                feesDue:
+                    feesDue,
+
+                amountPaid:
+                    amountPaid,
+
+                balance:
+                    Math.max(
+                        0,
+                        feesDue -
+                        amountPaid
+                    ),
+
+                paymentDate:
+                    $("paymentDate").value,
+
+                receiptNo:
+                    $("receiptNo").value.trim(),
+
+                paymentMethod:
+                    $("paymentMethod").value,
+
+                createdBy:
+                    currentUser.uid,
+
+                createdAt:
+                    new Date(),
+
+                updatedAt:
+                    new Date()
+
+            };
+
+
+            try {
+
+                await addDoc(
+                    collection(
+                        db,
+                        "fees"
+                    ),
+                    data
+                );
+
+
+                $("message").textContent =
+                    "Fees record saved successfully.";
+
+
+                clearForm();
+
+
+                await loadRecords();
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "❌ Error saving fees:",
+                    error
+                );
+
+
+                $("message").textContent =
+                    "Unable to save fees record. Check your Firestore permissions.";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CLEAR FORM
+========================================================= */
+
+function clearForm() {
+
+    if ($("student")) {
+
+        $("student").value =
+            "";
+
+    }
+
+
+    if ($("feesDue")) {
+
+        $("feesDue").value =
+            "";
+
+    }
+
+
+    if ($("amountPaid")) {
+
+        $("amountPaid").value =
+            "";
+
+    }
+
+
+    if ($("receiptNo")) {
+
+        $("receiptNo").value =
+            "";
+
+    }
+
+
+    if ($("paymentDate")) {
+
+        $("paymentDate").value =
+            new Date()
+                .toISOString()
+                .slice(
+                    0,
+                    10
+                );
+
+    }
+
+}
+
+
+/* =========================================================
+   CLEAR BUTTON
+========================================================= */
+
+if ($("clearBtn")) {
+
+    $("clearBtn").addEventListener(
+        "click",
+        clearForm
+    );
+
+}
+
+
+/* =========================================================
+   REFRESH BUTTON
+========================================================= */
+
+if ($("refreshBtn")) {
+
+    $("refreshBtn").addEventListener(
+        "click",
+        async function () {
+
+            await loadStudents();
+
+            await loadRecords();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SEARCH + FILTERS
+========================================================= */
+
+[
+    "search",
+    "classFilter",
+    "termFilter"
+]
+.forEach(
+    id => {
+
+        const element =
+            $(id);
+
+
+        if (!element) {
+
+            return;
+
+        }
+
+
+        element.addEventListener(
+            "input",
+            render
+        );
+
+
+        element.addEventListener(
+            "change",
+            render
+        );
+
+    }
+);
+
+
+/* =========================================================
+   AUTHENTICATION
+========================================================= */
+
+onAuthStateChanged(
+    auth,
+    async user => {
+
+        if (!user) {
+
+            window.location.href =
+                "login.html";
+
+            return;
+
+        }
+
+
+        currentUser =
+            user;
+
+
+        console.log(
+            "✅ Fees user:",
+            user.email
+        );
+
+
+        if ($("paymentDate")) {
+
+            $("paymentDate").value =
+                new Date()
+                    .toISOString()
+                    .slice(
+                        0,
+                        10
+                    );
+
+        }
+
+
+        if ($("academicYear")) {
+
+            $("academicYear").value =
+                "2026/2027";
+
+        }
+
+
+        /*
+         * IMPORTANT:
+         * First find the real organization.
+         * Then load students belonging to it.
+         */
+
+        const organizationLoaded =
+            await loadOrganization();
+
+
+        if (!organizationLoaded) {
+
+            return;
+
+        }
+
+
+        await loadStudents();
+
+        await loadRecords();
+
+    }
+);
