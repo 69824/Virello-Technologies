@@ -83,6 +83,7 @@
             width: 52px;
             height: 52px;
             border-radius: 50%;
+            overflow: hidden;
 
             background: white;
             color: var(--primary);
@@ -745,11 +746,6 @@
                 display: block !important;
             }
 
-            .result-portal-logo {
-                width: 380px;
-                max-height: 180px;
-            }
-
             .student-card,
             .result-card {
                 box-shadow: none;
@@ -772,12 +768,12 @@
 
             <div class="school-brand">
 
-                <div class="school-logo">
+                <div class="school-logo" id="schoolLogo">
                     SP
                 </div>
 
                 <div>
-                    <div class="school-name">
+                    <div class="school-name" id="portalSchoolName">
                         Star Preparatory School
                     </div>
 
