@@ -989,6 +989,12 @@ function renderResult(
 
     resultDisplay.innerHTML = `
 
+        <img
+            class="result-portal-logo"
+            src="./assets/star-preparatory-school-logo.png"
+            alt="Star Preparatory School logo"
+        >
+
         <div class="result-card-header">
 
             <div>
