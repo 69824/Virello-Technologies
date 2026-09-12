@@ -1,8 +1,7 @@
 /*
 =========================================================
-STAR PREPARATORY SCHOOL
+MULTI-SCHOOL PUBLIC RESULT PORTAL
 VIRELLO TECHNOLOGIES
-PUBLIC RESULT PORTAL
 
 Purpose:
 Parents enter Student ID / Result Access Code
@@ -103,6 +102,35 @@ STATE
 let foundResults = [];
 
 let selectedResult = null;
+
+let currentSchoolBranding = {
+    name: "Star Preparatory School",
+    logoUrl: "./assets/star-preparatory-school-logo.png"
+};
+
+/*
+=========================================================
+LOCAL SCHOOL LOGO FALLBACKS
+=========================================================
+These are used when an older result does not yet contain
+organizationLogo and the organization document has no logo URL.
+New schools should preferably store logoUrl on their
+organizations document; the portal will use it automatically.
+*/
+const SCHOOL_BRANDING_FALLBACKS = {
+    "star preparatory school": {
+        name: "Star Preparatory School",
+        logoUrl: "./assets/star-preparatory-school-logo.png"
+    },
+    "wam collegiate school": {
+        name: "WAM Collegiate School",
+        logoUrl: "./assets/wam-collegiate-school-logo.png"
+    },
+    "wam collegiate": {
+        name: "WAM Collegiate School",
+        logoUrl: "./assets/wam-collegiate-school-logo.png"
+    }
+};
 
 
 
@@ -254,17 +282,6 @@ async function handleSearch(event) {
 
         /*
         -------------------------------------------------
-        SHOW STUDENT INFORMATION
-        -------------------------------------------------
-        */
-
-        await displayStudentInformation(
-            foundResults[0]
-        );
-
-
-        /*
-        -------------------------------------------------
         BUILD TERM BUTTONS
         -------------------------------------------------
         */
@@ -280,7 +297,7 @@ async function handleSearch(event) {
         -------------------------------------------------
         */
 
-        selectResult(
+        await selectResult(
             foundResults[0]
         );
 
@@ -511,45 +528,22 @@ DISPLAY STUDENT INFORMATION
 =========================================================
 */
 
-async function displayStudentInformation(
-    result
-) {
-
-    studentNameElement.textContent =
-        result.studentName ||
-        "Student";
-
-    studentIdElement.textContent =
-        result.studentId ||
-        result.resultAccessCode ||
-        "-";
-
-    studentClassElement.textContent =
-        result.className ||
-        "-";
-
-    academicYearElement.textContent =
-        result.academicYear ||
-        "-";
+async function resolveSchoolBranding(result) {
 
     let organizationName =
-        result.organizationName ||
-        result.schoolName ||
+        result?.organizationName ||
+        result?.schoolName ||
         "";
 
     let logoUrl =
-        result.organizationLogo ||
-        result.logoUrl ||
-        result.schoolLogoUrl ||
-        result.organizationLogoUrl ||
+        result?.organizationLogo ||
+        result?.logoUrl ||
+        result?.schoolLogoUrl ||
+        result?.organizationLogoUrl ||
         "";
 
-    // Load the publishing school's branding from Firestore
-    // when it is not already stored on the result.
-    if (
-        result.organizationId &&
-        (!organizationName || !logoUrl)
-    ) {
+    /* Load the publishing school's branding from Firestore. */
+    if (result?.organizationId) {
 
         try {
 
@@ -591,21 +585,59 @@ async function displayStudentInformation(
         }
     }
 
-    // Existing Star Preparatory results keep the current logo.
-    logoUrl =
-        logoUrl ||
-        "./assets/star-preparatory-school-logo.png";
+    /* Use a bundled logo when no logo URL is stored yet. */
+    const normalizedName =
+        String(organizationName || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\\s+/g, " ");
 
-    organizationName =
-        organizationName ||
-        "Star Preparatory School";
+    const fallback =
+        SCHOOL_BRANDING_FALLBACKS[normalizedName];
+
+    if (!logoUrl && fallback) {
+        logoUrl = fallback.logoUrl;
+    }
+
+    if (!organizationName && fallback) {
+        organizationName = fallback.name;
+    }
+
+    return {
+        name: organizationName || "School",
+        logoUrl: logoUrl || ""
+    };
+}
+
+
+async function displayStudentInformation(result) {
+
+    studentNameElement.textContent =
+        result.studentName ||
+        "Student";
+
+    studentIdElement.textContent =
+        result.studentId ||
+        result.resultAccessCode ||
+        "-";
+
+    studentClassElement.textContent =
+        result.className ||
+        "-";
+
+    academicYearElement.textContent =
+        result.academicYear ||
+        "-";
+
+    currentSchoolBranding =
+        await resolveSchoolBranding(result);
 
     schoolNameElement.textContent =
-        organizationName;
+        currentSchoolBranding.name;
 
     updatePortalHeader(
-        organizationName,
-        logoUrl
+        currentSchoolBranding.name,
+        currentSchoolBranding.logoUrl
     );
 
 }
@@ -741,7 +773,7 @@ function buildTermButtons(
 
             button.addEventListener(
                 "click",
-                () => {
+                async () => {
 
                     /*
                     Find the first result
@@ -768,7 +800,7 @@ function buildTermButtons(
 
                     if (selected) {
 
-                        selectResult(
+                        await selectResult(
                             selected
                         );
 
@@ -795,7 +827,7 @@ SELECT RESULT
 =========================================================
 */
 
-function selectResult(
+async function selectResult(
     result
 ) {
 
@@ -855,15 +887,15 @@ function selectResult(
     );
 
 
+    await displayStudentInformation(
+        result
+    );
+
     renderResult(
         result
     );
 
 }
-
-if (window.virelloLoadResultAttendance) {
-       window.virelloLoadResultAttendance(result);
-   }
 
 
 
@@ -1153,15 +1185,17 @@ function renderResult(
     */
 
     const resultLogo =
+        currentSchoolBranding.logoUrl ||
         result.organizationLogo ||
         result.logoUrl ||
         result.schoolLogoUrl ||
         "./assets/star-preparatory-school-logo.png";
 
     const resultSchoolName =
+        currentSchoolBranding.name ||
         result.organizationName ||
         result.schoolName ||
-        "Star Preparatory School";
+        "School";
 
     resultDisplay.innerHTML = `
 
