@@ -104,8 +104,8 @@ let foundResults = [];
 let selectedResult = null;
 
 let currentSchoolBranding = {
-    name: "",
-    logoUrl: ""
+    name: "Star Preparatory School",
+    logoUrl: "./assets/star-preparatory-school-logo.png"
 };
 
 /*
@@ -123,19 +123,11 @@ const SCHOOL_BRANDING_FALLBACKS = {
         logoUrl: "./assets/star-preparatory-school-logo.png"
     },
     "wam collegiate school": {
-        name: "West African Methodist Collegiate School",
+        name: "WAM Collegiate School",
         logoUrl: "./assets/wam-collegiate-school-logo.png"
     },
     "wam collegiate": {
-        name: "West African Methodist Collegiate School",
-        logoUrl: "./assets/wam-collegiate-school-logo.png"
-    },
-    "west african methodist collegiate school": {
-        name: "West African Methodist Collegiate School",
-        logoUrl: "./assets/wam-collegiate-school-logo.png"
-    },
-    "west african methodist collegiate": {
-        name: "West African Methodist Collegiate School",
+        name: "WAM Collegiate School",
         logoUrl: "./assets/wam-collegiate-school-logo.png"
     }
 };
@@ -598,7 +590,7 @@ async function resolveSchoolBranding(result) {
         String(organizationName || "")
             .trim()
             .toLowerCase()
-            .replace(/\s+/g, " ");
+            .replace(/\\s+/g, " ");
 
     const fallback =
         SCHOOL_BRANDING_FALLBACKS[normalizedName];
@@ -665,15 +657,12 @@ function updatePortalHeader(
 
         schoolLogoElement.innerHTML = "";
 
-        if (!logoUrl) {
-            schoolLogoElement.textContent = "";
-            return;
-        }
-
         const image =
             document.createElement("img");
 
-        image.src = logoUrl;
+        image.src =
+            logoUrl ||
+            "./assets/star-preparatory-school-logo.png";
 
         image.alt =
             `${schoolName} logo`;
@@ -683,7 +672,9 @@ function updatePortalHeader(
         image.style.objectFit = "contain";
 
         image.onerror = () => {
-            schoolLogoElement.innerHTML = "";
+
+            schoolLogoElement.textContent =
+                getSchoolInitials(schoolName);
         };
 
         schoolLogoElement.appendChild(image);
@@ -1198,7 +1189,7 @@ function renderResult(
         result.organizationLogo ||
         result.logoUrl ||
         result.schoolLogoUrl ||
-        "";
+        "./assets/star-preparatory-school-logo.png";
 
     const resultSchoolName =
         currentSchoolBranding.name ||
@@ -1209,16 +1200,12 @@ function renderResult(
     resultDisplay.innerHTML = `
 
         <div style="text-align:center; margin-bottom:20px;">
-            ${
-                resultLogo
-                    ? `<img
-                        class="result-portal-logo"
-                        src="${escapeHTML(resultLogo)}"
-                        alt="${escapeHTML(resultSchoolName)} logo"
-                        onerror="this.style.display='none'"
-                    >`
-                    : ""
-            }
+            <img
+                class="result-portal-logo"
+                src="${escapeHTML(resultLogo)}"
+                alt="${escapeHTML(resultSchoolName)} logo"
+                onerror="this.style.display='none'"
+            >
             <div style="font-size:22px; font-weight:800; color:var(--primary);">
                 ${escapeHTML(resultSchoolName)}
             </div>
