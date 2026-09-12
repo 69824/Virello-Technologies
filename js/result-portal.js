@@ -19,7 +19,9 @@ import {
     collection,
     query,
     where,
-    getDocs
+    getDocs,
+    getDoc,
+    doc
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 import {
@@ -66,6 +68,17 @@ const academicYearElement =
 
 const schoolNameElement =
     document.getElementById("schoolName");
+
+const portalSchoolNameElement =
+    document.getElementById("portalSchoolName");
+
+const schoolLogoElement =
+    document.getElementById("schoolLogo");
+
+/* Optional school-specific portal scope.
+   Example: result-portal.html?organizationId=YOUR_ORGANIZATION_ID */
+const portalOrganizationId =
+    new URLSearchParams(window.location.search).get("organizationId");
 
 const termButtons =
     document.getElementById("termButtons");
@@ -245,7 +258,7 @@ async function handleSearch(event) {
         -------------------------------------------------
         */
 
-        displayStudentInformation(
+        await displayStudentInformation(
             foundResults[0]
         );
 
@@ -324,21 +337,44 @@ async function searchByField(
     from appearing in the public portal.
     */
 
+    const queryConstraints = [
+
+        where(
+            fieldName,
+            "==",
+            value
+        ),
+
+        where(
+            "status",
+            "==",
+            "published"
+        )
+
+    ];
+
+    /*
+       If this portal is assigned to one school, scope the
+       public search to that school's organization ID.
+       This prevents a Student ID shared by two schools from
+       returning another school's published result.
+    */
+    if (portalOrganizationId) {
+
+        queryConstraints.push(
+            where(
+                "organizationId",
+                "==",
+                portalOrganizationId
+            )
+        );
+
+    }
+
     const resultQuery =
         query(
             resultsRef,
-
-            where(
-                fieldName,
-                "==",
-                value
-            ),
-
-            where(
-                "status",
-                "==",
-                "published"
-            )
+            ...queryConstraints
         );
 
 
@@ -475,7 +511,7 @@ DISPLAY STUDENT INFORMATION
 =========================================================
 */
 
-function displayStudentInformation(
+async function displayStudentInformation(
     result
 ) {
 
@@ -483,28 +519,157 @@ function displayStudentInformation(
         result.studentName ||
         "Student";
 
-
     studentIdElement.textContent =
         result.studentId ||
         result.resultAccessCode ||
         "-";
 
-
     studentClassElement.textContent =
         result.className ||
         "-";
-
 
     academicYearElement.textContent =
         result.academicYear ||
         "-";
 
+    let organizationName =
+        result.organizationName ||
+        result.schoolName ||
+        "";
+
+    let logoUrl =
+        result.organizationLogo ||
+        result.logoUrl ||
+        result.schoolLogoUrl ||
+        result.organizationLogoUrl ||
+        "";
+
+    // Load the publishing school's branding from Firestore
+    // when it is not already stored on the result.
+    if (
+        result.organizationId &&
+        (!organizationName || !logoUrl)
+    ) {
+
+        try {
+
+            const organizationSnapshot =
+                await getDoc(
+                    doc(
+                        db,
+                        "organizations",
+                        result.organizationId
+                    )
+                );
+
+            if (organizationSnapshot.exists()) {
+
+                const organization =
+                    organizationSnapshot.data();
+
+                organizationName =
+                    organizationName ||
+                    organization.organizationName ||
+                    organization.name ||
+                    "";
+
+                logoUrl =
+                    logoUrl ||
+                    organization.logoUrl ||
+                    organization.organizationLogo ||
+                    organization.schoolLogoUrl ||
+                    organization.logo ||
+                    "";
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Unable to load publishing school branding:",
+                error
+            );
+        }
+    }
+
+    // Existing Star Preparatory results keep the current logo.
+    logoUrl =
+        logoUrl ||
+        "./assets/star-preparatory-school-logo.png";
+
+    organizationName =
+        organizationName ||
+        "Star Preparatory School";
 
     schoolNameElement.textContent =
-        "Star Preparatory School";
+        organizationName;
+
+    updatePortalHeader(
+        organizationName,
+        logoUrl
+    );
 
 }
 
+
+function updatePortalHeader(
+    schoolName,
+    logoUrl
+) {
+
+    if (portalSchoolNameElement) {
+        portalSchoolNameElement.textContent =
+            schoolName;
+    }
+
+    if (schoolLogoElement) {
+
+        schoolLogoElement.innerHTML = "";
+
+        const image =
+            document.createElement("img");
+
+        image.src =
+            logoUrl ||
+            "./assets/star-preparatory-school-logo.png";
+
+        image.alt =
+            `${schoolName} logo`;
+
+        image.style.width = "100%";
+        image.style.height = "100%";
+        image.style.objectFit = "contain";
+
+        image.onerror = () => {
+
+            schoolLogoElement.textContent =
+                getSchoolInitials(schoolName);
+        };
+
+        schoolLogoElement.appendChild(image);
+    }
+
+}
+
+
+function getSchoolInitials(name) {
+
+    const words =
+        String(name || "School")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+
+    if (words.length === 1) {
+        return words[0]
+            .substring(0, 2)
+            .toUpperCase();
+    }
+
+    return (
+        words[0][0] +
+        words[1][0]
+    ).toUpperCase();
+}
 
 
 /*
@@ -987,13 +1152,30 @@ function renderResult(
     -------------------------------------------------
     */
 
+    const resultLogo =
+        result.organizationLogo ||
+        result.logoUrl ||
+        result.schoolLogoUrl ||
+        "./assets/star-preparatory-school-logo.png";
+
+    const resultSchoolName =
+        result.organizationName ||
+        result.schoolName ||
+        "Star Preparatory School";
+
     resultDisplay.innerHTML = `
 
-        <img
-            class="result-portal-logo"
-            src="./assets/star-preparatory-school-logo.png"
-            alt="Star Preparatory School logo"
-        >
+        <div style="text-align:center; margin-bottom:20px;">
+            <img
+                class="result-portal-logo"
+                src="${escapeHTML(resultLogo)}"
+                alt="${escapeHTML(resultSchoolName)} logo"
+                onerror="this.style.display='none'"
+            >
+            <div style="font-size:22px; font-weight:800; color:var(--primary);">
+                ${escapeHTML(resultSchoolName)}
+            </div>
+        </div>
 
         <div class="result-card-header">
 
