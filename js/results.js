@@ -3128,6 +3128,18 @@ async function saveResult() {
         organizationId:
             currentOrganization.id,
 
+        organizationName:
+            currentOrganization.organizationName ||
+            currentOrganization.name ||
+            "",
+
+        organizationLogo:
+            currentOrganization.logoUrl ||
+            currentOrganization.organizationLogo ||
+            currentOrganization.schoolLogoUrl ||
+            currentOrganization.logo ||
+            "",
+
         studentId:
             selectedStudent.studentId ||
             "",
