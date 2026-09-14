@@ -6,14 +6,8 @@
    Firebase Storage, so the Scheme of Work feature does not
    require Firebase Storage billing.
 
-   Replace the two values below with your Cloudinary details.
    Never put your Cloudinary API Secret in this file.
 ========================================================= */
 
 export const CLOUDINARY_CLOUD_NAME = "kqyhrrh2";
 export const CLOUDINARY_UPLOAD_PRESET = "virello_scheme_upload";
-
-export {
-    CLOUDINARY_CLOUD_NAME,
-    CLOUDINARY_UPLOAD_PRESET
-};
