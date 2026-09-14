@@ -10,8 +10,8 @@
    Never put your Cloudinary API Secret in this file.
 ========================================================= */
 
-const CLOUDINARY_CLOUD_NAME = "YOUR_CLOUD_NAME";
-const CLOUDINARY_UPLOAD_PRESET = "YOUR_UNSIGNED_UPLOAD_PRESET";
+export const CLOUDINARY_CLOUD_NAME = "kqyhrrh2";
+export const CLOUDINARY_UPLOAD_PRESET = "virello_scheme_upload";
 
 export {
     CLOUDINARY_CLOUD_NAME,
