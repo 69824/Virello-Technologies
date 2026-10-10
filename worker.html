@@ -869,6 +869,16 @@
             Check In
         </button>
 
+        <!-- Early arrival claim: submitted for senior teacher/admin review -->
+        <section id="earlyArrivalSection" style="display:none;margin-top:18px;padding:16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;text-align:left;">
+            <h3 style="margin:0 0 8px;color:#1e3a8a;font-size:16px;">Arrived Before the Cutoff?</h3>
+            <p style="margin:0 0 12px;color:#334155;font-size:13px;line-height:1.5;">If you were already at school before 8:05 AM but the scanner was not available, submit your actual arrival time. A senior teacher or administrator must approve it before your attendance is corrected.</p>
+            <label for="earlyArrivalTime" style="display:block;margin-bottom:6px;font-weight:600;font-size:13px;">Your claimed arrival time</label>
+            <input id="earlyArrivalTime" type="time" value="07:45" style="box-sizing:border-box;width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;background:white;margin-bottom:10px;">
+            <button type="button" id="submitEarlyArrivalClaim" class="primary-button" style="width:100%;">Submit Early-Arrival Claim</button>
+            <p id="earlyArrivalClaimMessage" role="status" style="margin:10px 0 0;font-size:13px;"></p>
+        </section>
+
 
         <div
             id="workerInfo"
