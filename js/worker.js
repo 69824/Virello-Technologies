@@ -302,6 +302,9 @@ document.addEventListener(
 
         }
 
+        const earlyClaimButton = document.getElementById("submitEarlyArrivalClaim");
+        if (earlyClaimButton) earlyClaimButton.addEventListener("click", handleEarlyArrivalClaim);
+
 
         if (staffIdInput) {
 
@@ -449,6 +452,8 @@ async function verifyStaffFromInput() {
 
 
         currentStaff = staff;
+        const earlyArrivalSection = document.getElementById("earlyArrivalSection");
+        if (earlyArrivalSection) earlyArrivalSection.style.display = "block";
         currentAttendance = null;
         currentLeaveRequest = null;
         currentLeaveState = "none";
@@ -3017,6 +3022,8 @@ async function handleCheckIn() {
         currentStaff =
             staff;
 
+        const earlyArrivalSection = document.getElementById("earlyArrivalSection");
+        if (earlyArrivalSection) earlyArrivalSection.style.display = "block";
 
         currentAttendance =
             null;
@@ -3330,7 +3337,43 @@ async function handleCheckIn() {
    QR VALIDITY
 ========================================================= */
 
-function isOfficeQRStillValid() {
+/* =================================================
+   EARLY ARRIVAL CLAIM
+   Claim is kept separate from attendance until approved.
+================================================= */
+async function handleEarlyArrivalClaim() {
+    const button = document.getElementById("submitEarlyArrivalClaim");
+    const timeInput = document.getElementById("earlyArrivalTime");
+    const message = document.getElementById("earlyArrivalClaimMessage");
+    const setMessage = (text, ok=false) => { if (message) { message.textContent=text; message.style.color=ok?"#166534":"#b91c1c"; } };
+    if (!officeQRVerified || !isOfficeQRStillValid()) { setMessage("Please scan the current official Office QR before submitting a claim."); return; }
+    const staffId = String(staffIdInput?.value || "").trim();
+    if (!staffId) { setMessage("Enter your Staff ID first."); return; }
+    const time = String(timeInput?.value || "").trim();
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { setMessage("Choose your actual arrival time."); return; }
+    const [hour, minute] = time.split(":").map(Number);
+    if (hour > 8 || (hour === 8 && minute > 5)) { setMessage("The claimed arrival time must be 8:05 AM or earlier."); return; }
+    if (button) { button.disabled=true; button.textContent="Submitting..."; }
+    try {
+        const staff = await findStaff(staffId);
+        if (!staff || String(staff.status || "active").toLowerCase() !== "active") throw new Error("Active staff verification failed. Check your Staff ID.");
+        const today = getDateKey();
+        const existing = await getDocs(query(collection(db,"earlyArrivalClaims"), where("staffDocumentId","==",staff.id), where("date","==",today)));
+        const unresolved = existing.docs.find(d => !["rejected","declined"].includes(String(d.data().status||"pending").toLowerCase()));
+        if (unresolved) throw new Error("You already have an early-arrival claim for today. Please wait for the senior teacher or administrator to review it.");
+        await addDoc(collection(db,"earlyArrivalClaims"), {
+            staffDocumentId: staff.id, staffId: staff.staffId, staffName: staff.fullName || staff.name || "Staff Member",
+            organizationId: staff.organizationId || null, date: today, claimedArrivalTime: time,
+            status: "pending", submittedAt: serverTimestamp(), reviewedAt: null, reviewedBy: null,
+            attendanceId: null, officeQRTimestamp: officeQRTimestamp, officeQRToken: officeQRToken
+        });
+        setMessage("Your claim has been submitted. It will not change your attendance until approved by a senior teacher or administrator.", true);
+        if (button) { button.textContent="Claim Submitted"; button.disabled=true; }
+    } catch (error) { setMessage(error.message || "Unable to submit your claim."); if (button) { button.disabled=false; button.textContent="Submit Early-Arrival Claim"; } }
+}
+
+
+function isOfficeQRStillValid() {function isOfficeQRStillValid() {
 
     if (
         !officeQRVerified ||
