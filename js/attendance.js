@@ -48,7 +48,9 @@ import {
     getDocs,
     addDoc,
     updateDoc,
-    doc
+    doc,
+    writeBatch,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 
@@ -155,10 +157,10 @@ document.addEventListener(
 
 /* =========================================================
    EARLY-ARRIVAL CLAIMS — ADMINISTRATOR VIEW
+   Approving a claim updates the staff member's attendance to Present.
 ========================================================= */
 
 async function loadEarlyArrivalClaims() {
-
     const tableBody = document.getElementById("earlyArrivalClaimsBody");
     const message = document.getElementById("earlyArrivalClaimsMessage");
 
@@ -177,12 +179,10 @@ async function loadEarlyArrivalClaims() {
             return;
         }
 
-        // Firestore rules are not filters: always query only this organization.
         const claimsQuery = query(
             collection(db, "earlyArrivalClaims"),
             where("organizationId", "==", currentOrganization.id)
         );
-
         const snapshot = await getDocs(claimsQuery);
 
         if (snapshot.empty) {
@@ -229,9 +229,31 @@ async function loadEarlyArrivalClaims() {
             statusCell.appendChild(statusLabel);
 
             const actionCell = document.createElement("td");
-            actionCell.textContent = status === "pending" ? "Awaiting review" :
-                status === "approved" ? "Reviewed" :
-                (status === "rejected" || status === "declined") ? "Closed" : "Check status";
+            if (status === "pending") {
+                const approveButton = document.createElement("button");
+                approveButton.type = "button";
+                approveButton.textContent = "Approve";
+                approveButton.title = `Approve ${claim.staffName || claim.staffId || "this staff member"}'s arrival claim`;
+                approveButton.style.cssText = "border:0;border-radius:6px;padding:7px 10px;margin:2px;background:#15803d;color:#fff;font-weight:600;cursor:pointer;";
+                approveButton.addEventListener("click", () => reviewEarlyArrivalClaim(claim, "approved", approveButton, rejectButton));
+
+                const rejectButton = document.createElement("button");
+                rejectButton.type = "button";
+                rejectButton.textContent = "Reject";
+                rejectButton.title = "Reject this arrival claim";
+                rejectButton.style.cssText = "border:0;border-radius:6px;padding:7px 10px;margin:2px;background:#b91c1c;color:#fff;font-weight:600;cursor:pointer;";
+                rejectButton.addEventListener("click", () => reviewEarlyArrivalClaim(claim, "rejected", approveButton, rejectButton));
+
+                actionCell.append(approveButton, rejectButton);
+            } else if (status === "approved") {
+                actionCell.textContent = "Attendance marked Present";
+                actionCell.style.color = "#166534";
+            } else if (status === "rejected" || status === "declined") {
+                actionCell.textContent = "Request rejected";
+                actionCell.style.color = "#991b1b";
+            } else {
+                actionCell.textContent = "Check status";
+            }
 
             row.append(staffCell, dateCell, timeCell, statusCell, actionCell);
             tableBody.appendChild(row);
@@ -239,16 +261,116 @@ async function loadEarlyArrivalClaims() {
 
         message.textContent = `${claims.length} early-arrival claim(s) found.`;
         console.log("Early-arrival claims loaded:", claims.length);
-
     } catch (error) {
         console.error("Unable to load early-arrival claims:", error);
-
-        if (error && (error.code === "permission-denied" || error.code === "firestore/permission-denied")) {
-            message.textContent = "Permission denied. Check the administrator's organization access and Firestore rules.";
-        } else {
-            message.textContent = "Unable to load claims. Check the browser console for details.";
-        }
+        message.textContent = (error && (error.code === "permission-denied" || error.code === "firestore/permission-denied"))
+            ? "Permission denied. Check the administrator's organization access and Firestore rules."
+            : "Unable to load claims. Check the browser console for details.";
         message.style.color = "#b91c1c";
+    }
+}
+
+async function reviewEarlyArrivalClaim(claim, decision, approveButton, rejectButton) {
+    const message = document.getElementById("earlyArrivalClaimsMessage");
+    const buttons = [approveButton, rejectButton].filter(Boolean);
+
+    if (!currentUser || !currentOrganization || claim.organizationId !== currentOrganization.id) {
+        if (message) message.textContent = "You are not authorized to review this organization's claim.";
+        return;
+    }
+    if (!['approved', 'rejected'].includes(decision)) return;
+
+    buttons.forEach(button => { button.disabled = true; button.style.opacity = "0.65"; });
+    if (message) message.textContent = decision === "approved" ? "Approving claim and updating attendance..." : "Rejecting claim...";
+
+    try {
+        const claimRef = doc(db, "earlyArrivalClaims", claim.id);
+        const batch = writeBatch(db);
+        const claimUpdate = {
+            status: decision,
+            reviewedAt: serverTimestamp(),
+            reviewedBy: currentUser.uid
+        };
+
+        if (decision === "approved") {
+            // Look up attendance for the claim's own date, not only the date
+            // currently selected in the administrator's attendance register.
+            const matchingAttendanceQuery = query(
+                collection(db, "attendance"),
+                where("organizationId", "==", claim.organizationId),
+                where("date", "==", claim.date),
+                where("staffDocumentId", "==", claim.staffDocumentId)
+            );
+            const attendanceSnapshot = await getDocs(matchingAttendanceQuery);
+            let attendanceRef;
+
+            if (!attendanceSnapshot.empty) {
+                const existingAttendance = attendanceSnapshot.docs[0];
+                attendanceRef = existingAttendance.ref;
+                const existingData = existingAttendance.data();
+                const attendanceUpdate = {
+                    status: "present",
+                    attendanceType: "present",
+                    checkIn: claim.claimedArrivalTime,
+                    claimedArrivalTime: claim.claimedArrivalTime,
+                    earlyArrivalClaimId: claim.id,
+                    earlyArrivalClaimApproved: true,
+                    updatedAt: serverTimestamp()
+                };
+                // Preserve the scanner's original value for audit if it existed.
+                if (existingData.checkIn !== undefined && existingData.checkIn !== null) {
+                    attendanceUpdate.originalCheckIn = existingData.originalCheckIn ?? existingData.checkIn;
+                }
+                batch.update(attendanceRef, attendanceUpdate);
+            } else {
+                attendanceRef = doc(collection(db, "attendance"));
+                batch.set(attendanceRef, {
+                    organizationId: claim.organizationId,
+                    staffDocumentId: claim.staffDocumentId,
+                    staffId: claim.staffId || "",
+                    staffName: claim.staffName || "Staff Member",
+                    date: claim.date,
+                    status: "present",
+                    attendanceType: "present",
+                    checkIn: claim.claimedArrivalTime,
+                    checkOut: null,
+                    claimedArrivalTime: claim.claimedArrivalTime,
+                    earlyArrivalClaimId: claim.id,
+                    earlyArrivalClaimApproved: true,
+                    attendanceAccess: "approved_early_arrival_claim",
+                    attendanceCompleted: false,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    recordedBy: currentUser.uid
+                });
+            }
+            claimUpdate.attendanceId = attendanceRef.id;
+        }
+
+        batch.update(claimRef, claimUpdate);
+        await batch.commit();
+
+        // Refresh both views so the administrator sees the outcome immediately.
+        await loadAttendance();
+        renderAttendanceTable();
+        updateStatistics();
+        await loadEarlyArrivalClaims();
+
+        if (message) {
+            message.textContent = decision === "approved"
+                ? `Claim approved. ${claim.staffName || "Staff member"} is now marked Present for ${claim.date}.`
+                : `Claim rejected for ${claim.staffName || "staff member"}. Attendance was not changed.`;
+            message.style.color = decision === "approved" ? "#166534" : "#991b1b";
+        }
+    } catch (error) {
+        console.error(`Unable to ${decision} early-arrival claim:`, error);
+        if (message) {
+            message.textContent = error && (error.code === "permission-denied" || error.code === "firestore/permission-denied")
+                ? "Review was blocked by Firestore permissions. Make sure the current rules are deployed."
+                : `Unable to ${decision} claim. Please check the browser console.`;
+            message.style.color = "#b91c1c";
+        }
+        buttons.forEach(button => { button.disabled = false; button.style.opacity = "1"; });
     }
 }
 
