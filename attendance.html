@@ -1849,6 +1849,23 @@
 
 
         <!-- =================================================
+             EARLY ARRIVAL CLAIMS
+        ================================================== -->
+        <section class="register-card" style="margin-bottom:24px;">
+            <div class="register-header">
+                <h2>🕒 Early-Arrival Claims for Review</h2>
+                <p>Review staff who say they arrived by 8:05 AM before the scanner was available. Approval corrects the attendance record; the original scan time is retained for audit.</p>
+            </div>
+            <div id="earlyArrivalClaimsMessage" role="status" style="margin:8px 0;color:#475569;font-size:13px;">Loading claims...</div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%;">
+                    <thead><tr><th>Staff Member</th><th>Date</th><th>Claimed Arrival</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody id="earlyArrivalClaimsBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- =================================================
              ATTENDANCE REGISTER
         ================================================== -->
 
