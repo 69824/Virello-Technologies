@@ -2291,6 +2291,115 @@ function showError(
 
 }
 
+/* =========================================================
+   EARLY-ARRIVAL CLAIMS — ADMINISTRATOR VIEW
+========================================================= */
+
+async function loadEarlyArrivalClaims() {
+    const tableBody = document.getElementById("earlyArrivalClaimsBody");
+    const message = document.getElementById("earlyArrivalClaimsMessage");
+
+    if (!tableBody || !message) {
+        console.error("Early-arrival claims table elements not found.");
+        return;
+    }
+
+    tableBody.replaceChildren();
+    message.textContent = "Loading claims...";
+
+    try {
+        if (!currentOrganization || !currentOrganization.id) {
+            message.textContent = "No organization is selected for this administrator.";
+            return;
+        }
+
+        // Restrict the query to this administrator's organization.
+        const claimsQuery = query(
+            collection(db, "earlyArrivalClaims"),
+            where("organizationId", "==", currentOrganization.id)
+        );
+
+        const snapshot = await getDocs(claimsQuery);
+
+        if (snapshot.empty) {
+            message.textContent = "No early-arrival claims found for this organization.";
+            return;
+        }
+
+        const claims = snapshot.docs.map(documentSnapshot => ({
+            id: documentSnapshot.id,
+            ...documentSnapshot.data()
+        }));
+
+        // Show newest dates first.
+        claims.sort((a, b) => {
+            const dateComparison = String(b.date || "")
+                .localeCompare(String(a.date || ""));
+
+            if (dateComparison !== 0) return dateComparison;
+
+            return String(b.claimedArrivalTime || "")
+                .localeCompare(String(a.claimedArrivalTime || ""));
+        });
+
+        for (const claim of claims) {
+            const row = document.createElement("tr");
+
+            const staffCell = document.createElement("td");
+            staffCell.textContent = claim.staffName || claim.staffId || "Unknown staff";
+
+            const dateCell = document.createElement("td");
+            dateCell.textContent = claim.date || "—";
+
+            const timeCell = document.createElement("td");
+            timeCell.textContent = claim.claimedArrivalTime
+                ? `${claim.claimedArrivalTime} (claimed)`
+                : "—";
+
+            const statusCell = document.createElement("td");
+            const status = String(claim.status || "pending").toLowerCase();
+            statusCell.textContent =
+                status.charAt(0).toUpperCase() + status.slice(1);
+
+            const actionCell = document.createElement("td");
+
+            if (status === "pending") {
+                actionCell.textContent = "Awaiting review";
+            } else if (status === "approved") {
+                actionCell.textContent = "Reviewed";
+            } else if (status === "rejected" || status === "declined") {
+                actionCell.textContent = "Closed";
+            } else {
+                actionCell.textContent = "Check status";
+            }
+
+            row.append(
+                staffCell,
+                dateCell,
+                timeCell,
+                statusCell,
+                actionCell
+            );
+
+            tableBody.appendChild(row);
+        }
+
+        message.textContent =
+            `${claims.length} early-arrival claim(s) found.`;
+
+        console.log("Early-arrival claims loaded:", claims.length);
+
+    } catch (error) {
+        console.error("Unable to load early-arrival claims:", error);
+
+        message.textContent =
+            error.code === "permission-denied"
+                ? "Permission denied. Check the administrator's organization access and Firestore rules."
+                : "Unable to load claims. Check the browser console for details.";
+    }
+}
+
+
 
 /* =========================================================
    FINAL
