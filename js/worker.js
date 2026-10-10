@@ -3345,113 +3345,34 @@ async function handleEarlyArrivalClaim() {
     const button = document.getElementById("submitEarlyArrivalClaim");
     const timeInput = document.getElementById("earlyArrivalTime");
     const message = document.getElementById("earlyArrivalClaimMessage");
-
-    const setMessage = (text, ok = false) => {
-        if (message) {
-            message.textContent = text;
-            message.style.color = ok ? "#166534" : "#b91c1c";
-        }
-    };
-
-    if (!officeQRVerified || !isOfficeQRStillValid()) {
-        setMessage("Please scan the current official Office QR before submitting a claim.");
-        return;
-    }
-
+    const setMessage = (text, ok=false) => { if (message) { message.textContent=text; message.style.color=ok?"#166534":"#b91c1c"; } };
+    if (!officeQRVerified || !isOfficeQRStillValid()) { setMessage("Please scan the current official Office QR before submitting a claim."); return; }
     const staffId = String(staffIdInput?.value || "").trim();
-
-    if (!staffId) {
-        setMessage("Enter your Staff ID first.");
-        return;
-    }
-
+    if (!staffId) { setMessage("Enter your Staff ID first."); return; }
     const time = String(timeInput?.value || "").trim();
-
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
-        setMessage("Choose your actual arrival time.");
-        return;
-    }
-
-    if (time > "08:05") {
-        setMessage("The claimed arrival time must be 8:05 AM or earlier.");
-        return;
-    }
-
-    if (button) {
-        button.disabled = true;
-        button.textContent = "Submitting...";
-    }
-
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { setMessage("Choose your actual arrival time."); return; }
+    const [hour, minute] = time.split(":").map(Number);
+    if (hour > 8 || (hour === 8 && minute > 5)) { setMessage("The claimed arrival time must be 8:05 AM or earlier."); return; }
+    if (button) { button.disabled=true; button.textContent="Submitting..."; }
     try {
         const staff = await findStaff(staffId);
-
-        if (
-            !staff ||
-            String(staff.status || "active").toLowerCase() !== "active"
-        ) {
-            throw new Error(
-                "Active staff verification failed. Check your Staff ID."
-            );
-        }
-
-        if (!staff.organizationId) {
-            throw new Error(
-                "Your staff profile has no organization ID. Please contact the administrator."
-            );
-        }
-
+        if (!staff || String(staff.status || "active").toLowerCase() !== "active") throw new Error("Active staff verification failed. Check your Staff ID.");
         const today = getDateKey();
-
-        // One predictable document per staff member per day.
-        // This removes the permission-blocked query over all claims.
+        // Use a predictable document ID instead of querying claims from the
+        // public worker screen. Claim reads are restricted to administrators,
+        // so a worker-side collection query would fail Firestore security rules.
         const claimId = `${staff.id}_${today}`;
-
-        await setDoc(
-            doc(db, "earlyArrivalClaims", claimId),
-            {
-                staffDocumentId: staff.id,
-                staffId: staff.staffId,
-                staffName: staff.fullName || staff.name || "Staff Member",
-                organizationId: staff.organizationId,
-                date: today,
-                claimedArrivalTime: time,
-                status: "pending",
-                submittedAt: serverTimestamp(),
-                reviewedAt: null,
-                reviewedBy: null,
-                attendanceId: null,
-                officeQRTimestamp: officeQRTimestamp,
-                officeQRToken: officeQRToken
-            }
-        );
-
-        setMessage(
-            "Your claim has been submitted for review. Your attendance will not change until an authorized reviewer approves it.",
-            true
-        );
-
-        if (button) {
-            button.textContent = "Claim Submitted";
-            button.disabled = true;
-        }
-
-    } catch (error) {
-        console.error("Early-arrival claim submission failed:", error);
-
-        if (error.code === "permission-denied") {
-            setMessage(
-                "Firestore rejected the claim. Check the early-arrival rules, staff organization ID, and whether a claim already exists for today."
-            );
-        } else {
-            setMessage(error.message || "Unable to submit your claim.");
-        }
-
-        if (button) {
-            button.disabled = false;
-            button.textContent = "Submit Early-Arrival Claim";
-        }
-    }
+        await setDoc(doc(db, "earlyArrivalClaims", claimId), {
+            staffDocumentId: staff.id, staffId: staff.staffId, staffName: staff.fullName || staff.name || "Staff Member",
+            organizationId: staff.organizationId, date: today, claimedArrivalTime: time,
+            status: "pending", submittedAt: serverTimestamp(), reviewedAt: null, reviewedBy: null,
+            attendanceId: null, officeQRTimestamp: officeQRTimestamp, officeQRToken: officeQRToken
+        });
+        setMessage("Your claim has been submitted. It will not change your attendance until approved by a senior teacher or administrator.", true);
+        if (button) { button.textContent="Claim Submitted"; button.disabled=true; }
+    } catch (error) { setMessage(error.message || "Unable to submit your claim."); if (button) { button.disabled=false; button.textContent="Submit Early-Arrival Claim"; } }
 }
+
 
 function isOfficeQRStillValid() {
 
