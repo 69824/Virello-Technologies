@@ -3373,7 +3373,7 @@ async function handleEarlyArrivalClaim() {
 }
 
 
-function isOfficeQRStillValid() {function isOfficeQRStillValid() {
+function isOfficeQRStillValid() {
 
     if (
         !officeQRVerified ||
