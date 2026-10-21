@@ -206,6 +206,25 @@ const employmentType =
 const staffStatus =
     document.getElementById("staffStatus");
 
+const workStartTime = document.getElementById("workStartTime");
+const workEndTime = document.getElementById("workEndTime");
+const workDayCheckboxes = () => Array.from(document.querySelectorAll(".work-day"));
+
+function readWorkSchedule() {
+    return {
+        days: workDayCheckboxes().filter(el => el.checked).map(el => Number(el.value)),
+        startTime: workStartTime?.value || "",
+        endTime: workEndTime?.value || ""
+    };
+}
+
+function fillWorkSchedule(schedule = {}) {
+    const days = Array.isArray(schedule.days) ? schedule.days.map(Number) : [];
+    workDayCheckboxes().forEach(el => { el.checked = days.includes(Number(el.value)); });
+    if (workStartTime) workStartTime.value = schedule.startTime || "";
+    if (workEndTime) workEndTime.value = schedule.endTime || "";
+}
+
 
 /* =========================================================
    EXTRA FORM CONTROLS
@@ -2360,6 +2379,8 @@ function openEditStaff(
         staff.employmentType ||
         "";
 
+    fillWorkSchedule(staff.workSchedule || {});
+
 
     staffStatus.value =
         staff.status ||
@@ -2715,6 +2736,12 @@ if (addStaffForm) {
             const employment =
                 employmentType.value;
 
+            const workSchedule = readWorkSchedule();
+            if (employment === "Part Time" && workSchedule.days.length > 0 && (!workSchedule.startTime || !workSchedule.endTime)) {
+                showFormMessage("Please enter both expected arrival and finish times for this part-time staff member.", "error");
+                return;
+            }
+
 
             const status =
                 staffStatus.value;
@@ -2895,6 +2922,8 @@ if (addStaffForm) {
 
                         employment,
 
+                        workSchedule,
+
                         status,
 
                         role,
@@ -3048,6 +3077,8 @@ if (addStaffForm) {
 
                         employmentType:
                             employment,
+
+                        workSchedule,
 
                         status,
 
@@ -3768,6 +3799,8 @@ async function updateExistingStaff(
 
         employmentType:
             data.employment,
+
+        workSchedule: data.workSchedule || readWorkSchedule(),
 
         status:
             data.status,
