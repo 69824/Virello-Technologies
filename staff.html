@@ -1777,6 +1777,26 @@
                 </div>
 
 
+                <!-- INDIVIDUAL WORK SCHEDULE (used for attendance reports) -->
+
+                <div class="form-group" id="workScheduleGroup" style="grid-column:1 / -1; border:1px solid #d9e2ec; border-radius:12px; padding:16px; margin-top:8px;">
+                    <label style="font-weight:700;">Weekly Work Schedule</label>
+                    <p style="margin:6px 0 12px;color:#64748b;font-size:13px;">For part-time staff, select the days this person is expected to work and enter their individual working hours. Unselected days will show as Not Scheduled, not Absent.</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                        <label><input type="checkbox" class="work-day" value="1"> Monday</label>
+                        <label><input type="checkbox" class="work-day" value="2"> Tuesday</label>
+                        <label><input type="checkbox" class="work-day" value="3"> Wednesday</label>
+                        <label><input type="checkbox" class="work-day" value="4"> Thursday</label>
+                        <label><input type="checkbox" class="work-day" value="5"> Friday</label>
+                        <label><input type="checkbox" class="work-day" value="6"> Saturday</label>
+                        <label><input type="checkbox" class="work-day" value="0"> Sunday</label>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;">
+                        <div style="min-width:180px;flex:1"><label for="workStartTime">Expected arrival</label><input type="time" id="workStartTime"></div>
+                        <div style="min-width:180px;flex:1"><label for="workEndTime">Expected finish</label><input type="time" id="workEndTime"></div>
+                    </div>
+                </div>
+
                 <!-- STATUS -->
 
                 <div class="form-group">
