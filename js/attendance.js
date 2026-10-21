@@ -922,6 +922,11 @@ function renderAttendanceTable() {
                 staff.jobTitle ||
                 "Staff";
 
+            const schedule = staff.workSchedule || {};
+            const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const scheduleSummary = Array.isArray(schedule.days) && schedule.days.length
+                ? `Schedule: ${schedule.days.map(Number).sort((a,b)=>a-b).map(day=>dayNames[day]).join(", ")}${schedule.startTime && schedule.endTime ? ` · ${schedule.startTime}–${schedule.endTime}` : ""}`
+                : (String(staff.employmentType || "").toLowerCase() === "part time" ? "Schedule not configured" : "");
 
             const initials =
                 getInitials(
@@ -954,7 +959,9 @@ function renderAttendanceTable() {
 
             const status =
                 getAttendanceStatus(
-                    record
+                    record,
+                    staff,
+                    selectedDate
                 );
 
 
@@ -977,6 +984,7 @@ function renderAttendanceTable() {
                             <div class="attendance-position">
                                 ${escapeHtml(position)}
                             </div>
+                            ${scheduleSummary ? `<div style="font-size:11px;color:#64748b;margin-top:3px;">${escapeHtml(scheduleSummary)}</div>` : ""}
 
                         </div>
 
@@ -1009,10 +1017,7 @@ function renderAttendanceTable() {
 
                     <div class="attendance-actions">
 
-                        ${getActionButton(
-                            staff,
-                            record
-                        )}
+                        ${status === "not-scheduled" ? '<span style="color:#64748b;font-size:12px;">No attendance required</span>' : status === "schedule-missing" ? '<span style="color:#92400e;font-size:12px;">Set work days first</span>' : getActionButton(staff, record)}
 
                     </div>
 
@@ -1098,13 +1103,25 @@ function findAttendanceRecord(
 ========================================================= */
 
 function getAttendanceStatus(
-    record
+    record,
+    staff = null,
+    dateString = selectedDate
 ) {
 
+    // A configured weekly schedule takes precedence over the generic absence rule.
+    // Day numbers follow JavaScript convention: Sunday=0 through Saturday=6.
+    const schedule = staff?.workSchedule;
+    const hasConfiguredSchedule = schedule && Array.isArray(schedule.days) && schedule.days.length > 0;
+    if (String(staff?.employmentType || "").toLowerCase() === "part time" && !hasConfiguredSchedule) {
+        return "schedule-missing";
+    }
+    if (hasConfiguredSchedule && dateString) {
+        const day = new Date(`${dateString}T12:00:00`).getDay();
+        if (!schedule.days.map(Number).includes(day)) return "not-scheduled";
+    }
+
     if (!record) {
-
         return "absent";
-
     }
 
 
@@ -1114,6 +1131,13 @@ function getAttendanceStatus(
             ""
         ).toLowerCase();
 
+
+    if (status === "not-scheduled") {
+        return `<span class="attendance-status" style="background:#e2e8f0;color:#334155;">Not Scheduled</span>`;
+    }
+    if (status === "schedule-missing") {
+        return `<span class="attendance-status" style="background:#fef3c7;color:#92400e;">Schedule Needed</span>`;
+    }
 
     if (
         status === "late"
